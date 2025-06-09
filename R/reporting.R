@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: reporting.R (VERSIÓN FINAL, CORRECCIÓN SE EN TOTALES)
+# Archivo: reporting.R (VERSIÓN FINAL, CORRECCIÓN SEPARADOR)
 # ---------------------------------------------------------------------------- #
 
 # --- Ayudante para fusionar celdas ---
@@ -64,7 +64,8 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
 
     joined_df <- reduce(tablas_renombradas, function(x, y) full_join(x, y, by = keys))
 
-    grp_des <- if (combo_name == "nac") character(0) else strsplit(combo_name, "_")[[1]]
+    # --- CORRECCIÓN SEPARADOR ---
+    grp_des <- if (combo_name == "nac") character(0) else strsplit(combo_name, "__")[[1]]
 
     if (type == "prop") {
       all_levels_to_use <- c(all_levels_des[grp_des], all_levels_var)
@@ -137,15 +138,14 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
   make_prop_block <- function(df_wide, grp_des, metric_cols, factor_levels_list) {
     base_tbl <- df_wide %>% select(all_of(c(grp_des, var, metric_cols)))
 
-    # --- CORRECCIÓN CLAVE: LÓGICA DE TOTALES CON CASE_WHEN ---
     subtot <- base_tbl %>%
       group_by(across(all_of(grp_des))) %>%
       summarise(
         !!sym(var) := "Total",
         across(all_of(metric_cols), ~ case_when(
-          startsWith(cur_column(), "prop_") ~ 1,      # El total de la proporción es 100%
-          startsWith(cur_column(), "se_")   ~ 0,      # El SE de un total de 100% es 0
-          TRUE                              ~ sum(.x, na.rm = TRUE) # Sumar el resto (n_mues, N_pob)
+          startsWith(cur_column(), "prop_") ~ 1,
+          startsWith(cur_column(), "se_")   ~ 0,
+          TRUE                              ~ sum(.x, na.rm = TRUE)
         )),
         .groups = "drop"
       )
@@ -171,7 +171,8 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
   }
 
   for (combo in names(hojas_list)) {
-    grp_des <- if (combo == "nac") character(0) else strsplit(combo, "_")[[1]]
+    # --- CORRECCIÓN SEPARADOR ---
+    grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
     hoja_nm <- paste0("2_Formato_", combo)
     openxlsx::addWorksheet(wb, hoja_nm)
     df_combo_wide <- hojas_list[[combo]]
@@ -235,7 +236,8 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
   total_row <- hojas_list[["nac"]]
 
   for (combo in names(hojas_list)) {
-    grp_des <- if (combo == "nac") character(0) else strsplit(combo, "_")[[1]]
+    # --- CORRECCIÓN SEPARADOR ---
+    grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
 
     hoja_nm <- paste0("2_Formato_", combo)
     openxlsx::addWorksheet(wb, hoja_nm)

@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: public_api.R (VERSIÓN FINAL Y VERIFICADA)
+# Archivo: public_api.R (VERSIÓN FINAL, CORRECCIÓN SEPARADOR)
 # ---------------------------------------------------------------------------- #
 
 #' @title Internal helper function for a single worker process
@@ -104,6 +104,7 @@ obs_prop <- function(designs,
     p(message = "Fase 4/4: Generando archivo Excel...")
     if (save_xlsx) {
       if (!dir.exists("output")) dir.create("output")
+      # --- CORRECCIÓN SEPARADOR ---
       des_tag <- if (!is.null(des)) paste0("_", paste(des, collapse = "-")) else "_nac"
       filename <- file.path("output", paste0(var, des_tag, "_", paste(sufijo, collapse = "-"), "_PROP.xlsx"))
 
@@ -207,6 +208,7 @@ obs_media <- function(designs,
     p(message = "Fase 4/4: Generando archivo Excel...")
     if (save_xlsx) {
       if (!dir.exists("output")) dir.create("output")
+      # --- CORRECCIÓN SEPARADOR ---
       des_tag <- if (!is.null(des)) paste0("_", paste(des, collapse = "-")) else "_nac"
       filename <- file.path("output", paste0(var, des_tag, "_", paste(sufijo, collapse = "-"), "_MEDIA.xlsx"))
 

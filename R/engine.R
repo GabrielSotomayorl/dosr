@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: engine.R (Versión Correcta y Final)
+# Archivo: engine.R (VERSIÓN FINAL, CORRECCIÓN SEPARADOR)
 # ---------------------------------------------------------------------------- #
 
 #' @title Internal calculation engine for survey estimates
@@ -11,23 +11,16 @@ calculate_estimates <- function(dsgn,
 
   type <- match.arg(type)
 
-  # --- LÓGICA DE TRANSFORMACIÓN (COMO EN EL SCRIPT ORIGINAL) ---
-  # El objeto `dsgn` llega aquí ligero pero con los datos intactos (con etiquetas).
-
-  # 1. Aplicar filtro de texto (si existe)
   if (!is.null(filt) && nzchar(filt)) {
-    # Esto funciona porque dplyr/haven saben filtrar sobre columnas etiquetadas.
     dsgn <- dsgn %>% srvyr::filter(!!rlang::parse_expr(filt))
   }
 
-  # 2. Convertir variables de desagregación/interés a factores
   if (type == "prop") {
-    # Para proporciones, `var` y `des` se convierten en factores usando sus etiquetas.
     dsgn <- dsgn %>% srvyr::mutate(across(all_of(c(var, des)), haven::as_factor))
     if (rm_na_var) {
       dsgn <- dsgn %>% srvyr::filter(!is.na(.data[[var]]))
     }
-  } else { # type == "mean"
+  } else {
     if (!is.null(des)) {
       dsgn <- dsgn %>% srvyr::mutate(across(all_of(des), haven::as_factor))
     }
@@ -36,13 +29,11 @@ calculate_estimates <- function(dsgn,
     }
   }
 
-  # 3. Preparar data.frame base para cálculos de tamaño muestral
   base_df <- dsgn$variables %>%
     mutate(.w   = .data[[weight_var]],
            .psu = .data[[psu_var]],
            .str = .data[[strata_var]])
 
-  # --- CÁLCULOS (SIN CAMBIOS) ---
   calc_tabla <- function(grp_des) {
     if (type == "prop") {
       grp_vars <- c(grp_des, var)
@@ -109,7 +100,8 @@ calculate_estimates <- function(dsgn,
   }
 
   tablas_loc <- purrr::map(combos, calc_tabla)
-  names(tablas_loc) <- purrr::map_chr(combos, ~ if (length(.x) == 0) "nac" else paste(.x, collapse = "_"))
+  # --- CORRECCIÓN SEPARADOR ---
+  names(tablas_loc) <- purrr::map_chr(combos, ~ if (length(.x) == 0) "nac" else paste(.x, collapse = "__"))
 
   return(tablas_loc)
 }
