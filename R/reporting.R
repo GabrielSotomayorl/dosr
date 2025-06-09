@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: reporting.R (VERSIÓN FINAL, CORRECCIÓN .DATA PRONOUN)
+# Archivo: reporting.R (VERSIÓN FINAL, CORRECCIÓN SE EN TOTALES)
 # ---------------------------------------------------------------------------- #
 
 # --- Ayudante para fusionar celdas ---
@@ -117,9 +117,7 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
   }
 
   resultado_final <- resultado_final_unordered %>%
-    # --- CORRECCIÓN .DATA ---
     arrange(.data$combo_maestro, across(any_of(c(des, var)))) %>%
-    # --- CORRECCIÓN .DATA ---
     select(-.data$combo_maestro) %>%
     select(any_of(key_cols), everything())
 
@@ -138,11 +136,17 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
 
   make_prop_block <- function(df_wide, grp_des, metric_cols, factor_levels_list) {
     base_tbl <- df_wide %>% select(all_of(c(grp_des, var, metric_cols)))
+
+    # --- CORRECCIÓN CLAVE: LÓGICA DE TOTALES CON CASE_WHEN ---
     subtot <- base_tbl %>%
       group_by(across(all_of(grp_des))) %>%
       summarise(
         !!sym(var) := "Total",
-        across(all_of(metric_cols), ~ if (startsWith(cur_column(), "prop_")) 1 else sum(.x, na.rm = TRUE)),
+        across(all_of(metric_cols), ~ case_when(
+          startsWith(cur_column(), "prop_") ~ 1,      # El total de la proporción es 100%
+          startsWith(cur_column(), "se_")   ~ 0,      # El SE de un total de 100% es 0
+          TRUE                              ~ sum(.x, na.rm = TRUE) # Sumar el resto (n_mues, N_pob)
+        )),
         .groups = "drop"
       )
 
@@ -213,9 +217,7 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
   }
 
   resultado_final <- resultado_final_unordered %>%
-    # --- CORRECCIÓN .DATA ---
     arrange(.data$combo_maestro, across(any_of(des))) %>%
-    # --- CORRECCIÓN .DATA ---
     select(-.data$combo_maestro) %>%
     select(any_of(key_cols), everything())
 
