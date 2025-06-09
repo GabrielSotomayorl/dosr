@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: public_api.R (COMPLETO, DOCUMENTADO Y CORREGIDO)
+# Archivo: public_api.R (VERSIÓN FINAL Y VERIFICADA)
 # ---------------------------------------------------------------------------- #
 
 #' @title Internal helper function for a single worker process
@@ -12,18 +12,13 @@ calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, type)
   )
 }
 
-# --- FUNCIÓN INTERNA PARA CREAR DISEÑOS LIGEROS (SOLO SELECCIONA) ---
-# Esta es la versión robusta. Solo selecciona las columnas necesarias
-# sin alterar sus tipos de datos, preservando las etiquetas y la estructura.
+# --- FUNCIÓN INTERNA PARA CREAR DISEÑOS LIGEROS ---
 create_lightweight_designs <- function(design_list, main_var, des_vars, filter_vars, meta_list) {
   purrr::map2(design_list, meta_list, function(dsgn, meta) {
     design_specific_vars <- c(meta$psu, meta$strata, meta$weight)
     vars_to_keep <- unique(c(main_var, des_vars, filter_vars, design_specific_vars))
     vars_to_keep <- intersect(vars_to_keep, names(dsgn$variables))
 
-    # --- CORRECCIÓN CLAVE ---
-    # Usamos srvyr::select para mantener la integridad del objeto de encuesta.
-    # NO usamos mutate aquí. La conversión de tipos se hará en el motor.
     light_dsgn <- dsgn %>%
       srvyr::select(all_of(vars_to_keep))
 
@@ -34,20 +29,8 @@ create_lightweight_designs <- function(design_list, main_var, des_vars, filter_v
 
 #' @title Calcula estimaciones de proporciones para diseños complejos
 #' @description Procesa uno o más `tbl_svy` para calcular proporciones.
-#'
-#' @param designs Un objeto `tbl_svy` o una lista de ellos.
-#' @param sufijo Vector de strings para sufijos (p.ej. c("2020","2022")).
-#' @param var Un string con el nombre de la variable de interés (debe ser factor).
-#' @param des Un vector de strings con los nombres de las variables de desagregación.
-#' @param filt Un string con una expresión de filtro para `dplyr::filter()`.
-#' @param rm_na_var Booleano. Si `TRUE`, elimina NAs en `var` antes de calcular.
-#' @param parallel Booleano. Activa el cálculo en paralelo.
-#' @param n_cores Entero. Número de núcleos a usar. Si es NULL, se usa un valor seguro.
-#' @param save_xlsx Booleano. Si `TRUE`, guarda un reporte en Excel.
-#' @param formato Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.
-#' @param decimales Entero. Número de decimales para las estimaciones en Excel.
+#' @inheritParams obs_media
 #' @param porcentaje Booleano. Muestra las proporciones como porcentajes en Excel.
-#'
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @export
 obs_prop <- function(designs,
@@ -117,7 +100,6 @@ obs_prop <- function(designs,
     p(message = "Fase 3/4: Agregando y consolidando resultados...")
     keys_prop <- c(var, "nivel", des)
     hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_prop, all_designs = designs, type = "prop")
-    resultado_final <- bind_rows(hojas_list) %>% unique_cols() %>% select(any_of(keys_prop), everything())
 
     p(message = "Fase 4/4: Generando archivo Excel...")
     if (save_xlsx) {
@@ -128,6 +110,7 @@ obs_prop <- function(designs,
       if (formato) {
         generate_prop_report(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs = designs)
       } else {
+        resultado_final <- bind_rows(hojas_list) %>% unique_cols() %>% select(any_of(keys_prop), everything())
         wb <- createWorkbook()
         addWorksheet(wb, "Consolidado")
         write_clean_table(wb, "Consolidado", resultado_final)
@@ -135,15 +118,24 @@ obs_prop <- function(designs,
         message("Reporte Excel simple creado en: ", filename)
       }
     }
+    invisible(bind_rows(hojas_list))
   })
-  invisible(resultado_final)
 }
 
 #' @title Calcula estimaciones de medias para diseños complejos
 #' @description Procesa uno o más `tbl_svy` para calcular medias.
 #'
+#' @param designs Un objeto `tbl_svy` o una lista de ellos.
+#' @param sufijo Vector de strings para sufijos (p.ej. c("2020","2022")).
 #' @param var Un string con el nombre de la variable de interés (numérica).
-#' @inheritParams obs_prop
+#' @param des Un vector de strings con los nombres de las variables de desagregación.
+#' @param filt Un string con una expresión de filtro para `dplyr::filter()`.
+#' @param rm_na_var Booleano. Si `TRUE`, elimina NAs en `var` antes de calcular.
+#' @param parallel Booleano. Activa el cálculo en paralelo.
+#' @param n_cores Entero. Número de núcleos a usar. Si es NULL, se usa un valor seguro.
+#' @param save_xlsx Booleano. Si `TRUE`, guarda un reporte en Excel.
+#' @param formato Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.
+#' @param decimales Entero. Número de decimales para las estimaciones en Excel.
 #'
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @export
@@ -211,25 +203,17 @@ obs_media <- function(designs,
     p(message = "Fase 3/4: Agregando y consolidando resultados...")
     keys_media <- c("variable", "nivel", des)
     hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_media, all_designs = designs, type = "mean")
-    resultado_final <- bind_rows(hojas_list) %>% unique_cols() %>% select(any_of(keys_media), everything())
 
     p(message = "Fase 4/4: Generando archivo Excel...")
     if (save_xlsx) {
       if (!dir.exists("output")) dir.create("output")
       des_tag <- if (!is.null(des)) paste0("_", paste(des, collapse = "-")) else "_nac"
       filename <- file.path("output", paste0(var, des_tag, "_", paste(sufijo, collapse = "-"), "_MEDIA.xlsx"))
+
       if (formato) {
-        if (is.null(des)) {
-          warning("El formato avanzado de reporte para medias requiere al menos una variable de desagregacion ('des'). Se generara solo el reporte consolidado.", call. = FALSE)
-          wb <- createWorkbook()
-          addWorksheet(wb, "Consolidado")
-          write_clean_table(wb, "Consolidado", resultado_final)
-          saveWorkbook(wb, filename, overwrite = TRUE)
-          message("Reporte Excel simple creado en: ", filename)
-        } else {
-          generate_mean_report(hojas_list, filename, var, des, sufijo, decimales, designs = designs)
-        }
+        generate_mean_report(hojas_list, filename, var, des, sufijo, decimales, designs = designs)
       } else {
+        resultado_final <- bind_rows(hojas_list) %>% unique_cols() %>% select(any_of(keys_media), everything())
         wb <- createWorkbook()
         addWorksheet(wb, "Consolidado")
         write_clean_table(wb, "Consolidado", resultado_final)
@@ -237,6 +221,6 @@ obs_media <- function(designs,
         message("Reporte Excel simple creado en: ", filename)
       }
     }
+    invisible(bind_rows(hojas_list))
   })
-  invisible(resultado_final)
 }

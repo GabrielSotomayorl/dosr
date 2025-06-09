@@ -24,7 +24,7 @@ obs_prop(
 
 \item{sufijo}{Vector de strings para sufijos (p.ej. c("2020","2022")).}
 
-\item{var}{Un string con el nombre de la variable de interés (debe ser factor).}
+\item{var}{Un string con el nombre de la variable de interés (numérica).}
 
 \item{des}{Un vector de strings con los nombres de las variables de desagregación.}
 
