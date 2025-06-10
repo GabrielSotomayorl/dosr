@@ -9,7 +9,6 @@
 #' @importFrom rlang parse_expr sym `:=` syms
 #' @importFrom future plan multisession
 #' @importFrom furrr future_pmap
-#' @importFrom progressr with_progress progressor
 #' @importFrom haven as_factor zap_labels
 #' @importFrom stats filter na.omit rle
 #' @importFrom utils combn

@@ -21,7 +21,6 @@ Imports:
     rlang,
     future,
     furrr,
-    openxlsx,
-    progressr
+    openxlsx
 Suggests: 
     labelled  
