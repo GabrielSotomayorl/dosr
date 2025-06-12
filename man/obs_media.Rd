@@ -15,7 +15,8 @@ obs_media(
   n_cores = NULL,
   save_xlsx = TRUE,
   formato = TRUE,
-  decimales = 2
+  decimales = 2,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ obs_media(
 \item{formato}{Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.}
 
 \item{decimales}{Entero. Número de decimales para las estimaciones en Excel.}
+
+\item{verbose}{Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.}
 }
 \value{
 Un data.frame con los resultados consolidados (invisiblemente).

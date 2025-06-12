@@ -16,7 +16,8 @@ obs_prop(
   save_xlsx = TRUE,
   formato = TRUE,
   porcentaje = TRUE,
-  decimales = 2
+  decimales = 2,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ obs_prop(
 \item{porcentaje}{Booleano. Muestra las proporciones como porcentajes en Excel.}
 
 \item{decimales}{Entero. Número de decimales para las estimaciones en Excel.}
+
+\item{verbose}{Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.}
 }
 \value{
 Un data.frame con los resultados consolidados (invisiblemente).

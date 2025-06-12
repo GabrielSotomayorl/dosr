@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: public_api.R (VERSIÓN FINAL, SIN BARRAS DE PROGRESO)
+# Archivo: public_api.R (VERSIÓN CON ORDEN DE COLUMNAS CORREGIDO)
 # ---------------------------------------------------------------------------- #
 
 #' @title Internal helper function for a single worker process
@@ -44,8 +44,10 @@ obs_prop <- function(designs,
                      save_xlsx   = TRUE,
                      formato     = TRUE,
                      porcentaje  = TRUE,
-                     decimales   = 2) {
+                     decimales   = 2,
+                     verbose     = TRUE) {
 
+  if (verbose) message("Fase 1/3: Preparando datos y diseños...")
   if (!inherits(designs, "list")) designs <- list(designs)
   n_designs <- length(designs)
   if (is.null(sufijo)) {
@@ -60,11 +62,10 @@ obs_prop <- function(designs,
     weight = names(.x$allprob)[1]
   ))
   vars_in_filter <- if (!is.null(filt)) all.vars(rlang::parse_expr(filt)) else character(0)
-
   designs_light <- create_lightweight_designs(designs, var, des, vars_in_filter, design_metadata)
 
+  if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
-
   if (parallel && n_designs > 1) {
     max_safe_cores <- 4
     cores_detected <- tryCatch(parallel::detectCores(), error = function(e) 2)
@@ -72,43 +73,58 @@ obs_prop <- function(designs,
       cores <- min(cores_detected - 1, max_safe_cores, n_designs)
       cores <- max(1, cores)
     } else { cores <- n_cores }
-    message(paste("Usando modo paralelo con", cores, "workers."))
+    if (verbose) message(paste("... usando modo paralelo con", cores, "workers."))
     old_plan <- future::plan(multisession, workers = cores)
     on.exit(future::plan(old_plan), add = TRUE)
-
     lista_tablas <- furrr::future_pmap(
-      pmap_args,
-      calculate_single_design,
+      pmap_args, calculate_single_design,
       var = var, des = des, filt = filt, rm_na_var = rm_na_var, type = "prop",
-      .progress = FALSE # CAMBIO CLAVE
+      .progress = FALSE
     )
-
   } else {
     lista_tablas <- purrr::pmap(pmap_args, calculate_single_design,
                                 var = var, des = des, filt = filt, rm_na_var = rm_na_var, type = "prop"
     )
   }
 
+  if (verbose) message("Fase 3/3: Agregando resultados y generando reporte Excel...")
   keys_prop <- c(var, "nivel", des)
   hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_prop, all_designs = designs, type = "prop")
 
+  # ## CORRECCIÓN ##: Crear y ordenar el data.frame final aquí para usarlo tanto
+  # en el Excel como en el objeto de retorno.
+  all_factor_levels <- get_all_levels(designs, c(var, des))
+  resultado_final_unordered <- bind_rows(hojas_list, .id = "combo_maestro") %>% unique_cols()
+  resultado_final_unordered$combo_maestro <- factor(resultado_final_unordered$combo_maestro, levels = names(hojas_list))
+  for(col_name in names(all_factor_levels)) {
+    if(col_name %in% names(resultado_final_unordered)) {
+      resultado_final_unordered[[col_name]] <- factor(resultado_final_unordered[[col_name]], levels = all_factor_levels[[col_name]])
+    }
+  }
+  resultado_final <- resultado_final_unordered %>%
+    arrange(.data$combo_maestro, across(any_of(c(des, var)))) %>%
+    select(-.data$combo_maestro) %>%
+    select(any_of(keys_prop), everything())
+
   if (save_xlsx) {
     if (!dir.exists("output")) dir.create("output")
-    des_tag <- if (!is.null(des)) paste0("_", paste(des, collapse = "-")) else "_nac"
-    filename <- file.path("output", paste0(var, des_tag, "_", paste(sufijo, collapse = "-"), "_PROP.xlsx"))
+    des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
+    filename <- file.path("output", paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_PROP.xlsx"))
 
     if (formato) {
-      generate_prop_report(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs = designs)
+      generate_prop_report(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs = designs, consolidated_df = resultado_final)
     } else {
-      resultado_final <- bind_rows(hojas_list) %>% unique_cols() %>% select(any_of(keys_prop), everything())
       wb <- createWorkbook()
       addWorksheet(wb, "Consolidado")
-      write_clean_table(wb, "Consolidado", resultado_final)
+      write_clean_table(wb, "Consolidado", resultado_final, startRow = 1, startCol = 1)
       saveWorkbook(wb, filename, overwrite = TRUE)
       message("Reporte Excel simple creado en: ", filename)
     }
   }
-  invisible(bind_rows(hojas_list))
+
+  if (verbose) message("Proceso completado.")
+  # Devolver el data.frame final ya ordenado.
+  invisible(resultado_final)
 }
 
 #' @title Calcula estimaciones de medias para diseños complejos
@@ -125,6 +141,7 @@ obs_prop <- function(designs,
 #' @param save_xlsx Booleano. Si `TRUE`, guarda un reporte en Excel.
 #' @param formato Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.
 #' @param decimales Entero. Número de decimales para las estimaciones en Excel.
+#' @param verbose Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.
 #'
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @export
@@ -138,8 +155,10 @@ obs_media <- function(designs,
                       n_cores     = NULL,
                       save_xlsx   = TRUE,
                       formato     = TRUE,
-                      decimales   = 2) {
+                      decimales   = 2,
+                      verbose     = TRUE) {
 
+  if (verbose) message("Fase 1/3: Preparando datos y diseños...")
   if (!inherits(designs, "list")) designs <- list(designs)
   n_designs <- length(designs)
   if (is.null(sufijo)) {
@@ -154,11 +173,10 @@ obs_media <- function(designs,
     weight = names(.x$allprob)[1]
   ))
   vars_in_filter <- if (!is.null(filt)) all.vars(rlang::parse_expr(filt)) else character(0)
-
   designs_light <- create_lightweight_designs(designs, var, des, vars_in_filter, design_metadata)
 
+  if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
-
   if (parallel && n_designs > 1) {
     max_safe_cores <- 4
     cores_detected <- tryCatch(parallel::detectCores(), error = function(e) 2)
@@ -166,15 +184,13 @@ obs_media <- function(designs,
       cores <- min(cores_detected - 1, max_safe_cores, n_designs)
       cores <- max(1, cores)
     } else { cores <- n_cores }
-    message(paste("Usando modo paralelo con", cores, "workers."))
+    if (verbose) message(paste("... usando modo paralelo con", cores, "workers."))
     old_plan <- future::plan(multisession, workers = cores)
     on.exit(future::plan(old_plan), add = TRUE)
-
     lista_tablas <- furrr::future_pmap(
-      pmap_args,
-      calculate_single_design,
+      pmap_args, calculate_single_design,
       var = var, des = des, filt = filt, rm_na_var = rm_na_var, type = "mean",
-      .progress = FALSE # CAMBIO CLAVE
+      .progress = FALSE
     )
   } else {
     lista_tablas <- purrr::pmap(pmap_args, calculate_single_design,
@@ -182,24 +198,42 @@ obs_media <- function(designs,
     )
   }
 
+  if (verbose) message("Fase 3/3: Agregando resultados y generando reporte Excel...")
   keys_media <- c("variable", "nivel", des)
   hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_media, all_designs = designs, type = "mean")
 
+  # ## CORRECCIÓN ##: Crear y ordenar el data.frame final aquí para usarlo tanto
+  # en el Excel como en el objeto de retorno.
+  all_factor_levels <- get_all_levels(designs, des)
+  resultado_final_unordered <- bind_rows(hojas_list, .id = "combo_maestro") %>% unique_cols()
+  resultado_final_unordered$combo_maestro <- factor(resultado_final_unordered$combo_maestro, levels = names(hojas_list))
+  for(col_name in names(all_factor_levels)) {
+    if(col_name %in% names(resultado_final_unordered)) {
+      resultado_final_unordered[[col_name]] <- factor(resultado_final_unordered[[col_name]], levels = all_factor_levels[[col_name]])
+    }
+  }
+  resultado_final <- resultado_final_unordered %>%
+    arrange(.data$combo_maestro, across(any_of(des))) %>%
+    select(-.data$combo_maestro) %>%
+    select(any_of(keys_media), everything())
+
   if (save_xlsx) {
     if (!dir.exists("output")) dir.create("output")
-    des_tag <- if (!is.null(des)) paste0("_", paste(des, collapse = "-")) else "_nac"
-    filename <- file.path("output", paste0(var, des_tag, "_", paste(sufijo, collapse = "-"), "_MEDIA.xlsx"))
+    des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
+    filename <- file.path("output", paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_MEDIA.xlsx"))
 
     if (formato) {
-      generate_mean_report(hojas_list, filename, var, des, sufijo, decimales, designs = designs)
+      generate_mean_report(hojas_list, filename, var, des, sufijo, decimales, designs = designs, consolidated_df = resultado_final)
     } else {
-      resultado_final <- bind_rows(hojas_list) %>% unique_cols() %>% select(any_of(keys_media), everything())
       wb <- createWorkbook()
       addWorksheet(wb, "Consolidado")
-      write_clean_table(wb, "Consolidado", resultado_final)
+      write_clean_table(wb, "Consolidado", resultado_final, startRow = 1, startCol = 1)
       saveWorkbook(wb, filename, overwrite = TRUE)
       message("Reporte Excel simple creado en: ", filename)
     }
   }
-  invisible(bind_rows(hojas_list))
+
+  if (verbose) message("Proceso completado.")
+  # Devolver el data.frame final ya ordenado.
+  invisible(resultado_final)
 }

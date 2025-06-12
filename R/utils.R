@@ -1,5 +1,27 @@
 # en R/utils.R
 
+#' @importFrom openxlsx createStyle writeData addStyle mergeCells
+#' @importFrom stringr str_trunc
+NULL
+
+#' Truncate a sheet name to be compatible with Excel's 31-character limit.
+#'
+#' This function truncates a string to a maximum of 31 characters,
+#' ensuring it doesn't split in the middle of a word or separator.
+#'
+#' @param name The original sheet name.
+#' @return A string with a maximum length of 31 characters.
+#' @noRd
+truncate_sheet_name <- function(name) {
+  # Excel's limit is 31 characters
+  if (nchar(name) > 31) {
+    # Use stringr::str_trunc for intelligent truncation
+    return(stringr::str_trunc(name, 31, side = "right", ellipsis = ""))
+  } else {
+    return(name)
+  }
+}
+
 #' Create unique column names for a data frame
 #' @param df A data frame.
 #' @return A data frame with unique column names.

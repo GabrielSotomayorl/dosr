@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: reporting.R (VERSIÓN FINAL, CORRECCIÓN SEPARADOR)
+# Archivo: reporting.R (VERSIÓN QUE ACEPTA consolidated_df)
 # ---------------------------------------------------------------------------- #
 
 # --- Ayudante para fusionar celdas ---
@@ -53,18 +53,13 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
 
   combinar_por_combo <- function(combo_name) {
     tablas_combo <- purrr::map(lista_tablas, ~ .x[[combo_name]])
-
     tablas_combo_char <- purrr::map(tablas_combo, ~ .x %>% mutate(across(any_of(keys), as.character)))
-
     metric_cols <- setdiff(names(tablas_combo_char[[1]]), keys)
-
     tablas_renombradas <- purrr::imap(tablas_combo_char, function(df, sfx) {
       df %>% rename_with(~ paste0(.x, "_", sfx), all_of(metric_cols))
     })
-
     joined_df <- reduce(tablas_renombradas, function(x, y) full_join(x, y, by = keys))
 
-    # --- CORRECCIÓN SEPARADOR ---
     grp_des <- if (combo_name == "nac") character(0) else strsplit(combo_name, "__")[[1]]
 
     if (type == "prop") {
@@ -72,7 +67,6 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
     } else {
       all_levels_to_use <- all_levels_des[grp_des]
     }
-
     all_levels_to_use <- all_levels_to_use[names(all_levels_to_use) != ""]
 
     if (length(all_levels_to_use) > 0) {
@@ -80,11 +74,8 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
       fill_list_n <- purrr::map(sufijo, ~ 0) %>% set_names(paste0("n_mues_", sufijo))
       fill_list_N <- purrr::map(sufijo, ~ 0) %>% set_names(paste0("N_pob_", sufijo))
       fill_list_media <- purrr::map(sufijo, ~ NA_real_) %>% set_names(paste0("media_", sufijo))
-
       final_fill_list <- if(type == "prop") c(fill_list_prop, fill_list_n, fill_list_N) else c(fill_list_media, fill_list_n, fill_list_N)
-
       grouping_vars <- if (type == "mean") "variable" else NULL
-
       joined_df <- joined_df %>%
         group_by(across(any_of(grouping_vars))) %>%
         tidyr::complete(!!!all_levels_to_use, fill = final_fill_list) %>%
@@ -101,43 +92,27 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
 
 
 # --- Reporte específico para Proporciones ---
-generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs) {
+generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs, consolidated_df) {
   wb <- openxlsx::createWorkbook()
-  key_cols <- c(var, "nivel", des)
 
-  all_factor_levels <- get_all_levels(designs, c(var, des))
-
-  resultado_final_unordered <- bind_rows(hojas_list, .id = "combo_maestro") %>% unique_cols()
-
-  resultado_final_unordered$combo_maestro <- factor(resultado_final_unordered$combo_maestro, levels = names(hojas_list))
-
-  for(col_name in names(all_factor_levels)) {
-    if(col_name %in% names(resultado_final_unordered)) {
-      resultado_final_unordered[[col_name]] <- factor(resultado_final_unordered[[col_name]], levels = all_factor_levels[[col_name]])
-    }
-  }
-
-  resultado_final <- resultado_final_unordered %>%
-    arrange(.data$combo_maestro, across(any_of(c(des, var)))) %>%
-    select(-.data$combo_maestro) %>%
-    select(any_of(key_cols), everything())
-
+  # ## CORRECCIÓN ##: Usamos el data.frame ya procesado que nos pasan.
   openxlsx::addWorksheet(wb, "1_Consolidado")
-  write_clean_table(wb, "1_Consolidado", resultado_final)
+  write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
 
   countStyle <- openxlsx::createStyle(numFmt = "#,##0")
   percent_fmt_string <- if (decimales > 0) paste0("0.", paste(rep("0", decimales), collapse = "")) else "0"
   percentStyle <- openxlsx::createStyle(numFmt = if (porcentaje) paste0(percent_fmt_string, "%") else percent_fmt_string)
   estilos <- list(percentStyle, countStyle, percentStyle, countStyle)
-
-  titulos  <- c("Estimacion", "Poblacion expandida", "Error estandar", "Casos muestrales")
+  titulos  <- c("Estimación", "Población expandida", "Error estándar", "Casos muestrales")
   metricas <- c("prop", "N_pob", "se", "n_mues")
   met_suffix_list <- purrr::map(metricas, ~ paste0(.x, "_", sufijo))
   names(met_suffix_list) <- metricas
 
+  all_factor_levels <- get_all_levels(designs, c(var, des))
+  bold_style <- createStyle(textDecoration = "bold")
+
   make_prop_block <- function(df_wide, grp_des, metric_cols, factor_levels_list) {
     base_tbl <- df_wide %>% select(all_of(c(grp_des, var, metric_cols)))
-
     subtot <- base_tbl %>%
       group_by(across(all_of(grp_des))) %>%
       summarise(
@@ -149,42 +124,47 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
         )),
         .groups = "drop"
       )
-
     block_unordered <- bind_rows(base_tbl, subtot) %>% unique_cols()
-
     factor_cols <- intersect(names(factor_levels_list), names(block_unordered))
-
     for(col in factor_cols) {
       if(col %in% names(block_unordered)) {
         current_levels <- factor_levels_list[[col]]
-        if("Total" %in% block_unordered[[col]]) {
-          current_levels <- c(current_levels, "Total")
-        }
+        if("Total" %in% block_unordered[[col]]) current_levels <- c(current_levels, "Total")
         block_unordered[[col]] <- factor(block_unordered[[col]], levels = current_levels)
       }
     }
-
     block_ordered <- block_unordered %>%
       arrange(across(all_of(c(grp_des, var))))
-
     return(block_ordered)
   }
 
   for (combo in names(hojas_list)) {
-    # --- CORRECCIÓN SEPARADOR ---
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
-    hoja_nm <- paste0("2_Formato_", combo)
+    hoja_nm <- truncate_sheet_name(paste0("2_", combo))
     openxlsx::addWorksheet(wb, hoja_nm)
+
+    openxlsx::writeData(wb, hoja_nm, "Nombre indicador", startRow = 2, startCol = 1)
+    openxlsx::addStyle(wb, hoja_nm, style = bold_style, rows = 2, cols = 1)
+    openxlsx::writeData(wb, hoja_nm, "Tipo de cálculo", startRow = 3, startCol = 1)
+
     df_combo_wide <- hojas_list[[combo]]
-    fila <- 1
+    fila <- 5
 
     for (i in seq_along(titulos)) {
       block <- make_prop_block(df_combo_wide, grp_des, met_suffix_list[[metricas[i]]], all_factor_levels)
       names(block)[names(block) %in% met_suffix_list[[metricas[i]]]] <- sufijo
 
-      openxlsx::writeData(wb, hoja_nm, titulos[i], startRow = fila, startCol = 1, headerStyle = hdrStyle)
-      openxlsx::addStyle(wb, hoja_nm, hdrStyle, rows = fila, cols = 1)
-      write_clean_table(wb, hoja_nm, block, startRow = fila + 1)
+      openxlsx::writeData(wb, hoja_nm, titulos[i], startRow = fila, startCol = 1)
+
+      cols_to_merge <- 1:ncol(block)
+      openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
+      if (ncol(block) > 1) {
+        openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
+      }
+
+      write_clean_table(wb, hoja_nm, block, startRow = fila + 1, startCol = 1)
+
+      merge_group_cells(wb, hoja_nm, block, grp_des, start_row = fila + 2)
 
       numeric_cols <- (length(grp_des) + length(var) + 1):ncol(block)
       data_rows <- (fila + 2):(fila + 1 + nrow(block))
@@ -192,8 +172,7 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
         openxlsx::addStyle(wb, hoja_nm, style = estilos[[i]], rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
       }
 
-      merge_group_cells(wb, hoja_nm, block, grp_des, start_row = fila + 2)
-      fila <- fila + nrow(block) + 4
+      fila <- fila + nrow(block) + 3
     }
   }
   openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
@@ -201,51 +180,36 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
 }
 
 # --- Reporte específico para Medias ---
-generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimales, designs) {
+generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimales, designs, consolidated_df) {
   wb <- openxlsx::createWorkbook()
-  key_cols <- c("variable", "nivel", des)
 
-  all_factor_levels <- get_all_levels(designs, des)
-
-  resultado_final_unordered <- bind_rows(hojas_list, .id = "combo_maestro") %>% unique_cols()
-
-  resultado_final_unordered$combo_maestro <- factor(resultado_final_unordered$combo_maestro, levels = names(hojas_list))
-
-  for(col_name in names(all_factor_levels)) {
-    if(col_name %in% names(resultado_final_unordered)) {
-      resultado_final_unordered[[col_name]] <- factor(resultado_final_unordered[[col_name]], levels = all_factor_levels[[col_name]])
-    }
-  }
-
-  resultado_final <- resultado_final_unordered %>%
-    arrange(.data$combo_maestro, across(any_of(des))) %>%
-    select(-.data$combo_maestro) %>%
-    select(any_of(key_cols), everything())
-
+  # ## CORRECCIÓN ##: Usamos el data.frame ya procesado que nos pasan.
   openxlsx::addWorksheet(wb, "1_Consolidado")
-  write_clean_table(wb, "1_Consolidado", resultado_final)
+  write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
 
   num_fmt_string <- if (decimales > 0) paste0("#,##0.", paste(rep("0", decimales), collapse = "")) else "#,##0"
   numStyle <- openxlsx::createStyle(numFmt = num_fmt_string)
   estilos <- list(numStyle, openxlsx::createStyle(numFmt = "#,##0"), numStyle, openxlsx::createStyle(numFmt = "#,##0"))
-
-  titulos  <- c("Estimacion", "Poblacion expandida", "Error estandar", "Casos muestrales")
+  titulos  <- c("Estimación", "Población expandida", "Error estándar", "Casos muestrales")
   metricas <- c("media", "N_pob", "se", "n_mues")
   met_suffix_list <- purrr::map(metricas, ~ paste0(.x, "_", sufijo))
   names(met_suffix_list) <- metricas
   total_row <- hojas_list[["nac"]]
 
-  for (combo in names(hojas_list)) {
-    # --- CORRECCIÓN SEPARADOR ---
-    grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
+  all_factor_levels <- get_all_levels(designs, des)
+  bold_style <- createStyle(textDecoration = "bold")
 
-    hoja_nm <- paste0("2_Formato_", combo)
+  for (combo in names(hojas_list)) {
+    grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
+    hoja_nm <- truncate_sheet_name(paste0("2_", combo))
     openxlsx::addWorksheet(wb, hoja_nm)
+
+    openxlsx::writeData(wb, hoja_nm, "Nombre indicador", startRow = 2, startCol = 1)
+    openxlsx::addStyle(wb, hoja_nm, style = bold_style, rows = 2, cols = 1)
+    openxlsx::writeData(wb, hoja_nm, "Tipo de cálculo", startRow = 3, startCol = 1)
+
     df_combo_wide <- hojas_list[[combo]]
-    fila <- 1
-    openxlsx::writeData(wb, hoja_nm, "Nombre indicador", startRow = fila, startCol = 1)
-    openxlsx::writeData(wb, hoja_nm, var, startRow = fila, startCol = 2)
-    fila <- fila + 2
+    fila <- 5
 
     for (i in seq_along(titulos)) {
       metric_name <- metricas[i]
@@ -257,16 +221,13 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
           rename_with(~ sufijo, all_of(metric_cols))
       } else {
         block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
-
         tot_vals <- total_row %>% select(all_of(metric_cols))
         tot_line <- as.list(rep(".", length(grp_des)))
         names(tot_line) <- grp_des
         tot_line[[grp_des[1]]] <- "Total pais"
         tot_line_df <- bind_cols(as_tibble(tot_line), tot_vals)
-
         block_unordered <- bind_rows(block_main, tot_line_df) %>%
           rename_with(~ sufijo, all_of(metric_cols))
-
         factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
         for(col in factor_cols) {
           if(col %in% names(block_unordered)) {
@@ -281,22 +242,27 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
         block <- block_unordered %>% arrange(across(all_of(grp_des)))
       }
 
-      openxlsx::writeData(wb, hoja_nm, titulos[i], startRow = fila, startCol = 1, headerStyle = hdrStyle)
-      openxlsx::addStyle(wb, hoja_nm, hdrStyle, rows = fila, cols = 1)
-      write_clean_table(wb, hoja_nm, block, startRow = fila + 1)
+      openxlsx::writeData(wb, hoja_nm, titulos[i], startRow = fila, startCol = 1)
 
-      first_data_col_idx <- if (combo == "nac") 2 else (length(grp_des) + 1)
-      numeric_cols <- first_data_col_idx:ncol(block)
-      data_rows <- (fila + 2):(fila + 1 + nrow(block))
-      if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-        openxlsx::addStyle(wb, hoja_nm, style = estilos[[i]], rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
+      cols_to_merge <- 1:ncol(block)
+      openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
+      if (ncol(block) > 1) {
+        openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
       }
+
+      write_clean_table(wb, hoja_nm, block, startRow = fila + 1, startCol = 1)
 
       if (combo != "nac") {
         merge_group_cells(wb, hoja_nm, block, grp_des, start_row = fila + 2)
       }
 
-      fila <- fila + nrow(block) + 4
+      numeric_cols <- (length(grp_des) + 1):ncol(block)
+      data_rows <- (fila + 2):(fila + 1 + nrow(block))
+      if(length(numeric_cols) > 0 && length(data_rows) > 0) {
+        openxlsx::addStyle(wb, hoja_nm, style = estilos[[i]], rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
+      }
+
+      fila <- fila + nrow(block) + 3
     }
   }
   openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
