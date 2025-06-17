@@ -1,3 +1,16 @@
+# dosr 0.1.3
+
+## NUEVAS FUNCIONALIDADES
+
+*   Se ha añadido un nuevo argumento `multi_des` a `obs_prop()` y `obs_media()` para controlar el comportamiento de las desagregaciones:
+    *   Si `multi_des = TRUE` (valor por defecto), el paquete calcula todas las combinaciones posibles de las variables de desagregación, como en versiones anteriores.
+    *   Si `multi_des = FALSE`, el paquete solo calcula las desagregaciones simples (por cada variable en `des` de forma individual), lo que acelera significativamente los cálculos y es ideal para análisis exploratorios o cuando se usan muchas variables.
+*   Se ha implementado un "fusible de seguridad" para proteger al usuario. Si se solicitan más de 3 variables de desagregación con `multi_des = TRUE`, la función se detendrá con un error informativo, previniendo ejecuciones excesivamente largas y posibles cuelgues de la sesión.
+
+## MEJORAS INTERNAS
+
+*   Se ha refactorizado la lógica interna para pasar el parámetro `multi_des` al motor de cálculo, permitiendo la nueva funcionalidad.
+
 # dosr 0.1.2
 
 ## MEJORAS DE FORMATO Y USABILIDAD

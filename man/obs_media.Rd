@@ -9,6 +9,7 @@ obs_media(
   sufijo = NULL,
   var,
   des = NULL,
+  multi_des = TRUE,
   filt = NULL,
   rm_na_var = TRUE,
   parallel = FALSE,
@@ -27,6 +28,8 @@ obs_media(
 \item{var}{Un string con el nombre de la variable de interés (numérica).}
 
 \item{des}{Un vector de strings con los nombres de las variables de desagregación.}
+
+\item{multi_des}{Booleano. Si `TRUE` (por defecto), calcula todas las combinaciones de `des`. Si `FALSE`, solo calcula las desagregaciones simples (por cada variable en `des` por separado).}
 
 \item{filt}{Un string con una expresión de filtro para `dplyr::filter()`.}
 
