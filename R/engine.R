@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: engine.R (VERSIÓN CON LÓGICA DE multi_des)
+# Archivo: engine.R (VERSIÓN CON NUEVOS CRITERIOS DE FIABILIDAD)
 # ---------------------------------------------------------------------------- #
 
 #' @title Internal calculation engine for survey estimates
@@ -7,11 +7,11 @@
 #' @noRd
 calculate_estimates <- function(dsgn,
                                 var, des, filt, rm_na_var, type = c("prop", "mean"),
-                                psu_var, strata_var, weight_var, multi_des) {
+                                psu_var, strata_var, weight_var, multi_des, es_var_estudio) {
 
   type <- match.arg(type)
 
-  # --- Pre-procesamiento (la versión que ya tenías, que era correcta) ---
+  # --- Pre-procesamiento ---
   if (!is.null(filt) && nzchar(filt)) {
     dsgn <- dsgn %>% srvyr::filter(!!rlang::parse_expr(filt))
   }
@@ -19,8 +19,6 @@ calculate_estimates <- function(dsgn,
     dsgn <- dsgn %>% srvyr::filter(!is.na(.data[[var]]))
   }
 
-  # Usamos la versión de mutate sobre el data.frame extraído, ya que es una buena práctica
-  # aunque no represente una gran ganancia de tiempo en este caso.
   processed_vars <- dsgn$variables
   if (type == "prop") {
     vars_to_factor <- c(var, des)
@@ -37,7 +35,7 @@ calculate_estimates <- function(dsgn,
   base_df <- dsgn$variables %>%
     mutate(.w = .data[[weight_var]], .psu = .data[[psu_var]], .str = .data[[strata_var]])
 
-  # --- Función de cálculo interna (sin cambios) ---
+  # --- Función de cálculo interna ---
   calc_tabla <- function(grp_des) {
     if (type == "prop") {
       grp_vars <- c(grp_des, var)
@@ -49,26 +47,43 @@ calculate_estimates <- function(dsgn,
     tam_group_vars <- if(type == "prop") c(grp_des, var) else grp_des
     tam <- base_df %>% group_by(across(all_of(tam_group_vars))) %>% summarise(n_mues = n(), N_pob  = sum(.w), gl = n_distinct(.psu) - n_distinct(.str), .groups = "drop")
     out <- if (length(tam_group_vars) == 0) bind_cols(est, tam) else left_join(est, tam, by = tam_group_vars)
+
+    # -------------------------------------------------------------------------- #
+    # ## NUEVA LÓGICA DE FIABILIDAD ##
+    # -------------------------------------------------------------------------- #
     if (type == "prop") {
-      out <- out %>% mutate(
-        se_aceptable = ifelse(prop < .5, (prop^(2/3))/9, ((1 - prop)^(2/3))/9),
-        fiabilidad = case_when(
-          n_mues == 0 ~ "Sin casos", n_mues < 60 ~ "No fiable - n_mues < 60",
-          gl < 9 ~ "No fiable - gl < 9", prop < .5 & se < se_aceptable ~ "Fiable",
-          prop < .5 & se >= se_aceptable ~ "Poco fiable - se",
-          prop >=.5 & se < se_aceptable ~ "Fiable", TRUE ~ "Poco fiable - se"
+      # Inferencia de si la variable es dicotómica
+      out <- out %>%
+        group_by(across(all_of(grp_des))) %>%
+        mutate(
+          n_universo = sum(n_mues),
+          n_niveles = n_distinct(.data[[var]], na.rm = TRUE)
+        ) %>%
+        ungroup() %>%
+        mutate(
+          se_umbral = if_else(prop < 0.5, (prop^(2/3))/9, ((1-prop)^(2/3))/9),
+          fiabilidad = case_when(
+            gl <= 9 ~ "No Fiable",
+            n_niveles == 2 & n_universo < 30 & es_var_estudio == FALSE ~ "No Fiable",
+            n_niveles != 2 & n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+            se > se_umbral ~ "Poco Fiable",
+            TRUE ~ "Fiable"
+          )
         )
-      )
-    } else {
-      out <- out %>% mutate(
-        variable = var,
-        fiabilidad = case_when(
-          is.na(cv) ~ "Sin casos", n_mues < 60  ~ "No fiable - n_mues < 60",
-          gl < 9 ~ "No fiable - gl < 9", cv <=  .15 ~ "Fiable",
-          cv <=  .30 ~ "Poco fiable - cv", TRUE ~ "No fiable - cv > 0.30"
+    } else { # type == "mean"
+      out <- out %>%
+        mutate(
+          variable = var, # Aseguramos que la columna 'variable' exista
+          fiabilidad = case_when(
+            gl <= 9 ~ "No Fiable",
+            n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+            cv > 0.30 ~ "No Fiable",
+            cv > 0.20 ~ "Poco Fiable",
+            TRUE ~ "Fiable"
+          )
         )
-      )
     }
+
     if (!is.null(des)) {
       missing_des_cols <- setdiff(des, names(out))
       if (length(missing_des_cols) > 0) {
@@ -83,20 +98,14 @@ calculate_estimates <- function(dsgn,
       arrange(across(all_of(grp_des)))
   }
 
-  # -------------------------------------------------------------------------- #
-  # ## LÓGICA DE GENERACIÓN DE COMBINACIONES (MODIFICADA) ##
-  # -------------------------------------------------------------------------- #
-
-  combos <- list(character(0)) # Siempre incluir el nivel nacional
-
+  # --- Lógica de generación de combinaciones ---
+  combos <- list(character(0))
   if (!is.null(des)) {
     if (multi_des) {
-      # Comportamiento anterior: generar todas las combinaciones posibles
       for (i in 1:length(des)) {
         combos <- c(combos, utils::combn(des, i, simplify = FALSE))
       }
     } else {
-      # Nuevo comportamiento: solo desagregaciones simples
       combos_simples <- purrr::map(des, ~ as.character(.x))
       combos <- c(combos, combos_simples)
     }

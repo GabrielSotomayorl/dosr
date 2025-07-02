@@ -1,16 +1,16 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: public_api.R (VERSIÓN CON CORRECCIONES PARA CHECK)
+# Archivo: public_api.R (VERSIÓN CON ARGUMENTO es_var_estudio)
 # ---------------------------------------------------------------------------- #
 
 #' @title Internal helper function for a single worker process
 #' @noRd
-#  ^--- AÑADIR ESTA LÍNEA EVITA QUE SE GENERE DOCUMENTACIÓN Y EL WARNING
-calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, type, multi_des) {
+calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, type, multi_des, es_var_estudio) {
   calculate_estimates(
     dsgn = dsgn,
     var = var, des = des, filt = filt, rm_na_var = rm_na_var, type = type,
     psu_var = meta$psu, strata_var = meta$strata, weight_var = meta$weight,
-    multi_des = multi_des
+    multi_des = multi_des,
+    es_var_estudio = es_var_estudio # Pasar el nuevo argumento
   )
 }
 
@@ -33,19 +33,20 @@ create_lightweight_designs <- function(design_list, main_var, des_vars, filter_v
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @export
 obs_prop <- function(designs,
-                     sufijo      = NULL,
+                     sufijo         = NULL,
                      var,
-                     des         = NULL,
-                     multi_des   = TRUE,
-                     filt        = NULL,
-                     rm_na_var   = TRUE,
-                     parallel    = FALSE,
-                     n_cores     = NULL,
-                     save_xlsx   = TRUE,
-                     formato     = TRUE,
-                     porcentaje  = TRUE,
-                     decimales   = 2,
-                     verbose     = TRUE) {
+                     des            = NULL,
+                     multi_des      = TRUE,
+                     es_var_estudio = FALSE, # <--- NUEVO ARGUMENTO
+                     filt           = NULL,
+                     rm_na_var      = TRUE,
+                     parallel       = FALSE,
+                     n_cores        = NULL,
+                     save_xlsx      = TRUE,
+                     formato        = TRUE,
+                     porcentaje     = TRUE,
+                     decimales      = 2,
+                     verbose        = TRUE) {
 
   if (multi_des && length(des) > 3) {
     stop(paste(
@@ -71,7 +72,7 @@ obs_prop <- function(designs,
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
 
   calc_fun <- function(dsgn, meta) {
-    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "prop", multi_des)
+    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "prop", multi_des, es_var_estudio)
   }
 
   if (parallel && n_designs > 1) {
@@ -128,7 +129,8 @@ obs_prop <- function(designs,
 #' @param sufijo Vector de strings para sufijos (p.ej. c("2020","2022")).
 #' @param var Un string con el nombre de la variable de interés (numérica).
 #' @param des Un vector de strings con los nombres de las variables de desagregación.
-#' @param multi_des Booleano. Si `TRUE` (por defecto), calcula todas las combinaciones de `des`. Si `FALSE`, solo calcula las desagregaciones simples (por cada variable en `des` por separado).
+#' @param multi_des Booleano. Si `TRUE` (por defecto), calcula todas las combinaciones de `des`. Si `FALSE`, solo calcula las desagregaciones simples.
+#' @param es_var_estudio Booleano. Si `TRUE`, aplica criterios de fiabilidad menos estrictos para el tamaño muestral. Por defecto es `FALSE`.
 #' @param filt Un string con una expresión de filtro para `dplyr::filter()`.
 #' @param rm_na_var Booleano. Si `TRUE`, elimina NAs en `var` antes de calcular.
 #' @param parallel Booleano. Activa el cálculo en paralelo.
@@ -140,18 +142,19 @@ obs_prop <- function(designs,
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @export
 obs_media <- function(designs,
-                      sufijo      = NULL,
+                      sufijo         = NULL,
                       var,
-                      des         = NULL,
-                      multi_des   = TRUE,
-                      filt        = NULL,
-                      rm_na_var   = TRUE,
-                      parallel    = FALSE,
-                      n_cores     = NULL,
-                      save_xlsx   = TRUE,
-                      formato     = TRUE,
-                      decimales   = 2,
-                      verbose     = TRUE) {
+                      des            = NULL,
+                      multi_des      = TRUE,
+                      es_var_estudio = FALSE, # <--- NUEVO ARGUMENTO
+                      filt           = NULL,
+                      rm_na_var      = TRUE,
+                      parallel       = FALSE,
+                      n_cores        = NULL,
+                      save_xlsx      = TRUE,
+                      formato        = TRUE,
+                      decimales      = 2,
+                      verbose        = TRUE) {
 
   if (multi_des && length(des) > 3) {
     stop(paste(
@@ -177,7 +180,7 @@ obs_media <- function(designs,
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
 
   calc_fun <- function(dsgn, meta) {
-    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "mean", multi_des)
+    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "mean", multi_des, es_var_estudio)
   }
 
   if (parallel && n_designs > 1) {

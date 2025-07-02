@@ -1,3 +1,19 @@
+# dosr 0.1.4
+
+## CAMBIO FUNDAMENTAL EN CRITERIOS DE FIABILIDAD
+
+*   Se ha reescrito por completo la lógica para clasificar la fiabilidad de las estimaciones (`Fiable`, `Poco Fiable`, `No Fiable`) para alinearse con los nuevos estándares de calidad.
+*   **Para proporciones:**
+    *   La clasificación ahora distingue entre variables dicotómicas y no dicotómicas, infiriendo esto automáticamente del número de niveles de la variable.
+    *   Se aplican umbrales de tamaño muestral diferenciados (`n_universo` para dicotómicas, `n_mues` para no dicotómicas).
+    *   Se introduce un nuevo argumento `es_var_estudio` (Booleano, por defecto `FALSE`) que permite relajar los criterios de tamaño muestral para variables clave del instrumento.
+*   **Para medias:**
+    *   La lógica de clasificación también ha sido actualizada para seguir el nuevo flujo de decisión basado en grados de libertad, tamaño muestral, el argumento `es_var_estudio` y el coeficiente de variación (CV).
+
+## MEJORAS INTERNAS Y CORRECCIONES
+
+*   Se ha añadido el argumento `es_var_estudio` a las funciones `obs_prop()` y `obs_media()`.
+
 # dosr 0.1.3
 
 ## NUEVAS FUNCIONALIDADES

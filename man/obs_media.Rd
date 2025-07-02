@@ -10,6 +10,7 @@ obs_media(
   var,
   des = NULL,
   multi_des = TRUE,
+  es_var_estudio = FALSE,
   filt = NULL,
   rm_na_var = TRUE,
   parallel = FALSE,
@@ -29,7 +30,9 @@ obs_media(
 
 \item{des}{Un vector de strings con los nombres de las variables de desagregación.}
 
-\item{multi_des}{Booleano. Si `TRUE` (por defecto), calcula todas las combinaciones de `des`. Si `FALSE`, solo calcula las desagregaciones simples (por cada variable en `des` por separado).}
+\item{multi_des}{Booleano. Si `TRUE` (por defecto), calcula todas las combinaciones de `des`. Si `FALSE`, solo calcula las desagregaciones simples.}
+
+\item{es_var_estudio}{Booleano. Si `TRUE`, aplica criterios de fiabilidad menos estrictos para el tamaño muestral. Por defecto es `FALSE`.}
 
 \item{filt}{Un string con una expresión de filtro para `dplyr::filter()`.}
 

@@ -1,7 +1,7 @@
 # en R/dosr-package.R
 
 ## usethis namespace: start
-#' @importFrom dplyr %>% mutate select group_by summarise arrange across any_of everything left_join bind_rows as_tibble rename rename_with bind_cols case_when n n_distinct all_of full_join relocate ungroup
+#' @importFrom dplyr %>% mutate select group_by summarise arrange across any_of everything left_join bind_rows as_tibble rename rename_with bind_cols case_when n n_distinct all_of full_join relocate ungroup if_else
 #' @importFrom srvyr as_survey_design survey_prop survey_mean
 #' @importFrom tidyr complete
 #' @importFrom purrr map map2 pmap reduce set_names compact
