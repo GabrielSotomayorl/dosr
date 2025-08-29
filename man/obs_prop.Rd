@@ -11,6 +11,8 @@ obs_prop(
   des = NULL,
   multi_des = TRUE,
   es_var_estudio = FALSE,
+  usar_etiqueta_var = TRUE,
+  sig = FALSE,
   filt = NULL,
   rm_na_var = TRUE,
   parallel = FALSE,
@@ -35,6 +37,10 @@ obs_prop(
 
 \item{es_var_estudio}{Booleano. Si `TRUE`, aplica criterios de fiabilidad menos estrictos para el tamaño muestral. Por defecto es `FALSE`.}
 
+\item{usar_etiqueta_var}{Booleano. Si `TRUE` (por defecto), usa la etiqueta de la variable `var` como título en los reportes de Excel. Si es `FALSE` o la variable no tiene etiqueta, usa el nombre de la variable.}
+
+\item{sig}{Booleano. Si `TRUE`, calcula y añade pruebas de significancia estadística a las hojas de reporte con formato. Por defecto es `FALSE`.}
+
 \item{filt}{Un string con una expresión de filtro para `dplyr::filter()`.}
 
 \item{rm_na_var}{Booleano. Si `TRUE`, elimina NAs en `var` antes de calcular.}
@@ -47,7 +53,7 @@ obs_prop(
 
 \item{formato}{Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.}
 
-\item{porcentaje}{Booleano. Muestra las proporciones como porcentajes en Excel.}
+\item{porcentaje}{Booleano. Si `TRUE`, las estimaciones y errores estándar se multiplican por 100.}
 
 \item{decimales}{Entero. Número de decimales para las estimaciones en Excel.}
 

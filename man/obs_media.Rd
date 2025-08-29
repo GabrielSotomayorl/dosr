@@ -11,6 +11,8 @@ obs_media(
   des = NULL,
   multi_des = TRUE,
   es_var_estudio = FALSE,
+  usar_etiqueta_var = TRUE,
+  sig = FALSE,
   filt = NULL,
   rm_na_var = TRUE,
   parallel = FALSE,
@@ -33,6 +35,10 @@ obs_media(
 \item{multi_des}{Booleano. Si `TRUE` (por defecto), calcula todas las combinaciones de `des`. Si `FALSE`, solo calcula las desagregaciones simples.}
 
 \item{es_var_estudio}{Booleano. Si `TRUE`, aplica criterios de fiabilidad menos estrictos para el tamaño muestral. Por defecto es `FALSE`.}
+
+\item{usar_etiqueta_var}{Booleano. Si `TRUE` (por defecto), usa la etiqueta de la variable `var` como título en los reportes de Excel. Si es `FALSE` o la variable no tiene etiqueta, usa el nombre de la variable.}
+
+\item{sig}{Booleano. Si `TRUE`, calcula y añade pruebas de significancia estadística a las hojas de reporte con formato. Por defecto es `FALSE`.}
 
 \item{filt}{Un string con una expresión de filtro para `dplyr::filter()`.}
 

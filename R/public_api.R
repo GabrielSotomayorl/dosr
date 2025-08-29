@@ -1,22 +1,24 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: public_api.R (VERSIÓN CON ARGUMENTO es_var_estudio)
+# Archivo: public_api.R (VERSIÓN CON SIGNIFICANCIA)
 # ---------------------------------------------------------------------------- #
 
 #' @title Internal helper function for a single worker process
 #' @noRd
-calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, type, multi_des, es_var_estudio) {
+calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, type, multi_des, es_var_estudio, porcentaje) {
   calculate_estimates(
     dsgn = dsgn,
     var = var, des = des, filt = filt, rm_na_var = rm_na_var, type = type,
     psu_var = meta$psu, strata_var = meta$strata, weight_var = meta$weight,
     multi_des = multi_des,
-    es_var_estudio = es_var_estudio # Pasar el nuevo argumento
+    es_var_estudio = es_var_estudio,
+    porcentaje = porcentaje
   )
 }
 
 # --- FUNCIÓN INTERNA PARA CREAR DISEÑOS LIGEROS ---
 create_lightweight_designs <- function(design_list, main_var, des_vars, filter_vars, meta_list) {
   purrr::map2(design_list, meta_list, function(dsgn, meta) {
+    # ## CORRECCIÓN ##: Corregido el typo de meta_strata a meta$strata
     design_specific_vars <- c(meta$psu, meta$strata, meta$weight)
     vars_to_keep <- unique(c(main_var, des_vars, filter_vars, design_specific_vars))
     vars_to_keep <- intersect(vars_to_keep, names(dsgn$variables))
@@ -25,28 +27,29 @@ create_lightweight_designs <- function(design_list, main_var, des_vars, filter_v
   })
 }
 
-
 #' @title Calcula estimaciones de proporciones para diseños complejos
 #' @description Procesa uno o más `tbl_svy` para calcular proporciones.
 #' @inheritParams obs_media
-#' @param porcentaje Booleano. Muestra las proporciones como porcentajes en Excel.
+#' @param porcentaje Booleano. Si `TRUE`, las estimaciones y errores estándar se multiplican por 100.
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @export
 obs_prop <- function(designs,
-                     sufijo         = NULL,
+                     sufijo            = NULL,
                      var,
-                     des            = NULL,
-                     multi_des      = TRUE,
-                     es_var_estudio = FALSE, # <--- NUEVO ARGUMENTO
-                     filt           = NULL,
-                     rm_na_var      = TRUE,
-                     parallel       = FALSE,
-                     n_cores        = NULL,
-                     save_xlsx      = TRUE,
-                     formato        = TRUE,
-                     porcentaje     = TRUE,
-                     decimales      = 2,
-                     verbose        = TRUE) {
+                     des               = NULL,
+                     multi_des         = TRUE,
+                     es_var_estudio    = FALSE,
+                     usar_etiqueta_var = TRUE,
+                     sig               = FALSE, # <--- NUEVO ARGUMENTO
+                     filt              = NULL,
+                     rm_na_var         = TRUE,
+                     parallel          = FALSE,
+                     n_cores           = NULL,
+                     save_xlsx         = TRUE,
+                     formato           = TRUE,
+                     porcentaje        = TRUE,
+                     decimales         = 2,
+                     verbose           = TRUE) {
 
   if (multi_des && length(des) > 3) {
     stop(paste(
@@ -55,7 +58,6 @@ obs_prop <- function(designs,
       "\nSoluci\u00f3n: Use 3 o menos variables en 'des', o establezca 'multi_des = FALSE' para obtener solo las desagregaciones simples."
     ), call. = FALSE)
   }
-
   if (verbose) message("Fase 1/3: Preparando datos y dise\u00f1os...")
   if (!inherits(designs, "list")) designs <- list(designs)
   n_designs <- length(designs)
@@ -64,15 +66,21 @@ obs_prop <- function(designs,
   }
   stopifnot("La longitud de 'sufijo' debe coincidir con el n\u00famero de dise\u00f1os." = length(sufijo) == n_designs)
   names(designs) <- sufijo
+  nombre_indicador <- var
+  if (usar_etiqueta_var) {
+    var_label <- labelled::var_label(designs[[1]]$variables[[var]])
+    if (!is.null(var_label)) {
+      nombre_indicador <- var_label
+    }
+  }
   design_metadata <- purrr::map(designs, ~list(psu=colnames(.x$cluster)[1], strata=colnames(.x$strata)[1], weight=names(.x$allprob)[1]))
   vars_in_filter <- if (!is.null(filt)) all.vars(rlang::parse_expr(filt)) else character(0)
   designs_light <- create_lightweight_designs(designs, var, des, vars_in_filter, design_metadata)
 
   if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
-
   calc_fun <- function(dsgn, meta) {
-    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "prop", multi_des, es_var_estudio)
+    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "prop", multi_des, es_var_estudio, porcentaje)
   }
 
   if (parallel && n_designs > 1) {
@@ -93,6 +101,14 @@ obs_prop <- function(designs,
   if (verbose) message("Fase 3/3: Agregando resultados y generando reporte Excel...")
   keys_prop <- c(var, "nivel", des)
   hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_prop, all_designs = designs, type = "prop")
+
+  # ## NUEVO ##: Calcular significancia si se solicita
+  lista_tests <- NULL
+  if (sig && formato) {
+    if (verbose) message("... calculando pruebas de significancia...")
+    lista_tests <- calculate_significance(hojas_list, sufijo, type = "prop", main_var_prop = var, des_vars = des)
+  }
+
   all_factor_levels <- get_all_levels(designs, c(var, des))
   resultado_final_unordered <- bind_rows(hojas_list, .id = "combo_maestro") %>% unique_cols()
   resultado_final_unordered$combo_maestro <- factor(resultado_final_unordered$combo_maestro, levels = names(hojas_list))
@@ -110,7 +126,7 @@ obs_prop <- function(designs,
     des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
     filename <- file.path("output", paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_PROP.xlsx"))
     if (formato) {
-      generate_prop_report(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs = designs, consolidated_df = resultado_final)
+      generate_prop_report(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs, consolidated_df = resultado_final, nombre_indicador = nombre_indicador, lista_tests = lista_tests)
     } else {
       wb <- createWorkbook()
       addWorksheet(wb, "Consolidado")
@@ -123,6 +139,7 @@ obs_prop <- function(designs,
   invisible(resultado_final)
 }
 
+
 #' @title Calcula estimaciones de medias para diseños complejos
 #' @description Procesa uno o más `tbl_svy` para calcular medias.
 #' @param designs Un objeto `tbl_svy` o una lista de ellos.
@@ -131,6 +148,8 @@ obs_prop <- function(designs,
 #' @param des Un vector de strings con los nombres de las variables de desagregación.
 #' @param multi_des Booleano. Si `TRUE` (por defecto), calcula todas las combinaciones de `des`. Si `FALSE`, solo calcula las desagregaciones simples.
 #' @param es_var_estudio Booleano. Si `TRUE`, aplica criterios de fiabilidad menos estrictos para el tamaño muestral. Por defecto es `FALSE`.
+#' @param usar_etiqueta_var Booleano. Si `TRUE` (por defecto), usa la etiqueta de la variable `var` como título en los reportes de Excel. Si es `FALSE` o la variable no tiene etiqueta, usa el nombre de la variable.
+#' @param sig Booleano. Si `TRUE`, calcula y añade pruebas de significancia estadística a las hojas de reporte con formato. Por defecto es `FALSE`.
 #' @param filt Un string con una expresión de filtro para `dplyr::filter()`.
 #' @param rm_na_var Booleano. Si `TRUE`, elimina NAs en `var` antes de calcular.
 #' @param parallel Booleano. Activa el cálculo en paralelo.
@@ -142,19 +161,21 @@ obs_prop <- function(designs,
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @export
 obs_media <- function(designs,
-                      sufijo         = NULL,
+                      sufijo            = NULL,
                       var,
-                      des            = NULL,
-                      multi_des      = TRUE,
-                      es_var_estudio = FALSE, # <--- NUEVO ARGUMENTO
-                      filt           = NULL,
-                      rm_na_var      = TRUE,
-                      parallel       = FALSE,
-                      n_cores        = NULL,
-                      save_xlsx      = TRUE,
-                      formato        = TRUE,
-                      decimales      = 2,
-                      verbose        = TRUE) {
+                      des               = NULL,
+                      multi_des         = TRUE,
+                      es_var_estudio    = FALSE,
+                      usar_etiqueta_var = TRUE,
+                      sig               = FALSE, # <--- NUEVO ARGUMENTO
+                      filt              = NULL,
+                      rm_na_var         = TRUE,
+                      parallel          = FALSE,
+                      n_cores           = NULL,
+                      save_xlsx         = TRUE,
+                      formato           = TRUE,
+                      decimales         = 2,
+                      verbose           = TRUE) {
 
   if (multi_des && length(des) > 3) {
     stop(paste(
@@ -172,6 +193,15 @@ obs_media <- function(designs,
   }
   stopifnot("La longitud de 'sufijo' debe coincidir con el n\u00famero de dise\u00f1os." = length(sufijo) == n_designs)
   names(designs) <- sufijo
+
+  nombre_indicador <- var
+  if (usar_etiqueta_var) {
+    var_label <- labelled::var_label(designs[[1]]$variables[[var]])
+    if (!is.null(var_label)) {
+      nombre_indicador <- var_label
+    }
+  }
+
   design_metadata <- purrr::map(designs, ~list(psu=colnames(.x$cluster)[1], strata=colnames(.x$strata)[1], weight=names(.x$allprob)[1]))
   vars_in_filter <- if (!is.null(filt)) all.vars(rlang::parse_expr(filt)) else character(0)
   designs_light <- create_lightweight_designs(designs, var, des, vars_in_filter, design_metadata)
@@ -180,7 +210,7 @@ obs_media <- function(designs,
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
 
   calc_fun <- function(dsgn, meta) {
-    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "mean", multi_des, es_var_estudio)
+    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "mean", multi_des, es_var_estudio, porcentaje = FALSE)
   }
 
   if (parallel && n_designs > 1) {
@@ -201,6 +231,14 @@ obs_media <- function(designs,
   if (verbose) message("Fase 3/3: Agregando resultados y generando reporte Excel...")
   keys_media <- c("variable", "nivel", des)
   hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_media, all_designs = designs, type = "mean")
+
+  # ## NUEVO ##: Calcular significancia si se solicita
+  lista_tests <- NULL
+  if (sig && formato) {
+    if (verbose) message("... calculando pruebas de significancia...")
+    lista_tests <- calculate_significance(hojas_list, sufijo, type = "mean", main_var_prop = NULL, des_vars = des)
+  }
+
   all_factor_levels <- get_all_levels(designs, des)
   resultado_final_unordered <- bind_rows(hojas_list, .id = "combo_maestro") %>% unique_cols()
   resultado_final_unordered$combo_maestro <- factor(resultado_final_unordered$combo_maestro, levels = names(hojas_list))
@@ -218,7 +256,7 @@ obs_media <- function(designs,
     des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
     filename <- file.path("output", paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_MEDIA.xlsx"))
     if (formato) {
-      generate_mean_report(hojas_list, filename, var, des, sufijo, decimales, designs = designs, consolidated_df = resultado_final)
+      generate_mean_report(hojas_list, filename, var, des, sufijo, decimales, designs = designs, consolidated_df = resultado_final, nombre_indicador = nombre_indicador, lista_tests = lista_tests)
     } else {
       wb <- createWorkbook()
       addWorksheet(wb, "Consolidado")

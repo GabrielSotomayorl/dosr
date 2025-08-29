@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: engine.R (VERSIÓN CON NUEVOS CRITERIOS DE FIABILIDAD)
+# Archivo: engine.R (VERSIÓN CON CÁLCULO DE PORCENTAJES)
 # ---------------------------------------------------------------------------- #
 
 #' @title Internal calculation engine for survey estimates
@@ -7,7 +7,8 @@
 #' @noRd
 calculate_estimates <- function(dsgn,
                                 var, des, filt, rm_na_var, type = c("prop", "mean"),
-                                psu_var, strata_var, weight_var, multi_des, es_var_estudio) {
+                                psu_var, strata_var, weight_var, multi_des, es_var_estudio,
+                                porcentaje = FALSE) {
 
   type <- match.arg(type)
 
@@ -18,7 +19,6 @@ calculate_estimates <- function(dsgn,
   if (rm_na_var) {
     dsgn <- dsgn %>% srvyr::filter(!is.na(.data[[var]]))
   }
-
   processed_vars <- dsgn$variables
   if (type == "prop") {
     vars_to_factor <- c(var, des)
@@ -31,7 +31,6 @@ calculate_estimates <- function(dsgn,
     }
   }
   dsgn$variables <- processed_vars
-
   base_df <- dsgn$variables %>%
     mutate(.w = .data[[weight_var]], .psu = .data[[psu_var]], .str = .data[[strata_var]])
 
@@ -39,20 +38,28 @@ calculate_estimates <- function(dsgn,
   calc_tabla <- function(grp_des) {
     if (type == "prop") {
       grp_vars <- c(grp_des, var)
-      est <- dsgn %>% group_by(across(all_of(grp_vars))) %>% summarise(prop = survey_prop(vartype = "se"), .groups = "drop") %>% rename(se = prop_se)
+      est <- dsgn %>%
+        group_by(across(all_of(grp_vars))) %>%
+        summarise(prop = survey_prop(vartype = "se"), .groups = "drop") %>%
+        rename(se = prop_se)
+
+      if (porcentaje) {
+        est <- est %>% mutate(
+          prop = prop * 100,
+          se = se * 100
+        )
+      }
+
     } else {
       grp_vars <- grp_des
       est <- dsgn %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
     }
+
     tam_group_vars <- if(type == "prop") c(grp_des, var) else grp_des
     tam <- base_df %>% group_by(across(all_of(tam_group_vars))) %>% summarise(n_mues = n(), N_pob  = sum(.w), gl = n_distinct(.psu) - n_distinct(.str), .groups = "drop")
     out <- if (length(tam_group_vars) == 0) bind_cols(est, tam) else left_join(est, tam, by = tam_group_vars)
 
-    # -------------------------------------------------------------------------- #
-    # ## NUEVA LÓGICA DE FIABILIDAD ##
-    # -------------------------------------------------------------------------- #
     if (type == "prop") {
-      # Inferencia de si la variable es dicotómica
       out <- out %>%
         group_by(across(all_of(grp_des))) %>%
         mutate(
@@ -61,8 +68,11 @@ calculate_estimates <- function(dsgn,
         ) %>%
         ungroup() %>%
         mutate(
-          se_umbral = if_else(prop < 0.5, (prop^(2/3))/9, ((1-prop)^(2/3))/9),
+          prop_val = if(porcentaje) prop / 100 else prop,
+          se_umbral_prop = if_else(prop_val < 0.5, (prop_val^(2/3))/9, ((1-prop_val)^(2/3))/9),
+          se_umbral = if (porcentaje) se_umbral_prop * 100 else se_umbral_prop,
           fiabilidad = case_when(
+            n_mues == 0 ~ "Sin casos",
             gl <= 9 ~ "No Fiable",
             n_niveles == 2 & n_universo < 30 & es_var_estudio == FALSE ~ "No Fiable",
             n_niveles != 2 & n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
@@ -70,11 +80,12 @@ calculate_estimates <- function(dsgn,
             TRUE ~ "Fiable"
           )
         )
-    } else { # type == "mean"
+    } else {
       out <- out %>%
         mutate(
-          variable = var, # Aseguramos que la columna 'variable' exista
+          variable = var,
           fiabilidad = case_when(
+            n_mues == 0 ~ "Sin casos",
             gl <= 9 ~ "No Fiable",
             n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
             cv > 0.30 ~ "No Fiable",
@@ -98,7 +109,6 @@ calculate_estimates <- function(dsgn,
       arrange(across(all_of(grp_des)))
   }
 
-  # --- Lógica de generación de combinaciones ---
   combos <- list(character(0))
   if (!is.null(des)) {
     if (multi_des) {

@@ -1,3 +1,28 @@
+# dosr 0.2.0
+
+## FUNCIONALIDAD MAYOR: PRUEBAS DE SIGNIFICANCIA ESTADÍSTICA
+
+*   Se ha introducido una nueva funcionalidad para calcular y reportar pruebas de significancia estadística, controlada por el nuevo argumento `sig` (Booleano, por defecto `FALSE`) en `obs_prop()` y `obs_media()`.
+*   Cuando `sig = TRUE`, las hojas de formato en los reportes de Excel ahora incluyen tablas adicionales con los p-values de las siguientes comparaciones:
+    1.  **Test Intra-Anual:** Una matriz que compara todas las categorías de una desagregación simple entre sí, para cada año.
+    2.  **Test Contra Último Año:** Compara la estimación de cada categoría contra la del año anterior (disponible cuando se procesan múltiples diseños).
+    3.  **Test Contra Estimación Nacional:** Compara la estimación de cada categoría contra el total nacional de ese mismo año.
+*   Los cálculos se realizan mediante un test t de Student que considera las estimaciones, los errores estándar y los grados de libertad de cada grupo, asegurando la validez estadística para diseños muestrales complejos.
+*   Se ha creado un nuevo módulo interno (`R/significance.R`) con una lógica robusta y defensiva para manejar todos los casos de cálculo y prevenir errores con datos vacíos o casos límite.
+
+# dosr 0.1.5
+
+## MEJORAS DE FORMATO Y USABILIDAD
+
+*   Se ha añadido el argumento `usar_etiqueta_var` (Booleano, por defecto `TRUE`) a `obs_prop()` y `obs_media()`. Si está activo, se utiliza la etiqueta de la variable de interés (extraída con el paquete `labelled`) como título del indicador en los reportes de Excel.
+*   En `obs_prop()`, el argumento `porcentaje = TRUE` ahora multiplica las estimaciones y errores estándar por 100 directamente en los datos, en lugar de depender del formato de celda de Excel. Esto mejora la portabilidad y consistencia de los resultados.
+
+## CORRECCIONES
+
+*   Se ha solucionado un bug que causaba que la columna `fiabilidad` apareciera en blanco para las categorías sin casos generadas por `tidyr::complete()`. Ahora se muestra correctamente como "Sin casos".
+*   Se ha corregido una inconsistencia en la columna `nivel` para las categorías sin casos, asegurando que siempre muestre los nombres de las variables de desagregación.
+*   El paquete ahora pasa `R CMD check` sin `NOTE`s, gracias a la correcta declaración de variables globales y la importación explícita de todas las funciones necesarias.
+
 # dosr 0.1.4
 
 ## CAMBIO FUNDAMENTAL EN CRITERIOS DE FIABILIDAD
