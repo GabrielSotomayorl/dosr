@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: public_api.R (VERSIÓN CON SIGNIFICANCIA)
+# Archivo: public_api.R (VERSIÓN CON ARGUMENTO 'dir' PERSONALIZABLE)
 # ---------------------------------------------------------------------------- #
 
 #' @title Internal helper function for a single worker process
@@ -18,7 +18,6 @@ calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, type,
 # --- FUNCIÓN INTERNA PARA CREAR DISEÑOS LIGEROS ---
 create_lightweight_designs <- function(design_list, main_var, des_vars, filter_vars, meta_list) {
   purrr::map2(design_list, meta_list, function(dsgn, meta) {
-    # ## CORRECCIÓN ##: Corregido el typo de meta_strata a meta$strata
     design_specific_vars <- c(meta$psu, meta$strata, meta$weight)
     vars_to_keep <- unique(c(main_var, des_vars, filter_vars, design_specific_vars))
     vars_to_keep <- intersect(vars_to_keep, names(dsgn$variables))
@@ -26,6 +25,7 @@ create_lightweight_designs <- function(design_list, main_var, des_vars, filter_v
     return(light_dsgn)
   })
 }
+
 
 #' @title Calcula estimaciones de proporciones para diseños complejos
 #' @description Procesa uno o más `tbl_svy` para calcular proporciones.
@@ -40,12 +40,13 @@ obs_prop <- function(designs,
                      multi_des         = TRUE,
                      es_var_estudio    = FALSE,
                      usar_etiqueta_var = TRUE,
-                     sig               = FALSE, # <--- NUEVO ARGUMENTO
+                     sig               = FALSE,
                      filt              = NULL,
                      rm_na_var         = TRUE,
                      parallel          = FALSE,
                      n_cores           = NULL,
                      save_xlsx         = TRUE,
+                     dir               = "output", # <--- NUEVO ARGUMENTO
                      formato           = TRUE,
                      porcentaje        = TRUE,
                      decimales         = 2,
@@ -102,7 +103,6 @@ obs_prop <- function(designs,
   keys_prop <- c(var, "nivel", des)
   hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_prop, all_designs = designs, type = "prop")
 
-  # ## NUEVO ##: Calcular significancia si se solicita
   lista_tests <- NULL
   if (sig && formato) {
     if (verbose) message("... calculando pruebas de significancia...")
@@ -121,10 +121,13 @@ obs_prop <- function(designs,
     arrange(.data$combo_maestro, across(any_of(c(des, var)))) %>%
     select(-.data$combo_maestro) %>%
     select(any_of(keys_prop), everything())
+
   if (save_xlsx) {
-    if (!dir.exists("output")) dir.create("output")
+    # ## MODIFICACIÓN ##: Usar el argumento 'dir'
+    dir.create(dir, showWarnings = FALSE, recursive = TRUE)
     des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
-    filename <- file.path("output", paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_PROP.xlsx"))
+    filename <- file.path(dir, paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_PROP.xlsx"))
+
     if (formato) {
       generate_prop_report(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs, consolidated_df = resultado_final, nombre_indicador = nombre_indicador, lista_tests = lista_tests)
     } else {
@@ -155,6 +158,7 @@ obs_prop <- function(designs,
 #' @param parallel Booleano. Activa el cálculo en paralelo.
 #' @param n_cores Entero. Número de núcleos a usar. Si es NULL, se usa un valor seguro.
 #' @param save_xlsx Booleano. Si `TRUE`, guarda un reporte en Excel.
+#' @param dir Un string con la ruta del directorio donde se guardará el archivo Excel. Por defecto es `"output"`.
 #' @param formato Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.
 #' @param decimales Entero. Número de decimales para las estimaciones en Excel.
 #' @param verbose Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.
@@ -167,12 +171,13 @@ obs_media <- function(designs,
                       multi_des         = TRUE,
                       es_var_estudio    = FALSE,
                       usar_etiqueta_var = TRUE,
-                      sig               = FALSE, # <--- NUEVO ARGUMENTO
+                      sig               = FALSE,
                       filt              = NULL,
                       rm_na_var         = TRUE,
                       parallel          = FALSE,
                       n_cores           = NULL,
                       save_xlsx         = TRUE,
+                      dir               = "output", # <--- NUEVO ARGUMENTO
                       formato           = TRUE,
                       decimales         = 2,
                       verbose           = TRUE) {
@@ -232,7 +237,6 @@ obs_media <- function(designs,
   keys_media <- c("variable", "nivel", des)
   hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_media, all_designs = designs, type = "mean")
 
-  # ## NUEVO ##: Calcular significancia si se solicita
   lista_tests <- NULL
   if (sig && formato) {
     if (verbose) message("... calculando pruebas de significancia...")
@@ -251,10 +255,13 @@ obs_media <- function(designs,
     arrange(.data$combo_maestro, across(any_of(des))) %>%
     select(-.data$combo_maestro) %>%
     select(any_of(keys_media), everything())
+
   if (save_xlsx) {
-    if (!dir.exists("output")) dir.create("output")
+    # ## MODIFICACIÓN ##: Usar el argumento 'dir'
+    dir.create(dir, showWarnings = FALSE, recursive = TRUE)
     des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
-    filename <- file.path("output", paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_MEDIA.xlsx"))
+    filename <- file.path(dir, paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_MEDIA.xlsx"))
+
     if (formato) {
       generate_mean_report(hojas_list, filename, var, des, sufijo, decimales, designs = designs, consolidated_df = resultado_final, nombre_indicador = nombre_indicador, lista_tests = lista_tests)
     } else {

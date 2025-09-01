@@ -1,7 +1,7 @@
 Package: dosr
 Type: Package
 Title: Herramientas para el Analisis de Encuestas del Observatorio Social
-Version: 0.2.0
+Version: 0.2.1
 Author: Gabriel Sotomayor <gabrielsotomayorl@gmail.com>
 Maintainer: Gabriel Sotomayor <gabrielsotomayorl@gmail.com>
 Description: Proporciona un conjunto de funciones de alto nivel para automatizar 

@@ -1,3 +1,11 @@
+# dosr 0.2.1
+
+## MEJORAS DE USABILIDAD
+
+*   Se ha añadido un nuevo argumento `dir` a `obs_prop()` y `obs_media()`.
+*   Este argumento permite al usuario especificar el directorio de destino donde se guardará el archivo Excel.
+*   El valor por defecto es `dir = "output"`, manteniendo la compatibilidad con el comportamiento de versiones anteriores. La función crea el directorio si este no existe.
+
 # dosr 0.2.0
 
 ## FUNCIONALIDAD MAYOR: PRUEBAS DE SIGNIFICANCIA ESTADÍSTICA

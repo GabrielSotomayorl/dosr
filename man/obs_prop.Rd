@@ -18,6 +18,7 @@ obs_prop(
   parallel = FALSE,
   n_cores = NULL,
   save_xlsx = TRUE,
+  dir = "output",
   formato = TRUE,
   porcentaje = TRUE,
   decimales = 2,
@@ -50,6 +51,8 @@ obs_prop(
 \item{n_cores}{Entero. Número de núcleos a usar. Si es NULL, se usa un valor seguro.}
 
 \item{save_xlsx}{Booleano. Si `TRUE`, guarda un reporte en Excel.}
+
+\item{dir}{Un string con la ruta del directorio donde se guardará el archivo Excel. Por defecto es `"output"`.}
 
 \item{formato}{Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.}
 
