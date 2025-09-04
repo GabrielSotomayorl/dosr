@@ -1,3 +1,18 @@
+# dosr 0.2.2
+
+## NUEVA FUNCIONALIDAD: PERFILADO RÁPIDO DE VARIABLES BINARIAS
+
+*   Se ha añadido una nueva función `multi_bin()` al paquete.
+*   Esta función está diseñada para el análisis exploratorio rápido de **múltiples variables dicotómicas (0/1)** dentro de un **único diseño de encuesta**.
+*   Calcula estimaciones de proporción (presentadas como porcentajes por defecto), errores estándar, N expandido (de los "1s"), N muestral (de los "1s") y criterios de fiabilidad.
+*   Permite desagregaciones simples (no cruzadas) a través del argumento `des`, generando hojas de reporte separadas.
+*   Incluye argumentos para personalizar el número de decimales de la estimación y del error estándar por separado (`decimales` y `decimales_se`).
+*   Genera un reporte en Excel con una hoja consolidada y hojas de formato profesional, siguiendo el estilo de `obs_prop` y `obs_media`.
+
+## MEJORAS INTERNAS
+
+*   Se ha movido el operador helper `%||%` a un archivo de utilidades (`R/utils.R`) para mejorar la estructura del paquete y seguir las mejores prácticas, eliminando código ejecutable del nivel superior de los scripts de funciones.
+
 # dosr 0.2.1
 
 ## MEJORAS DE USABILIDAD
