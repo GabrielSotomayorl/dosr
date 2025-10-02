@@ -66,14 +66,16 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
       fill_list_n <- purrr::map(sufijo, ~ 0) %>% set_names(paste0("n_mues_", sufijo))
       fill_list_N <- purrr::map(sufijo, ~ 0) %>% set_names(paste0("N_pob_", sufijo))
       fill_list_media <- purrr::map(sufijo, ~ NA_real_) %>% set_names(paste0("media_", sufijo))
+      fill_list_total <- purrr::map(sufijo, ~ NA_real_) %>% set_names(paste0("total_", sufijo))
       fill_list_cuantil <- purrr::map(sufijo, ~ NA_real_) %>% set_names(paste0("cuantil_", sufijo))
       final_fill_list <- switch(
         type,
         prop = c(fill_list_prop, fill_list_n, fill_list_N),
         mean = c(fill_list_media, fill_list_n, fill_list_N),
+        total = c(fill_list_total, fill_list_n, fill_list_N),
         quantile = c(fill_list_cuantil, fill_list_n, fill_list_N)
       )
-      grouping_vars <- if (type %in% c("mean", "quantile")) "variable" else NULL
+      grouping_vars <- if (type %in% c("mean", "quantile", "total")) "variable" else NULL
       joined_df <- joined_df %>%
         group_by(across(any_of(grouping_vars))) %>%
         tidyr::complete(!!!all_levels_to_use, fill = final_fill_list) %>%
@@ -380,6 +382,149 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
   }
   openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
   message("Reporte Excel de medias creado en: ", filename)
+}
+
+# --- Reporte específico para Totales ---
+generate_total_report <- function(hojas_list, filename, var, des, sufijo, decimales, designs, consolidated_df, nombre_indicador, lista_tests = NULL) {
+  wb <- openxlsx::createWorkbook()
+  openxlsx::addWorksheet(wb, "1_Consolidado")
+  write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
+
+  num_fmt_string <- if (decimales > 0) paste0("#,##0.", paste(rep("0", decimales), collapse = "")) else "#,##0"
+  numStyle <- openxlsx::createStyle(numFmt = num_fmt_string)
+  countStyle <- openxlsx::createStyle(numFmt = "#,##0")
+  testStyle <- openxlsx::createStyle(numFmt = "0.000")
+
+  estilos <- list(numStyle, countStyle, numStyle, countStyle)
+  titulos  <- c("Estimación", "Población expandida", "Error estándar", "Casos muestrales")
+  metricas <- c("total", "N_pob", "se", "n_mues")
+  met_suffix_list <- purrr::map(metricas, ~ paste0(.x, "_", sufijo))
+  names(met_suffix_list) <- metricas
+  total_row <- hojas_list[["nac"]]
+  all_factor_levels <- get_all_levels(designs, des)
+  bold_style <- createStyle(textDecoration = "bold")
+
+  for (combo in names(hojas_list)) {
+    grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
+    hoja_nm <- truncate_sheet_name(paste0("2_", combo))
+    openxlsx::addWorksheet(wb, hoja_nm)
+
+    openxlsx::writeData(wb, hoja_nm, nombre_indicador, startRow = 2, startCol = 1)
+    openxlsx::addStyle(wb, hoja_nm, style = bold_style, rows = 2, cols = 1)
+    openxlsx::writeData(wb, hoja_nm, "Tipo de cálculo", startRow = 3, startCol = 1)
+
+    df_combo_wide <- hojas_list[[combo]]
+
+    fila <- 5
+    max_col_metrics <- 0
+    for (i in seq_along(titulos)) {
+      metric_name <- metricas[i]
+      metric_cols <- met_suffix_list[[metric_name]]
+      if (combo == "nac") {
+        block <- df_combo_wide %>%
+          select(nivel, all_of(metric_cols)) %>%
+          rename_with(~ sufijo, all_of(metric_cols))
+      } else {
+        block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
+        tot_vals <- total_row %>% select(all_of(metric_cols))
+        tot_line <- as.list(rep(".", length(grp_des)))
+        names(tot_line) <- grp_des
+        tot_line[[grp_des[1]]] <- "Total pais"
+        tot_line_df <- bind_cols(as_tibble(tot_line), tot_vals)
+        block_unordered <- bind_rows(block_main, tot_line_df) %>%
+          rename_with(~ sufijo, all_of(metric_cols))
+        factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
+        for(col in factor_cols) {
+          if(col %in% names(block_unordered)) {
+            current_levels <- all_factor_levels[[col]]
+            if(any(grepl("Total", block_unordered[[col]], ignore.case = TRUE))) {
+              total_label <- unique(grep("Total", block_unordered[[col]], value = TRUE, ignore.case = TRUE))
+              current_levels <- c(current_levels, total_label)
+            }
+            block_unordered[[col]] <- factor(block_unordered[[col]], levels = unique(current_levels))
+          }
+        }
+        block <- block_unordered %>% arrange(across(all_of(grp_des)))
+      }
+      if (ncol(block) > max_col_metrics) max_col_metrics <- ncol(block)
+      openxlsx::writeData(wb, hoja_nm, titulos[i], startRow = fila, startCol = 1)
+      cols_to_merge <- 1:ncol(block)
+      openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
+      if (ncol(block) > 1) {
+        openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
+      }
+      write_clean_table(wb, hoja_nm, block, startRow = fila + 1, startCol = 1)
+      if (combo != "nac") {
+        merge_group_cells(wb, hoja_nm, block, grp_des, start_row = fila + 2)
+      }
+      numeric_cols <- (length(grp_des) + 1):ncol(block)
+      data_rows <- (fila + 2):(fila + 1 + nrow(block))
+      if(length(numeric_cols) > 0 && length(data_rows) > 0) {
+        openxlsx::addStyle(wb, hoja_nm, style = estilos[[i]], rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
+      }
+      fila <- fila + nrow(block) + 3
+    }
+
+    if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
+      fila <- 5
+      col_inicio_tests <- max_col_metrics + 3
+
+      tests_combo <- lista_tests$intra_year[[combo]]
+      for (sfx in names(tests_combo)) {
+        test_df <- tests_combo[[sfx]]
+        if (!is.null(test_df)) {
+          titulo_test <- paste0("Test entre categorías año: ", sfx)
+          openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
+          cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df) - 1)
+          openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+
+          write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
+          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
+          data_rows <- (fila + 2):(fila + 1 + nrow(test_df))
+          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
+            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
+          }
+          fila <- fila + nrow(test_df) + 3
+        }
+      }
+
+      if (length(sufijo) > 1) {
+        test_df_last <- lista_tests$against_last_year[[combo]]
+        if (!is.null(test_df_last)) {
+          titulo_test <- "Test contra último año:"
+          openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
+          cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_last) - 1)
+          openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
+          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
+          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
+          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
+            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
+          }
+          fila <- fila + nrow(test_df_last) + 3
+        }
+
+        test_df_nac <- lista_tests$against_national[[combo]]
+        if (!is.null(test_df_nac)) {
+          titulo_test <- "Test contra estimación nacional:"
+          openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
+          cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_nac) - 1)
+          openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
+          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
+          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
+          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
+            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
+          }
+        }
+      }
+    }
+  }
+  openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
+  message("Reporte Excel de totales creado en: ", filename)
 }
 
 # --- Reporte específico para Cuantiles ---

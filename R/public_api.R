@@ -278,6 +278,122 @@ obs_media <- function(designs,
 }
 
 
+#' @title Calcula estimaciones de totales para diseños complejos
+#' @description Procesa uno o más `tbl_svy` para calcular totales ponderados.
+#' @inheritParams obs_media
+#' @return Un data.frame con los resultados consolidados (invisiblemente).
+#' @export
+obs_total <- function(designs,
+                      sufijo            = NULL,
+                      var,
+                      des               = NULL,
+                      multi_des         = TRUE,
+                      es_var_estudio    = FALSE,
+                      usar_etiqueta_var = TRUE,
+                      sig               = FALSE,
+                      filt              = NULL,
+                      rm_na_var         = TRUE,
+                      parallel          = FALSE,
+                      n_cores           = NULL,
+                      save_xlsx         = TRUE,
+                      dir               = "output",
+                      formato           = TRUE,
+                      decimales         = 2,
+                      verbose           = TRUE) {
+
+  if (multi_des && length(des) > 3) {
+    stop(paste(
+      "Se solicitaron", length(des), "variables de desagregación con 'multi_des = TRUE'.",
+      "Esto generaría", 2^length(des) - 1, "combinaciones y sería extremadamente lento.",
+      "\nSolución: Use 3 o menos variables en 'des', o establezca 'multi_des = FALSE' para obtener solo las desagregaciones simples."
+    ), call. = FALSE)
+  }
+
+  if (verbose) message("Fase 1/3: Preparando datos y diseños...")
+  if (!inherits(designs, "list")) designs <- list(designs)
+  n_designs <- length(designs)
+  if (is.null(sufijo)) {
+    sufijo <- if (!is.null(names(designs)) && all(nzchar(names(designs)))) names(designs) else as.character(seq_len(n_designs))
+  }
+  stopifnot("La longitud de 'sufijo' debe coincidir con el número de diseños." = length(sufijo) == n_designs)
+  names(designs) <- sufijo
+
+  nombre_indicador <- var
+  if (usar_etiqueta_var) {
+    var_label <- labelled::var_label(designs[[1]]$variables[[var]])
+    if (!is.null(var_label)) {
+      nombre_indicador <- var_label
+    }
+  }
+
+  design_metadata <- purrr::map(designs, ~list(psu=colnames(.x$cluster)[1], strata=colnames(.x$strata)[1], weight=names(.x$allprob)[1]))
+  vars_in_filter <- if (!is.null(filt)) all.vars(rlang::parse_expr(filt)) else character(0)
+  designs_light <- create_lightweight_designs(designs, var, des, vars_in_filter, design_metadata)
+
+  if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
+  pmap_args <- list(dsgn = designs_light, meta = design_metadata)
+  calc_fun <- function(dsgn, meta) {
+    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "total", multi_des, es_var_estudio, porcentaje = FALSE)
+  }
+
+  if (parallel && n_designs > 1) {
+    max_safe_cores <- 4
+    cores_detected <- tryCatch(parallel::detectCores(), error = function(e) 2)
+    if (is.null(n_cores)) {
+      cores <- min(cores_detected - 1, max_safe_cores, n_designs)
+      cores <- max(1, cores)
+    } else { cores <- n_cores }
+    if (verbose) message(paste("... usando modo paralelo con", cores, "workers."))
+    old_plan <- future::plan(multisession, workers = cores)
+    on.exit(future::plan(old_plan), add = TRUE)
+    lista_tablas <- furrr::future_pmap(pmap_args, calc_fun, .progress = FALSE)
+  } else {
+    lista_tablas <- purrr::pmap(pmap_args, calc_fun)
+  }
+
+  if (verbose) message("Fase 3/3: Agregando resultados y generando reporte Excel...")
+  keys_total <- c("variable", "nivel", des)
+  hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_total, all_designs = designs, type = "total")
+
+  lista_tests <- NULL
+  if (sig && formato) {
+    if (verbose) message("... calculando pruebas de significancia...")
+    lista_tests <- calculate_significance(hojas_list, sufijo, type = "total", main_var_prop = NULL, des_vars = des)
+  }
+
+  all_factor_levels <- get_all_levels(designs, des)
+  resultado_final_unordered <- bind_rows(hojas_list, .id = "combo_maestro") %>% unique_cols()
+  resultado_final_unordered$combo_maestro <- factor(resultado_final_unordered$combo_maestro, levels = names(hojas_list))
+  for(col_name in names(all_factor_levels)) {
+    if(col_name %in% names(resultado_final_unordered)) {
+      resultado_final_unordered[[col_name]] <- factor(resultado_final_unordered[[col_name]], levels = all_factor_levels[[col_name]])
+    }
+  }
+  resultado_final <- resultado_final_unordered %>%
+    arrange(.data$combo_maestro, across(any_of(des))) %>%
+    select(-.data$combo_maestro) %>%
+    select(any_of(keys_total), everything())
+
+  if (save_xlsx) {
+    dir.create(dir, showWarnings = FALSE, recursive = TRUE)
+    des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
+    filename <- file.path(dir, paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_TOTAL.xlsx"))
+
+    if (formato) {
+      generate_total_report(hojas_list, filename, var, des, sufijo, decimales, designs = designs, consolidated_df = resultado_final, nombre_indicador = nombre_indicador, lista_tests = lista_tests)
+    } else {
+      wb <- createWorkbook()
+      addWorksheet(wb, "Consolidado")
+      write_clean_table(wb, "Consolidado", resultado_final, startRow = 1, startCol = 1)
+      saveWorkbook(wb, filename, overwrite = TRUE)
+      message("Reporte Excel simple creado en: ", filename)
+    }
+  }
+  if (verbose) message("Proceso completado.")
+  invisible(resultado_final)
+}
+
+
 #' @title Calcula estimaciones de cuantiles para diseños complejos
 #' @description Procesa uno o más `tbl_svy` para calcular cuantiles.
 #' @inheritParams obs_media

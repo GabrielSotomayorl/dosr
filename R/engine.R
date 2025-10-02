@@ -6,7 +6,7 @@
 #' @description This internal function performs the statistical calculations.
 #' @noRd
 calculate_estimates <- function(dsgn,
-                                var, des, filt, rm_na_var, type = c("prop", "mean", "quantile"),
+                               var, des, filt, rm_na_var, type = c("prop", "mean", "quantile", "total"),
                                 psu_var, strata_var, weight_var, multi_des, es_var_estudio,
                                 porcentaje = FALSE,
                                 quantile_prob = 0.5) {
@@ -54,6 +54,12 @@ calculate_estimates <- function(dsgn,
     } else if (type == "mean") {
       grp_vars <- grp_des
       est <- dsgn %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
+    } else if (type == "total") {
+      grp_vars <- grp_des
+      est <- dsgn %>%
+        group_by(across(all_of(grp_vars))) %>%
+        summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>%
+        rename(se = total_se, cv = total_cv)
     } else {
       grp_vars <- grp_des
       est <- tryCatch(
@@ -164,6 +170,24 @@ calculate_estimates <- function(dsgn,
             n_mues == 0 ~ "Sin casos",
             gl <= 9 ~ "No Fiable",
             n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+            cv > 0.30 ~ "No Fiable",
+            cv > 0.20 ~ "Poco Fiable",
+            TRUE ~ "Fiable"
+          )
+        )
+    } else if (type == "total") {
+      out <- out %>%
+        mutate(
+          variable = var,
+          cv = dplyr::case_when(
+            is.finite(total) & total != 0 ~ se / abs(total),
+            TRUE ~ cv
+          ),
+          fiabilidad = case_when(
+            n_mues == 0 ~ "Sin casos",
+            gl <= 9 ~ "No Fiable",
+            n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+            is.na(cv) ~ NA_character_,
             cv > 0.30 ~ "No Fiable",
             cv > 0.20 ~ "Poco Fiable",
             TRUE ~ "Fiable"

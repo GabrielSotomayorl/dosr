@@ -9,6 +9,7 @@
 *   Incluye argumentos para personalizar el número de decimales de la estimación y del error estándar por separado (`decimales` y `decimales_se`).
 *   Genera un reporte en Excel con una hoja consolidada y hojas de formato profesional, siguiendo el estilo de `obs_prop` y `obs_media`.
 *   Se incorporó la nueva función `obs_cuantil()` para calcular cuantiles (mediana por defecto) con las mismas capacidades de desagregación, criterios de fiabilidad, pruebas de significancia y reportes en Excel que `obs_media()`.
+*   Se añadió la función `obs_total()` para estimar totales ponderados con idéntico flujo de trabajo (significancia, fiabilidad y reportes en Excel) que las utilidades existentes.
 
 ## MEJORAS INTERNAS
 
