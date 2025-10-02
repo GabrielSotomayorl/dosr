@@ -61,8 +61,16 @@ calculate_estimates <- function(dsgn,
         summarise(
           cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", na.rm = TRUE),
           .groups = "drop"
-        ) %>%
-        rename(se = cuantil_se) %>%
+        )
+
+      se_col <- grep("_se$", names(est), value = TRUE)
+      if (length(se_col) == 1) {
+        est <- est %>% rename(se = all_of(se_col))
+      } else if (!"se" %in% names(est)) {
+        est <- est %>% mutate(se = NA_real_)
+      }
+
+      est <- est %>%
         mutate(cv = dplyr::case_when(
           is.finite(cuantil) & cuantil != 0 ~ se / abs(cuantil),
           TRUE ~ NA_real_
