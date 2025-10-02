@@ -67,12 +67,12 @@ calculate_estimates <- function(dsgn,
           gl     = n_distinct(.psu) - n_distinct(.str),
           .groups = "drop"
         ) %>%
-        mutate(.valid_group = n_mues > 0 & is.finite(N_pob) & N_pob > 0)
+        mutate(valid_group_flag = n_mues > 0 & is.finite(N_pob) & N_pob > 0)
 
       valid_keys <- tam %>%
-        filter(.valid_group) %>%
+        filter(valid_group_flag) %>%
         select(all_of(grp_vars)) %>%
-        mutate(.valid_group = TRUE)
+        mutate(valid_group_flag = TRUE)
 
       est_valid <- tibble::tibble()
 
@@ -80,11 +80,11 @@ calculate_estimates <- function(dsgn,
         dsgn_valid <- dsgn
         dsgn_valid$variables <- dsgn_valid$variables %>%
           left_join(valid_keys, by = grp_vars) %>%
-          mutate(.valid_group = dplyr::coalesce(.valid_group, FALSE))
+          mutate(valid_group_flag = dplyr::coalesce(valid_group_flag, FALSE))
 
         est_valid <- dsgn_valid %>%
-          srvyr::filter(.valid_group) %>%
-          dplyr::select(-.valid_group) %>%
+          dplyr::filter(valid_group_flag) %>%
+          dplyr::select(-valid_group_flag) %>%
           group_by(across(all_of(grp_vars))) %>%
           summarise(prop = survey_prop(vartype = "se"), .groups = "drop") %>%
           rename(se = prop_se)
@@ -98,12 +98,12 @@ calculate_estimates <- function(dsgn,
       }
 
       empty_rows <- tam %>%
-        filter(!.valid_group) %>%
-        select(-.valid_group) %>%
+        filter(!valid_group_flag) %>%
+        select(-valid_group_flag) %>%
         mutate(prop = NA_real_, se = NA_real_)
 
       est <- bind_rows(est_valid, empty_rows)
-      tam <- tam %>% select(-.valid_group)
+      tam <- tam %>% select(-valid_group_flag)
 
     } else if (type == "mean") {
       grp_vars <- grp_des
