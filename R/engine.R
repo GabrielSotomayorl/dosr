@@ -81,14 +81,14 @@ calculate_estimates <- function(dsgn,
         rename(se = total_se, cv = total_cv)
     } else if (type == "ratio") {
       grp_vars <- grp_des
-      num_formula <- rlang::new_formula(NULL, rlang::sym(numerator_var))
-      den_formula <- rlang::new_formula(NULL, rlang::sym(denominator_var))
+      num_sym <- rlang::sym(numerator_var)
+      den_sym <- rlang::sym(denominator_var)
       est <- dsgn %>%
         group_by(across(all_of(grp_vars))) %>%
         summarise(
           ratio = survey_ratio(
-            numerator = !!num_formula,
-            denominator = !!den_formula,
+            !!num_sym,
+            !!den_sym,
             vartype = c("se", "cv"),
             na.rm = TRUE
           ),
