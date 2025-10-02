@@ -67,7 +67,8 @@ calculate_significance <- function(hojas_list, sufijo, type, main_var_prop, des_
     prop = "prop",
     mean = "media",
     total = "total",
-    quantile = "cuantil"
+    quantile = "cuantil",
+    ratio = "ratio"
   )
   se_prefix  <- "se"
   gl_prefix  <- "gl"

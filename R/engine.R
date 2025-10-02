@@ -6,19 +6,38 @@
 #' @description This internal function performs the statistical calculations.
 #' @noRd
 calculate_estimates <- function(dsgn,
-                               var, des, filt, rm_na_var, type = c("prop", "mean", "quantile", "total"),
+                               var, des, filt, rm_na_var, type = c("prop", "mean", "quantile", "total", "ratio"),
                                 psu_var, strata_var, weight_var, multi_des, es_var_estudio,
                                 porcentaje = FALSE,
-                                quantile_prob = 0.5) {
+                                quantile_prob = 0.5,
+                                ratio_vars = NULL) {
 
   type <- match.arg(type)
+
+  numerator_var <- NULL
+  denominator_var <- NULL
+  if (type == "ratio") {
+    if (is.null(ratio_vars) || !all(c("num", "den") %in% names(ratio_vars))) {
+      stop("Para estimar razones debe proporcionarse 'ratio_vars' con elementos 'num' y 'den'.", call. = FALSE)
+    }
+    numerator_var <- ratio_vars[["num"]]
+    denominator_var <- ratio_vars[["den"]]
+    stopifnot(
+      "El numerador debe ser un string" = is.character(numerator_var) && length(numerator_var) == 1 && nzchar(numerator_var),
+      "El denominador debe ser un string" = is.character(denominator_var) && length(denominator_var) == 1 && nzchar(denominator_var)
+    )
+  }
+
+  analysis_vars <- if (type == "ratio") unique(c(numerator_var, denominator_var)) else var
 
   # --- Pre-procesamiento ---
   if (!is.null(filt) && nzchar(filt)) {
     dsgn <- dsgn %>% srvyr::filter(!!rlang::parse_expr(filt))
   }
   if (rm_na_var) {
-    dsgn <- dsgn %>% srvyr::filter(!is.na(.data[[var]]))
+    if (!is.null(analysis_vars) && length(analysis_vars) > 0) {
+      dsgn <- dsgn %>% srvyr::filter(dplyr::if_all(dplyr::all_of(analysis_vars), ~ !is.na(.x)))
+    }
   }
   processed_vars <- dsgn$variables
   if (type == "prop") {
@@ -60,6 +79,17 @@ calculate_estimates <- function(dsgn,
         group_by(across(all_of(grp_vars))) %>%
         summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>%
         rename(se = total_se, cv = total_cv)
+    } else if (type == "ratio") {
+      grp_vars <- grp_des
+      num_formula <- stats::as.formula(paste0("~", numerator_var))
+      den_formula <- stats::as.formula(paste0("~", denominator_var))
+      est <- dsgn %>%
+        group_by(across(all_of(grp_vars))) %>%
+        summarise(
+          ratio = survey_ratio(num_formula, den_formula, vartype = c("se", "cv"), na.rm = TRUE),
+          .groups = "drop"
+        ) %>%
+        rename(se = ratio_se, cv = ratio_cv)
     } else {
       grp_vars <- grp_des
       est <- tryCatch(
@@ -183,6 +213,20 @@ calculate_estimates <- function(dsgn,
             is.finite(total) & total != 0 ~ se / abs(total),
             TRUE ~ cv
           ),
+          fiabilidad = case_when(
+            n_mues == 0 ~ "Sin casos",
+            gl <= 9 ~ "No Fiable",
+            n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+            is.na(cv) ~ NA_character_,
+            cv > 0.30 ~ "No Fiable",
+            cv > 0.20 ~ "Poco Fiable",
+            TRUE ~ "Fiable"
+          )
+        )
+    } else if (type == "ratio") {
+      out <- out %>%
+        mutate(
+          variable = var,
           fiabilidad = case_when(
             n_mues == 0 ~ "Sin casos",
             gl <= 9 ~ "No Fiable",
