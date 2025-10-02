@@ -1,3 +1,15 @@
+# dosr 0.2.3
+
+## NUEVAS FUNCIONALIDADES PRINCIPALES
+
+*   Se incorporó la nueva función `obs_cuantil()` para calcular cuantiles (mediana por defecto) con las mismas capacidades de desagregación, criterios de fiabilidad, pruebas de significancia y reportes en Excel que `obs_media()`.
+*   Se añadió la función `obs_total()` para estimar totales ponderados con idéntico flujo de trabajo (significancia, fiabilidad y reportes en Excel) que las utilidades existentes.
+*   Se incorporó la función `obs_ratio()` para estimar razones ponderadas (numerador/denominador) replicando la lógica de filtrado, desagregaciones, significancia y reportes de las demás herramientas `obs_*`.
+
+## MEJORAS Y CORRECCIONES
+
+*   Todas las funciones `obs_*` ejecutadas en paralelo heredan automáticamente la opción global `survey.lonely.psu`, evitando errores en estratos con una sola PSU al usar `parallel = TRUE`.
+
 # dosr 0.2.2
 
 ## NUEVA FUNCIONALIDAD: PERFILADO RÁPIDO DE VARIABLES BINARIAS

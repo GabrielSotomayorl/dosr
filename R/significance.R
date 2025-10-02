@@ -63,7 +63,13 @@
 
 calculate_significance <- function(hojas_list, sufijo, type, main_var_prop, des_vars) {
   if (is.null(des_vars)) return(NULL)
-  est_prefix <- if (type == "prop") "prop" else "media"
+  est_prefix <- switch(type,
+    prop = "prop",
+    mean = "media",
+    total = "total",
+    quantile = "cuantil",
+    ratio = "ratio"
+  )
   se_prefix  <- "se"
   gl_prefix  <- "gl"
 
