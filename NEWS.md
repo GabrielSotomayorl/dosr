@@ -8,6 +8,7 @@
 *   Permite desagregaciones simples (no cruzadas) a través del argumento `des`, generando hojas de reporte separadas.
 *   Incluye argumentos para personalizar el número de decimales de la estimación y del error estándar por separado (`decimales` y `decimales_se`).
 *   Genera un reporte en Excel con una hoja consolidada y hojas de formato profesional, siguiendo el estilo de `obs_prop` y `obs_media`.
+*   Se incorporó la nueva función `obs_cuantil()` para calcular cuantiles (mediana por defecto) con las mismas capacidades de desagregación, criterios de fiabilidad, pruebas de significancia y reportes en Excel que `obs_media()`.
 
 ## MEJORAS INTERNAS
 
