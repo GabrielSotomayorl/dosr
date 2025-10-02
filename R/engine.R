@@ -64,22 +64,43 @@ calculate_estimates <- function(dsgn,
             .groups = "drop"
           ),
         error = function(err) {
-          rlang::warn(
-            paste0(
-              "No se pudo calcular el cuantil para la combinación solicitada (",
-              paste(grp_vars, collapse = ", "),
-              "): ",
-              conditionMessage(err)
-            )
+          msg <- paste0(
+            "No se pudo calcular el cuantil para la combinación solicitada (",
+            paste(grp_vars, collapse = ", "),
+            "): ",
+            conditionMessage(err)
           )
 
-          if (length(grp_vars) == 0) {
-            tibble::tibble(cuantil = NA_real_)
-          } else {
-            base_df %>%
-              dplyr::distinct(across(all_of(grp_vars))) %>%
-              dplyr::mutate(cuantil = NA_real_)
-          }
+          rlang::warn(paste0(msg, " Se devolverá el cuantil sin error estándar (SE = NA)."))
+
+          fallback <- tryCatch(
+            dsgn %>%
+              group_by(across(all_of(grp_vars))) %>%
+              summarise(
+                cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = NULL, na.rm = TRUE),
+                .groups = "drop"
+              ),
+            error = function(inner_err) {
+              rlang::warn(
+                paste0(
+                  "Tampoco se pudo obtener el cuantil puntual para la combinación (",
+                  paste(grp_vars, collapse = ", "),
+                  "): ",
+                  conditionMessage(inner_err)
+                )
+              )
+
+              if (length(grp_vars) == 0) {
+                tibble::tibble(cuantil = NA_real_)
+              } else {
+                base_df %>%
+                  dplyr::distinct(across(all_of(grp_vars))) %>%
+                  dplyr::mutate(cuantil = NA_real_)
+              }
+            }
+          )
+
+          fallback
         }
       )
 
