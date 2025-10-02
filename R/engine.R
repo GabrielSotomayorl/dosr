@@ -102,7 +102,8 @@ calculate_estimates <- function(dsgn,
         dplyr::select(-valid_group_flag) %>%
         dplyr::mutate(prop = NA_real_, se = NA_real_)
 
-      est <- bind_rows(est_valid, empty_rows)
+      est <- bind_rows(est_valid, empty_rows) %>%
+        dplyr::select(-dplyr::any_of(c("n_mues", "N_pob", "gl")))
       tam <- tam %>% dplyr::select(-valid_group_flag)
 
     } else if (type == "mean") {
