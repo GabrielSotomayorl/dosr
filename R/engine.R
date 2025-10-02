@@ -70,9 +70,9 @@ calculate_estimates <- function(dsgn,
         mutate(valid_group_flag = n_mues > 0 & is.finite(N_pob) & N_pob > 0)
 
       valid_keys <- tam %>%
-        filter(valid_group_flag) %>%
-        select(all_of(grp_vars)) %>%
-        mutate(valid_group_flag = TRUE)
+        dplyr::filter(valid_group_flag) %>%
+        dplyr::select(dplyr::all_of(grp_vars)) %>%
+        dplyr::mutate(valid_group_flag = TRUE)
 
       est_valid <- tibble::tibble()
 
@@ -98,12 +98,12 @@ calculate_estimates <- function(dsgn,
       }
 
       empty_rows <- tam %>%
-        filter(!valid_group_flag) %>%
-        select(-valid_group_flag) %>%
-        mutate(prop = NA_real_, se = NA_real_)
+        dplyr::filter(!valid_group_flag) %>%
+        dplyr::select(-valid_group_flag) %>%
+        dplyr::mutate(prop = NA_real_, se = NA_real_)
 
       est <- bind_rows(est_valid, empty_rows)
-      tam <- tam %>% select(-valid_group_flag)
+      tam <- tam %>% dplyr::select(-valid_group_flag)
 
     } else if (type == "mean") {
       grp_vars <- grp_des
