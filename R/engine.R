@@ -58,17 +58,52 @@ calculate_estimates <- function(dsgn,
   calc_tabla <- function(grp_des) {
     if (type == "prop") {
       grp_vars <- c(grp_des, var)
-      est <- dsgn %>%
-        group_by(across(all_of(grp_vars))) %>%
-        summarise(prop = survey_prop(vartype = "se"), .groups = "drop") %>%
-        rename(se = prop_se)
 
-      if (porcentaje) {
-        est <- est %>% mutate(
-          prop = prop * 100,
-          se = se * 100
-        )
+      tam <- base_df %>%
+        group_by(across(all_of(grp_vars))) %>%
+        summarise(
+          n_mues = n(),
+          N_pob  = sum(.w),
+          gl     = n_distinct(.psu) - n_distinct(.str),
+          .groups = "drop"
+        ) %>%
+        mutate(.valid_group = n_mues > 0 & is.finite(N_pob) & N_pob > 0)
+
+      valid_keys <- tam %>%
+        filter(.valid_group) %>%
+        select(all_of(grp_vars)) %>%
+        mutate(.valid_group = TRUE)
+
+      est_valid <- tibble::tibble()
+
+      if (nrow(valid_keys) > 0) {
+        dsgn_valid <- dsgn
+        dsgn_valid$variables <- dsgn_valid$variables %>%
+          left_join(valid_keys, by = grp_vars) %>%
+          mutate(.valid_group = dplyr::coalesce(.valid_group, FALSE))
+
+        est_valid <- dsgn_valid %>%
+          srvyr::filter(.valid_group) %>%
+          dplyr::select(-.valid_group) %>%
+          group_by(across(all_of(grp_vars))) %>%
+          summarise(prop = survey_prop(vartype = "se"), .groups = "drop") %>%
+          rename(se = prop_se)
+
+        if (porcentaje) {
+          est_valid <- est_valid %>% mutate(
+            prop = prop * 100,
+            se = se * 100
+          )
+        }
       }
+
+      empty_rows <- tam %>%
+        filter(!.valid_group) %>%
+        select(-.valid_group) %>%
+        mutate(prop = NA_real_, se = NA_real_)
+
+      est <- bind_rows(est_valid, empty_rows)
+      tam <- tam %>% select(-.valid_group)
 
     } else if (type == "mean") {
       grp_vars <- grp_des
@@ -172,9 +207,14 @@ calculate_estimates <- function(dsgn,
         ))
     }
 
-    tam_group_vars <- if(type == "prop") c(grp_des, var) else grp_des
-    tam <- base_df %>% group_by(across(all_of(tam_group_vars))) %>% summarise(n_mues = n(), N_pob  = sum(.w), gl = n_distinct(.psu) - n_distinct(.str), .groups = "drop")
-    out <- if (length(tam_group_vars) == 0) bind_cols(est, tam) else left_join(est, tam, by = tam_group_vars)
+    if (type != "prop") {
+      tam_group_vars <- grp_des
+      tam <- base_df %>% group_by(across(all_of(tam_group_vars))) %>% summarise(n_mues = n(), N_pob  = sum(.w), gl = n_distinct(.psu) - n_distinct(.str), .groups = "drop")
+      out <- if (length(tam_group_vars) == 0) bind_cols(est, tam) else left_join(est, tam, by = tam_group_vars)
+    } else {
+      tam_group_vars <- c(grp_des, var)
+      out <- if (length(tam_group_vars) == 0) bind_cols(est, tam) else left_join(est, tam, by = tam_group_vars)
+    }
 
     if (type == "prop") {
       out <- out %>%

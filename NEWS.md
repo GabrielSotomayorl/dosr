@@ -6,6 +6,11 @@
 *   Se añadió la función `obs_total()` para estimar totales ponderados con idéntico flujo de trabajo (significancia, fiabilidad y reportes en Excel) que las utilidades existentes.
 *   Se incorporó la función `obs_ratio()` para estimar razones ponderadas (numerador/denominador) replicando la lógica de filtrado, desagregaciones, significancia y reportes de las demás herramientas `obs_*`.
 
+## MEJORAS Y CORRECCIONES
+
+*   Todas las funciones `obs_*` ejecutadas en paralelo heredan automáticamente la opción global `survey.lonely.psu`, evitando errores en estratos con una sola PSU al usar `parallel = TRUE`.
+*   `obs_prop()` ahora identifica las combinaciones sin casos o con expansión nula antes de llamar a `survey_prop()`, omitiendo su estimación y devolviendo directamente filas vacías, lo que reduce el tiempo de cómputo y elimina iteraciones innecesarias.
+
 # dosr 0.2.2
 
 ## NUEVA FUNCIONALIDAD: PERFILADO RÁPIDO DE VARIABLES BINARIAS
