@@ -56,22 +56,55 @@ calculate_estimates <- function(dsgn,
       est <- dsgn %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
     } else {
       grp_vars <- grp_des
-      est <- dsgn %>%
-        group_by(across(all_of(grp_vars))) %>%
-        summarise(
-          cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", na.rm = TRUE),
-          .groups = "drop"
-        )
+      est <- tryCatch(
+        dsgn %>%
+          group_by(across(all_of(grp_vars))) %>%
+          summarise(
+            cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", na.rm = TRUE),
+            .groups = "drop"
+          ),
+        error = function(err) {
+          rlang::warn(
+            paste0(
+              "No se pudo calcular el cuantil para la combinación solicitada (",
+              paste(grp_vars, collapse = ", "),
+              "): ",
+              conditionMessage(err)
+            )
+          )
+
+          if (length(grp_vars) == 0) {
+            tibble::tibble(cuantil = NA_real_)
+          } else {
+            base_df %>%
+              dplyr::distinct(across(all_of(grp_vars))) %>%
+              dplyr::mutate(cuantil = NA_real_)
+          }
+        }
+      )
 
       se_col <- grep("_se$", names(est), value = TRUE)
       if (length(se_col) == 1) {
-        est <- est %>% rename(se = all_of(se_col))
+        est <- est %>% dplyr::rename(se = dplyr::all_of(se_col))
       } else if (!"se" %in% names(est)) {
-        est <- est %>% mutate(se = NA_real_)
+        est <- est %>% dplyr::mutate(se = NA_real_)
+      }
+
+      if (!"cuantil" %in% names(est)) {
+        candidate_cols <- setdiff(names(est), c(grp_vars, "se", se_col))
+        candidate_cols <- candidate_cols[vapply(candidate_cols, function(.col) {
+          is.numeric(est[[.col]]) && !all(is.na(est[[.col]]))
+        }, logical(1))]
+
+        if (length(candidate_cols) >= 1) {
+          est <- est %>% dplyr::rename(cuantil = dplyr::all_of(candidate_cols[1]))
+        } else {
+          est <- est %>% dplyr::mutate(cuantil = NA_real_)
+        }
       }
 
       est <- est %>%
-        mutate(cv = dplyr::case_when(
+        dplyr::mutate(cv = dplyr::case_when(
           is.finite(cuantil) & cuantil != 0 ~ se / abs(cuantil),
           TRUE ~ NA_real_
         ))
