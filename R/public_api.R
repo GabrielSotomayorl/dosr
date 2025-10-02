@@ -82,7 +82,19 @@ obs_prop <- function(designs,
 
   if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
+  lonely_psu_option <- getOption("survey.lonely.psu", NULL)
   calc_fun <- function(dsgn, meta) {
+    if (!is.null(lonely_psu_option)) {
+      old_lonely <- getOption("survey.lonely.psu", NULL)
+      on.exit({
+        if (is.null(old_lonely)) {
+          options(survey.lonely.psu = NULL)
+        } else {
+          options(survey.lonely.psu = old_lonely)
+        }
+      }, add = TRUE)
+      options(survey.lonely.psu = lonely_psu_option)
+    }
     calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "prop", multi_des, es_var_estudio, porcentaje)
   }
 
@@ -215,8 +227,20 @@ obs_media <- function(designs,
 
   if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
+  lonely_psu_option <- getOption("survey.lonely.psu", NULL)
 
   calc_fun <- function(dsgn, meta) {
+    if (!is.null(lonely_psu_option)) {
+      old_lonely <- getOption("survey.lonely.psu", NULL)
+      on.exit({
+        if (is.null(old_lonely)) {
+          options(survey.lonely.psu = NULL)
+        } else {
+          options(survey.lonely.psu = old_lonely)
+        }
+      }, add = TRUE)
+      options(survey.lonely.psu = lonely_psu_option)
+    }
     calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "mean", multi_des, es_var_estudio, porcentaje = FALSE)
   }
 
@@ -333,7 +357,19 @@ obs_total <- function(designs,
 
   if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
+  lonely_psu_option <- getOption("survey.lonely.psu", NULL)
   calc_fun <- function(dsgn, meta) {
+    if (!is.null(lonely_psu_option)) {
+      old_lonely <- getOption("survey.lonely.psu", NULL)
+      on.exit({
+        if (is.null(old_lonely)) {
+          options(survey.lonely.psu = NULL)
+        } else {
+          options(survey.lonely.psu = old_lonely)
+        }
+      }, add = TRUE)
+      options(survey.lonely.psu = lonely_psu_option)
+    }
     calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "total", multi_des, es_var_estudio, porcentaje = FALSE)
   }
 
@@ -468,7 +504,19 @@ obs_ratio <- function(designs,
 
   if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
+  lonely_psu_option <- getOption("survey.lonely.psu", NULL)
   calc_fun <- function(dsgn, meta) {
+    if (!is.null(lonely_psu_option)) {
+      old_lonely <- getOption("survey.lonely.psu", NULL)
+      on.exit({
+        if (is.null(old_lonely)) {
+          options(survey.lonely.psu = NULL)
+        } else {
+          options(survey.lonely.psu = old_lonely)
+        }
+      }, add = TRUE)
+      options(survey.lonely.psu = lonely_psu_option)
+    }
     calculate_single_design(
       dsgn, meta,
       var = nombre_indicador,
@@ -604,8 +652,20 @@ obs_cuantil <- function(designs,
 
   if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
+  lonely_psu_option <- getOption("survey.lonely.psu", NULL)
 
   calc_fun <- function(dsgn, meta) {
+    if (!is.null(lonely_psu_option)) {
+      old_lonely <- getOption("survey.lonely.psu", NULL)
+      on.exit({
+        if (is.null(old_lonely)) {
+          options(survey.lonely.psu = NULL)
+        } else {
+          options(survey.lonely.psu = old_lonely)
+        }
+      }, add = TRUE)
+      options(survey.lonely.psu = lonely_psu_option)
+    }
     calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "quantile", multi_des, es_var_estudio, porcentaje = FALSE, quantile_prob = cuant)
   }
 
