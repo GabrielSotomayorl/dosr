@@ -70,21 +70,44 @@ calculate_estimates <- function(dsgn,
         )
       }
 
-      tam_group_vars <- grp_vars
-      tam <- base_df %>%
-        group_by(across(all_of(tam_group_vars))) %>%
+      tam_num <- base_df %>%
+        group_by(across(all_of(grp_vars))) %>%
         summarise(
-          n_mues = n(),
-          N_pob  = sum(.w),
-          gl     = n_distinct(.psu) - n_distinct(.str),
+          n_mues = dplyr::n(),
+          N_pob = sum(.w),
           .groups = "drop"
         )
 
-      out <- if (length(tam_group_vars) == 0) {
-        bind_cols(est, tam)
+      gl_base <- if (length(grp_des) == 0) {
+        base_df %>%
+          summarise(
+            gl = n_distinct(.psu) - n_distinct(.str)
+          )
       } else {
-        dplyr::left_join(est, tam, by = tam_group_vars)
+        base_df %>%
+          group_by(across(all_of(grp_des))) %>%
+          summarise(
+            gl = n_distinct(.psu) - n_distinct(.str),
+            .groups = "drop"
+          )
       }
+
+      out <- est %>%
+        dplyr::left_join(tam_num, by = grp_vars) %>%
+        mutate(
+          n_mues = as.integer(dplyr::coalesce(n_mues, 0L)),
+          N_pob = dplyr::coalesce(N_pob, 0)
+        )
+
+      out <- if (length(grp_des) == 0) {
+        out %>%
+          mutate(gl = gl_base$gl[1])
+      } else {
+        out %>% dplyr::left_join(gl_base, by = grp_des)
+      }
+
+      out <- out %>%
+        mutate(gl = as.numeric(gl))
 
     } else if (type == "mean") {
       grp_vars <- grp_des
@@ -219,7 +242,7 @@ calculate_estimates <- function(dsgn,
           se_umbral = if (porcentaje) se_umbral_prop * 100 else se_umbral_prop,
           fiabilidad = case_when(
             n_mues == 0 ~ "Sin casos",
-            gl <= 9 ~ "No Fiable",
+            is.na(gl) | gl <= 9 ~ "No Fiable",
             n_niveles == 2 & n_universo < 30 & es_var_estudio == FALSE ~ "No Fiable",
             n_niveles != 2 & n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
             se > se_umbral ~ "Poco Fiable",

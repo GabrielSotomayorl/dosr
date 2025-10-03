@@ -9,6 +9,7 @@
 ## MEJORAS Y CORRECCIONES
 
 *   Todas las funciones `obs_*` ejecutadas en paralelo heredan automáticamente la opción global `survey.lonely.psu`, evitando errores en estratos con una sola PSU al usar `parallel = TRUE`.
+*   `obs_prop()` y `multi_bin()` corrigen el cálculo de los grados de libertad para obtenerlos a nivel de dominio.
 
 # dosr 0.2.2
 

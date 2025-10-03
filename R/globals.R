@@ -26,5 +26,6 @@ utils::globalVariables(c(
   "etiqueta",
   "n_expandido",
   "n_muestral",
-  "n_mues"
+  "n_mues",
+  "n_universo"
 ))

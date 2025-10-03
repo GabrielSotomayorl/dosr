@@ -64,6 +64,7 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
     if (length(all_levels_to_use) > 0) {
       fill_list_prop <- purrr::map(sufijo, ~ 0) %>% set_names(paste0("prop_", sufijo))
       fill_list_n <- purrr::map(sufijo, ~ 0) %>% set_names(paste0("n_mues_", sufijo))
+      fill_list_n_univ <- purrr::map(sufijo, ~ 0) %>% set_names(paste0("n_universo_", sufijo))
       fill_list_N <- purrr::map(sufijo, ~ 0) %>% set_names(paste0("N_pob_", sufijo))
       fill_list_media <- purrr::map(sufijo, ~ NA_real_) %>% set_names(paste0("media_", sufijo))
       fill_list_total <- purrr::map(sufijo, ~ NA_real_) %>% set_names(paste0("total_", sufijo))
@@ -71,7 +72,7 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
       fill_list_cuantil <- purrr::map(sufijo, ~ NA_real_) %>% set_names(paste0("cuantil_", sufijo))
       final_fill_list <- switch(
         type,
-        prop = c(fill_list_prop, fill_list_n, fill_list_N),
+        prop = c(fill_list_prop, fill_list_N, fill_list_n, fill_list_n_univ),
         mean = c(fill_list_media, fill_list_n, fill_list_N),
         total = c(fill_list_total, fill_list_n, fill_list_N),
         quantile = c(fill_list_cuantil, fill_list_n, fill_list_N),
@@ -129,11 +130,24 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
       group_by(across(all_of(grp_des))) %>%
       summarise(
         !!sym(var) := "Total",
-        across(all_of(metric_cols), ~ case_when(
-          startsWith(cur_column(), "prop_") ~ subtotal_prop_val,
-          startsWith(cur_column(), "se_")   ~ 0,
-          TRUE                               ~ sum(.x, na.rm = TRUE)
-        )),
+        across(all_of(metric_cols), ~ {
+          col_nm <- dplyr::cur_column()
+          if (startsWith(col_nm, "prop_")) {
+            subtotal_prop_val
+          } else if (startsWith(col_nm, "se_")) {
+            0
+          } else if (startsWith(col_nm, "n_mues_")) {
+            sum(.x, na.rm = TRUE)
+          } else if (startsWith(col_nm, "n_universo_")) {
+            vals <- .x[!is.na(.x)]
+            if (length(vals) == 0) 0 else max(vals)
+          } else if (startsWith(col_nm, "gl_")) {
+            vals <- .x[!is.na(.x)]
+            if (length(vals) == 0) NA_real_ else max(vals)
+          } else {
+            sum(.x, na.rm = TRUE)
+          }
+        }),
         .groups = "drop"
       )
     block_unordered <- bind_rows(base_tbl, subtot) %>% unique_cols()
