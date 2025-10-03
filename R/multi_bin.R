@@ -60,16 +60,6 @@ multi_bin <- function(
       psu_var <- colnames(d$cluster)[1]
       strata_var <- colnames(d$strata)[1]
 
-      tam <- d_calc %>%
-        srvyr::filter(!!rlang::sym(v) == 1) %>%
-        srvyr::summarise(
-          n_muestral = srvyr::unweighted(n()),
-          gl = srvyr::unweighted(
-            dplyr::n_distinct(!!rlang::sym(psu_var)) -
-              dplyr::n_distinct(!!rlang::sym(strata_var))
-          )
-        )
-
       est <- d_calc %>%
         srvyr::summarise(
           estimacion = srvyr::survey_mean(
@@ -80,10 +70,25 @@ multi_bin <- function(
           n_expandido = srvyr::survey_total(!!rlang::sym(v), na.rm = TRUE)
         )
 
+      tam_num <- d_calc %>%
+        srvyr::summarise(
+          n_muestral = srvyr::unweighted(sum(!!rlang::sym(v) == 1, na.rm = TRUE))
+        )
+
+      gl_base <- d_calc %>%
+        srvyr::summarise(
+          gl = srvyr::unweighted(
+            dplyr::n_distinct(!!rlang::sym(psu_var)) -
+              dplyr::n_distinct(!!rlang::sym(strata_var))
+          )
+        )
+
       result <- if (is.null(by)) {
-        dplyr::bind_cols(est, tam)
+        dplyr::bind_cols(est, tam_num, gl_base)
       } else {
-        dplyr::full_join(est, tam, by = by)
+        est %>%
+          dplyr::left_join(tam_num, by = by) %>%
+          dplyr::left_join(gl_base, by = by)
       }
 
       result <- result %>%
@@ -94,6 +99,8 @@ multi_bin <- function(
         dplyr::mutate(
           variable = v,
           etiqueta = labelled::var_label(d$variables[[v]]) %||% v,
+          n_muestral = as.integer(dplyr::coalesce(n_muestral, 0)),
+          gl = as.numeric(gl),
           .before = 1
         )
       return(result)
