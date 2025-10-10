@@ -432,11 +432,20 @@ obs_total <- function(designs,
 
 
 #' @title Calcula razones (ratios) para diseños complejos
-#' @description Procesa uno o más `tbl_svy` para calcular razones entre dos variables numéricas.
-#' @inheritParams obs_media params = c("designs", "sufijo", "des", "multi_des", "es_var_estudio", "usar_etiqueta_var", "sig", "filt", "rm_na_var", "parallel", "n_cores", "save_xlsx", "dir", "formato", "decimales", "verbose")
-#' @param num String con el nombre de la variable numerador.
-#' @param den String con el nombre de la variable denominador.
-#' @return Un data.frame con los resultados consolidados (invisiblemente).
+#' @description Calcula la razón entre dos variables numéricas (numerador/denominador)
+#' sobre uno o más objetos `tbl_svy`, con las mismas opciones de desagregación,
+#' paralelización y reporte usadas en `obs_media`.
+#'
+#' @inheritParams obs_media
+#' @param num String con el nombre de la variable **numerador**.
+#' @param den String con el nombre de la variable **denominador**.
+#' @param usar_etiqueta_var Booleano. Si `TRUE` (por defecto), usa las etiquetas de
+#'   las variables `num` y `den` (si existen) como títulos y rótulos en los reportes
+#'   de Excel; si no hay etiqueta disponible, usa el nombre de la variable.
+#' @param rm_na_var Booleano. Si `TRUE`, elimina observaciones con `NA` en el
+#'   **numerador o** el **denominador** antes de calcular la razón.
+#'
+#' @return Un `data.frame` con los resultados consolidados (invisiblemente).
 #' @export
 obs_ratio <- function(designs,
                       sufijo            = NULL,

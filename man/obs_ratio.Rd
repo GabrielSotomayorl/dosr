@@ -2,7 +2,7 @@
 % Please edit documentation in R/public_api.R
 \name{obs_ratio}
 \alias{obs_ratio}
-\title{Calcula estimaciones de razones para diseños complejos}
+\title{Calcula razones (ratios) para diseños complejos}
 \usage{
 obs_ratio(
   designs,
@@ -30,9 +30,9 @@ obs_ratio(
 
 \item{sufijo}{Vector de strings para sufijos (p.ej. c("2020","2022")).}
 
-\item{num}{String con el nombre de la variable numerador.}
+\item{num}{String con el nombre de la variable **numerador**.}
 
-\item{den}{String con el nombre de la variable denominador.}
+\item{den}{String con el nombre de la variable **denominador**.}
 
 \item{des}{Un vector de strings con los nombres de las variables de desagregación.}
 
@@ -40,13 +40,16 @@ obs_ratio(
 
 \item{es_var_estudio}{Booleano. Si `TRUE`, aplica criterios de fiabilidad menos estrictos para el tamaño muestral. Por defecto es `FALSE`.}
 
-\item{usar_etiqueta_var}{Booleano. Si `TRUE` (por defecto), usa las etiquetas de las variables `num` y `den` como título en los reportes de Excel cuando están disponibles.}
+\item{usar_etiqueta_var}{Booleano. Si `TRUE` (por defecto), usa las etiquetas de
+las variables `num` y `den` (si existen) como títulos y rótulos en los reportes
+de Excel; si no hay etiqueta disponible, usa el nombre de la variable.}
 
 \item{sig}{Booleano. Si `TRUE`, calcula y añade pruebas de significancia estadística a las hojas de reporte con formato. Por defecto es `FALSE`.}
 
 \item{filt}{Un string con una expresión de filtro para `dplyr::filter()`.}
 
-\item{rm_na_var}{Booleano. Si `TRUE`, elimina las observaciones con `NA` en el numerador o denominador antes de calcular.}
+\item{rm_na_var}{Booleano. Si `TRUE`, elimina observaciones con `NA` en el
+**numerador o** el **denominador** antes de calcular la razón.}
 
 \item{parallel}{Booleano. Activa el cálculo en paralelo.}
 
@@ -63,8 +66,10 @@ obs_ratio(
 \item{verbose}{Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.}
 }
 \value{
-Un data.frame con los resultados consolidados (invisiblemente).
+Un `data.frame` con los resultados consolidados (invisiblemente).
 }
 \description{
-Procesa uno o más `tbl_svy` para calcular razones ponderadas (numerador/denominador) con el mismo flujo de trabajo que `obs_media()` y `obs_total()`.
+Calcula la razón entre dos variables numéricas (numerador/denominador)
+sobre uno o más objetos `tbl_svy`, con las mismas opciones de desagregación,
+paralelización y reporte usadas en `obs_media`.
 }
