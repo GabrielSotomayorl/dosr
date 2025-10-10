@@ -2,8 +2,9 @@ Package: dosr
 Type: Package
 Title: Herramientas para el Analisis de Encuestas del Observatorio Social
 Version: 0.2.3
-Author: Gabriel Sotomayor <gabrielsotomayorl@gmail.com>
-Maintainer: Gabriel Sotomayor <gabrielsotomayorl@gmail.com>
+Authors@R: 
+    person("Gabriel", "Sotomayor", , "gabrielsotomayorl@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9889-9637"))
 Description: Proporciona un conjunto de funciones de alto nivel para automatizar 
     el calculo de estimaciones (medias, proporciones) a partir de disenos 
     de encuestas complejas (ej. CASEN) y generar reportes estandarizados 
@@ -25,3 +26,5 @@ Imports:
     stringr,
     labelled,
     tibble
+URL: https://github.com/GabrielSotomayorl/dosr
+BugReports: https://github.com/GabrielSotomayorl/dosr/issues
