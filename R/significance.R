@@ -61,7 +61,6 @@
   names(mat_df)[(ncol(display_keys) + 1):ncol(mat_df)] <- column_labels
 
   if (length(group_vars) > 0) {
-    attr(mat_df, "_merge_reference") <- display_keys[group_vars]
     for (grp in group_vars) {
       grp_values <- mat_df[[grp]]
       if (length(grp_values) > 1) {
