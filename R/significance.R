@@ -14,11 +14,29 @@
   2 * stats::pt(abs(t_stat), df = df, lower.tail = FALSE)
 }
 
-.calculate_intra_year_tests <- function(df, main_var, est_col, se_col, gl_col) {
+.calculate_intra_year_tests <- function(df, main_var, group_vars = character(0), est_col, se_col, gl_col) {
   df_clean <- df %>% dplyr::filter(!is.na(.data[[main_var]]))
+  if (length(group_vars) > 0) {
+    df_clean <- df_clean %>%
+      dplyr::filter(!dplyr::if_any(dplyr::all_of(group_vars), ~ is.na(.x) | .x == ""))
+  }
   if (nrow(df_clean) < 2) return(NULL)
 
-  categories <- as.character(df_clean[[main_var]])
+  id_cols <- unique(c(group_vars, main_var))
+  display_keys <- df_clean %>%
+    dplyr::select(dplyr::any_of(id_cols)) %>%
+    dplyr::mutate(dplyr::across(dplyr::everything(), ~ as.character(.x)))
+
+  if (ncol(display_keys) == 0) return(NULL)
+
+  column_labels <- purrr::pmap_chr(display_keys, function(...) {
+    parts <- as.character(c(...))
+    parts <- parts[!is.na(parts) & parts != ""]
+    if (length(parts) == 0) return(main_var)
+    paste(parts, collapse = "\n")
+  }) %>%
+    make.unique()
+
   pairs <- utils::combn(seq_len(nrow(df_clean)), 2, simplify = FALSE)
 
   p_values <- purrr::map_dbl(pairs, ~ .perform_t_test(
@@ -26,7 +44,12 @@
     est2 = df_clean[[est_col]][.x[2]], se2 = df_clean[[se_col]][.x[2]], gl2 = df_clean[[gl_col]][.x[2]]
   ))
 
-  mat <- matrix(NA_real_, nrow = nrow(df_clean), ncol = nrow(df_clean), dimnames = list(categories, categories))
+  mat <- matrix(
+    NA_real_,
+    nrow = nrow(df_clean),
+    ncol = nrow(df_clean),
+    dimnames = list(column_labels, column_labels)
+  )
   for (i in seq_along(pairs)) {
     p <- pairs[[i]]
     mat[p[2], p[1]] <- p_values[i]
@@ -34,8 +57,20 @@
   diag(mat) <- 0
 
   mat_df <- as.data.frame(mat, check.names = FALSE)
-  mat_df[[main_var]] <- rownames(mat_df)
-  mat_df %>% dplyr::relocate(!!sym(main_var))
+  mat_df <- dplyr::bind_cols(display_keys, mat_df)
+  names(mat_df)[(ncol(display_keys) + 1):ncol(mat_df)] <- column_labels
+
+  if (length(group_vars) > 0) {
+    for (grp in group_vars) {
+      grp_values <- mat_df[[grp]]
+      if (length(grp_values) > 1) {
+        dup_idx <- c(FALSE, grp_values[-1] == grp_values[-length(grp_values)])
+        mat_df[[grp]][dup_idx] <- ""
+      }
+    }
+  }
+
+  mat_df
 }
 
 # ## CORRECCIÓN ##: Helpers robustecidos para manejar cualquier tipo de columna
@@ -90,7 +125,7 @@ calculate_significance <- function(hojas_list, sufijo, type, main_var_prop, des_
       est_col <- paste0(est_prefix, "_", sfx); se_col  <- paste0(se_prefix,  "_", sfx); gl_col  <- paste0(gl_prefix,  "_", sfx)
       if (!all(c(est_col, se_col, gl_col) %in% names(df))) return(NULL)
 
-      .calculate_intra_year_tests(df, main_cmp_var, est_col, se_col, gl_col)
+      .calculate_intra_year_tests(df, main_cmp_var, grp_des, est_col, se_col, gl_col)
     }) %>% rlang::set_names(sufijo)
   }) %>% rlang::set_names(names(hojas_list))
   all_tests$intra_year <- purrr::compact(intra_year_list)
