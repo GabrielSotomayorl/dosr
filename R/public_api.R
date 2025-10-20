@@ -4,10 +4,10 @@
 
 #' @title Internal helper function for a single worker process
 #' @noRd
-calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, type, multi_des, es_var_estudio, porcentaje, quantile_prob = 0.5, ratio_vars = NULL) {
+calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, rm_na_des = FALSE, type, multi_des, es_var_estudio, porcentaje, quantile_prob = 0.5, ratio_vars = NULL) {
   calculate_estimates(
     dsgn = dsgn,
-    var = var, des = des, filt = filt, rm_na_var = rm_na_var, type = type,
+    var = var, des = des, filt = filt, rm_na_var = rm_na_var, rm_na_des = rm_na_des, type = type,
     psu_var = meta$psu, strata_var = meta$strata, weight_var = meta$weight,
     multi_des = multi_des,
     es_var_estudio = es_var_estudio,
@@ -45,6 +45,7 @@ obs_prop <- function(designs,
                      sig               = FALSE,
                      filt              = NULL,
                      rm_na_var         = TRUE,
+                     rm_na_des         = FALSE,
                      parallel          = FALSE,
                      n_cores           = NULL,
                      save_xlsx         = TRUE,
@@ -95,7 +96,7 @@ obs_prop <- function(designs,
       }, add = TRUE)
       options(survey.lonely.psu = lonely_psu_option)
     }
-    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "prop", multi_des, es_var_estudio, porcentaje)
+    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, rm_na_des, "prop", multi_des, es_var_estudio, porcentaje)
   }
 
   if (parallel && n_designs > 1) {
@@ -169,6 +170,8 @@ obs_prop <- function(designs,
 #' @param sig Booleano. Si `TRUE`, calcula y añade pruebas de significancia estadística a las hojas de reporte con formato. Por defecto es `FALSE`.
 #' @param filt Un string con una expresión de filtro para `dplyr::filter()`.
 #' @param rm_na_var Booleano. Si `TRUE`, elimina NAs en `var` antes de calcular.
+#' @param rm_na_des Booleano. Si `TRUE`, excluye las observaciones con `NA` en las variables de desagregación correspondientes a
+#'   cada tabla solicitada.
 #' @param parallel Booleano. Activa el cálculo en paralelo.
 #' @param n_cores Entero. Número de núcleos a usar. Si es NULL, se usa un valor seguro.
 #' @param save_xlsx Booleano. Si `TRUE`, guarda un reporte en Excel.
@@ -188,6 +191,7 @@ obs_media <- function(designs,
                       sig               = FALSE,
                       filt              = NULL,
                       rm_na_var         = TRUE,
+                      rm_na_des         = FALSE,
                       parallel          = FALSE,
                       n_cores           = NULL,
                       save_xlsx         = TRUE,
@@ -241,7 +245,7 @@ obs_media <- function(designs,
       }, add = TRUE)
       options(survey.lonely.psu = lonely_psu_option)
     }
-    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "mean", multi_des, es_var_estudio, porcentaje = FALSE)
+    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, rm_na_des, "mean", multi_des, es_var_estudio, porcentaje = FALSE)
   }
 
   if (parallel && n_designs > 1) {
@@ -318,6 +322,7 @@ obs_total <- function(designs,
                       sig               = FALSE,
                       filt              = NULL,
                       rm_na_var         = TRUE,
+                      rm_na_des         = FALSE,
                       parallel          = FALSE,
                       n_cores           = NULL,
                       save_xlsx         = TRUE,
@@ -370,7 +375,7 @@ obs_total <- function(designs,
       }, add = TRUE)
       options(survey.lonely.psu = lonely_psu_option)
     }
-    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "total", multi_des, es_var_estudio, porcentaje = FALSE)
+    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, rm_na_des, "total", multi_des, es_var_estudio, porcentaje = FALSE)
   }
 
   if (parallel && n_designs > 1) {
@@ -458,6 +463,7 @@ obs_ratio <- function(designs,
                       sig               = FALSE,
                       filt              = NULL,
                       rm_na_var         = TRUE,
+                      rm_na_des         = FALSE,
                       parallel          = FALSE,
                       n_cores           = NULL,
                       save_xlsx         = TRUE,
@@ -532,6 +538,7 @@ obs_ratio <- function(designs,
       des = des,
       filt = filt,
       rm_na_var = rm_na_var,
+      rm_na_des = rm_na_des,
       type = "ratio",
       multi_des = multi_des,
       es_var_estudio = es_var_estudio,
@@ -616,6 +623,7 @@ obs_cuantil <- function(designs,
                         sig               = FALSE,
                         filt              = NULL,
                         rm_na_var         = TRUE,
+                        rm_na_des         = FALSE,
                         parallel          = FALSE,
                         n_cores           = NULL,
                         save_xlsx         = TRUE,
@@ -675,7 +683,7 @@ obs_cuantil <- function(designs,
       }, add = TRUE)
       options(survey.lonely.psu = lonely_psu_option)
     }
-    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, "quantile", multi_des, es_var_estudio, porcentaje = FALSE, quantile_prob = cuant)
+    calculate_single_design(dsgn, meta, var, des, filt, rm_na_var, rm_na_des, "quantile", multi_des, es_var_estudio, porcentaje = FALSE, quantile_prob = cuant)
   }
 
   if (parallel && n_designs > 1) {

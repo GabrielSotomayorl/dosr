@@ -6,7 +6,7 @@
 #' @description This internal function performs the statistical calculations.
 #' @noRd
 calculate_estimates <- function(dsgn,
-                               var, des, filt, rm_na_var, type = c("prop", "mean", "quantile", "total", "ratio"),
+                               var, des, filt, rm_na_var, rm_na_des = FALSE, type = c("prop", "mean", "quantile", "total", "ratio"),
                                 psu_var, strata_var, weight_var, multi_des, es_var_estudio,
                                 porcentaje = FALSE,
                                 quantile_prob = 0.5,
@@ -56,9 +56,15 @@ calculate_estimates <- function(dsgn,
 
   # --- Función de cálculo interna ---
   calc_tabla <- function(grp_des) {
+    dsgn_loc <- dsgn
+    base_df_loc <- base_df
+    if (rm_na_des && length(grp_des) > 0) {
+      dsgn_loc <- dsgn_loc %>% srvyr::filter(dplyr::if_all(dplyr::all_of(grp_des), ~ !is.na(.x)))
+      base_df_loc <- base_df_loc %>% dplyr::filter(dplyr::if_all(dplyr::all_of(grp_des), ~ !is.na(.x)))
+    }
     if (type == "prop") {
       grp_vars <- c(grp_des, var)
-      est <- dsgn %>%
+      est <- dsgn_loc %>%
         group_by(across(all_of(grp_vars))) %>%
         summarise(prop = survey_prop(vartype = "se"), .groups = "drop") %>%
         rename(se = prop_se)
@@ -70,7 +76,7 @@ calculate_estimates <- function(dsgn,
         )
       }
 
-      tam_num <- base_df %>%
+      tam_num <- base_df_loc %>%
         group_by(across(all_of(grp_vars))) %>%
         summarise(
           n_mues = dplyr::n(),
@@ -79,12 +85,12 @@ calculate_estimates <- function(dsgn,
         )
 
       gl_base <- if (length(grp_des) == 0) {
-        base_df %>%
+        base_df_loc %>%
           summarise(
             gl = n_distinct(.psu) - n_distinct(.str)
           )
       } else {
-        base_df %>%
+        base_df_loc %>%
           group_by(across(all_of(grp_des))) %>%
           summarise(
             gl = n_distinct(.psu) - n_distinct(.str),
@@ -111,10 +117,10 @@ calculate_estimates <- function(dsgn,
 
     } else if (type == "mean") {
       grp_vars <- grp_des
-      est <- dsgn %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
+      est <- dsgn_loc %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
     } else if (type == "total") {
       grp_vars <- grp_des
-      est <- dsgn %>%
+      est <- dsgn_loc %>%
         group_by(across(all_of(grp_vars))) %>%
         summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>%
         rename(se = total_se, cv = total_cv)
@@ -122,7 +128,7 @@ calculate_estimates <- function(dsgn,
       grp_vars <- grp_des
       num_sym <- rlang::sym(numerator_var)
       den_sym <- rlang::sym(denominator_var)
-      est <- dsgn %>%
+      est <- dsgn_loc %>%
         group_by(across(all_of(grp_vars))) %>%
         summarise(
           ratio = survey_ratio(
@@ -137,7 +143,7 @@ calculate_estimates <- function(dsgn,
     } else {
       grp_vars <- grp_des
       est <- tryCatch(
-        dsgn %>%
+        dsgn_loc %>%
           group_by(across(all_of(grp_vars))) %>%
           summarise(
             cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", na.rm = TRUE),
@@ -154,7 +160,7 @@ calculate_estimates <- function(dsgn,
           rlang::warn(paste0(msg, " Se devolverá el cuantil sin error estándar (SE = NA)."))
 
           fallback <- tryCatch(
-            dsgn %>%
+            dsgn_loc %>%
               group_by(across(all_of(grp_vars))) %>%
               summarise(
                 cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = NULL, na.rm = TRUE),
@@ -173,7 +179,7 @@ calculate_estimates <- function(dsgn,
               if (length(grp_vars) == 0) {
                 tibble::tibble(cuantil = NA_real_)
               } else {
-                base_df %>%
+                base_df_loc %>%
                   dplyr::distinct(across(all_of(grp_vars))) %>%
                   dplyr::mutate(cuantil = NA_real_)
               }
@@ -213,7 +219,7 @@ calculate_estimates <- function(dsgn,
 
     if (type != "prop") {
       tam_group_vars <- grp_des
-      tam <- base_df %>%
+      tam <- base_df_loc %>%
         group_by(across(all_of(tam_group_vars))) %>%
         summarise(
           n_mues = n(),

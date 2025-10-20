@@ -1,3 +1,9 @@
+# dosr 0.2.4
+
+## MEJORAS
+
+*   Se añadió el argumento `rm_na_des` (por defecto `FALSE`) a todas las funciones `obs_*` para permitir excluir las categorías "NA" de cada desagregación de forma automática cuando se requiera.
+
 # dosr 0.2.3
 
 ## NUEVAS FUNCIONALIDADES PRINCIPALES

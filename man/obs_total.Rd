@@ -15,6 +15,7 @@ obs_total(
   sig = FALSE,
   filt = NULL,
   rm_na_var = TRUE,
+  rm_na_des = FALSE,
   parallel = FALSE,
   n_cores = NULL,
   save_xlsx = TRUE,
@@ -44,6 +45,8 @@ obs_total(
 \item{filt}{Un string con una expresión de filtro para `dplyr::filter()`.}
 
 \item{rm_na_var}{Booleano. Si `TRUE`, elimina NAs en `var` antes de calcular.}
+
+\item{rm_na_des}{Booleano. Si `TRUE`, excluye observaciones con `NA` en las variables de desagregación relevantes para cada tabla.}
 
 \item{parallel}{Booleano. Activa el cálculo en paralelo.}
 

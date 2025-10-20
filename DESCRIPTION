@@ -1,7 +1,7 @@
 Package: dosr
 Type: Package
 Title: Herramientas para el Analisis de Encuestas del Observatorio Social
-Version: 0.2.3
+Version: 0.2.4
 Authors@R: 
     person("Gabriel", "Sotomayor", , "gabrielsotomayorl@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9889-9637"))

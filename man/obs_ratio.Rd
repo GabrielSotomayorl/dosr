@@ -16,6 +16,7 @@ obs_ratio(
   sig = FALSE,
   filt = NULL,
   rm_na_var = TRUE,
+  rm_na_des = FALSE,
   parallel = FALSE,
   n_cores = NULL,
   save_xlsx = TRUE,
@@ -50,6 +51,8 @@ de Excel; si no hay etiqueta disponible, usa el nombre de la variable.}
 
 \item{rm_na_var}{Booleano. Si `TRUE`, elimina observaciones con `NA` en el
 **numerador o** el **denominador** antes de calcular la razón.}
+
+\item{rm_na_des}{Booleano. Si `TRUE`, excluye observaciones con `NA` en las variables de desagregación relevantes para cada tabla.}
 
 \item{parallel}{Booleano. Activa el cálculo en paralelo.}
 
