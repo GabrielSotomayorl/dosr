@@ -48,6 +48,10 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
   all_levels_var <- if(length(var_interes) > 0) get_all_levels(all_designs, var_interes) else list()
   combinar_por_combo <- function(combo_name) {
     tablas_combo <- purrr::map(lista_tablas, ~ .x[[combo_name]])
+    totals_combo <- purrr::imap(tablas_combo, function(df, idx) {
+      totals_attr <- attr(df, "totals_filtered")
+      if (!is.null(totals_attr)) totals_attr else NULL
+    }) %>% purrr::compact()
     tablas_combo_char <- purrr::map(tablas_combo, ~ .x %>% mutate(across(any_of(keys), as.character)))
     metric_cols <- setdiff(names(tablas_combo_char[[1]]), keys)
     tablas_renombradas <- purrr::imap(tablas_combo_char, function(df, sfx) {
@@ -92,6 +96,9 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
             mutate(!!fiabilidad_col := if_else(.data[[n_mues_col]] == 0, "Sin casos", .data[[fiabilidad_col]]))
         }
       }
+    }
+    if (length(totals_combo) > 0) {
+      attr(joined_df, "totals_filtered") <- totals_combo
     }
     return(joined_df)
   }
@@ -299,11 +306,33 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
           rename_with(~ sufijo, all_of(metric_cols))
       } else {
         block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
-        tot_vals <- total_row %>% select(all_of(metric_cols))
+        totals_lookup <- attr(df_combo_wide, "totals_filtered")
+        get_total_val <- function(col_nm, metric_id) {
+          sufijo_id <- sub("^.*_", "", col_nm)
+          if (!is.null(totals_lookup) && sufijo_id %in% names(totals_lookup)) {
+            total_tbl <- totals_lookup[[sufijo_id]]
+            value_col <- switch(metric_id,
+              media = "media",
+              N_pob = "N_pob",
+              se = "se",
+              n_mues = "n_mues"
+            )
+            if (!is.null(total_tbl) && value_col %in% names(total_tbl)) {
+              return(total_tbl[[value_col]][1])
+            }
+          }
+          if (!is.null(total_row) && col_nm %in% names(total_row)) {
+            return(total_row[[col_nm]][1])
+          }
+          NA_real_
+        }
+        total_values <- purrr::map_dfc(metric_cols, function(col_nm) {
+          tibble::tibble(!!col_nm := get_total_val(col_nm, metric_name))
+        })
         tot_line <- as.list(rep(".", length(grp_des)))
         names(tot_line) <- grp_des
         tot_line[[grp_des[1]]] <- "Total pais"
-        tot_line_df <- bind_cols(as_tibble(tot_line), tot_vals)
+        tot_line_df <- bind_cols(as_tibble(tot_line), total_values)
         block_unordered <- bind_rows(block_main, tot_line_df) %>%
           rename_with(~ sufijo, all_of(metric_cols))
         factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
@@ -442,11 +471,33 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
           rename_with(~ sufijo, all_of(metric_cols))
       } else {
         block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
-        tot_vals <- total_row %>% select(all_of(metric_cols))
+        totals_lookup <- attr(df_combo_wide, "totals_filtered")
+        get_total_val <- function(col_nm, metric_id) {
+          sufijo_id <- sub("^.*_", "", col_nm)
+          if (!is.null(totals_lookup) && sufijo_id %in% names(totals_lookup)) {
+            total_tbl <- totals_lookup[[sufijo_id]]
+            value_col <- switch(metric_id,
+              total = "total",
+              N_pob = "N_pob",
+              se = "se",
+              n_mues = "n_mues"
+            )
+            if (!is.null(total_tbl) && value_col %in% names(total_tbl)) {
+              return(total_tbl[[value_col]][1])
+            }
+          }
+          if (!is.null(total_row) && col_nm %in% names(total_row)) {
+            return(total_row[[col_nm]][1])
+          }
+          NA_real_
+        }
+        total_values <- purrr::map_dfc(metric_cols, function(col_nm) {
+          tibble::tibble(!!col_nm := get_total_val(col_nm, metric_name))
+        })
         tot_line <- as.list(rep(".", length(grp_des)))
         names(tot_line) <- grp_des
         tot_line[[grp_des[1]]] <- "Total pais"
-        tot_line_df <- bind_cols(as_tibble(tot_line), tot_vals)
+        tot_line_df <- bind_cols(as_tibble(tot_line), total_values)
         block_unordered <- bind_rows(block_main, tot_line_df) %>%
           rename_with(~ sufijo, all_of(metric_cols))
         factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
@@ -584,11 +635,33 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
           rename_with(~ sufijo, all_of(metric_cols))
       } else {
         block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
-        tot_vals <- total_row %>% select(all_of(metric_cols))
+        totals_lookup <- attr(df_combo_wide, "totals_filtered")
+        get_total_val <- function(col_nm, metric_id) {
+          sufijo_id <- sub("^.*_", "", col_nm)
+          if (!is.null(totals_lookup) && sufijo_id %in% names(totals_lookup)) {
+            total_tbl <- totals_lookup[[sufijo_id]]
+            value_col <- switch(metric_id,
+              ratio = "ratio",
+              N_pob = "N_pob",
+              se = "se",
+              n_mues = "n_mues"
+            )
+            if (!is.null(total_tbl) && value_col %in% names(total_tbl)) {
+              return(total_tbl[[value_col]][1])
+            }
+          }
+          if (!is.null(total_row) && col_nm %in% names(total_row)) {
+            return(total_row[[col_nm]][1])
+          }
+          NA_real_
+        }
+        total_values <- purrr::map_dfc(metric_cols, function(col_nm) {
+          tibble::tibble(!!col_nm := get_total_val(col_nm, metric_name))
+        })
         tot_line <- as.list(rep(".", length(grp_des)))
         names(tot_line) <- grp_des
         tot_line[[grp_des[1]]] <- "Total pais"
-        tot_line_df <- bind_cols(as_tibble(tot_line), tot_vals)
+        tot_line_df <- bind_cols(as_tibble(tot_line), total_values)
         block_unordered <- bind_rows(block_main, tot_line_df) %>%
           rename_with(~ sufijo, all_of(metric_cols))
         factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
@@ -727,11 +800,33 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
           rename_with(~ sufijo, all_of(metric_cols))
       } else {
         block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
-        tot_vals <- total_row %>% select(all_of(metric_cols))
+        totals_lookup <- attr(df_combo_wide, "totals_filtered")
+        get_total_val <- function(col_nm, metric_id) {
+          sufijo_id <- sub("^.*_", "", col_nm)
+          if (!is.null(totals_lookup) && sufijo_id %in% names(totals_lookup)) {
+            total_tbl <- totals_lookup[[sufijo_id]]
+            value_col <- switch(metric_id,
+              cuantil = "cuantil",
+              N_pob = "N_pob",
+              se = "se",
+              n_mues = "n_mues"
+            )
+            if (!is.null(total_tbl) && value_col %in% names(total_tbl)) {
+              return(total_tbl[[value_col]][1])
+            }
+          }
+          if (!is.null(total_row) && col_nm %in% names(total_row)) {
+            return(total_row[[col_nm]][1])
+          }
+          NA_real_
+        }
+        total_values <- purrr::map_dfc(metric_cols, function(col_nm) {
+          tibble::tibble(!!col_nm := get_total_val(col_nm, metric_name))
+        })
         tot_line <- as.list(rep(".", length(grp_des)))
         names(tot_line) <- grp_des
         tot_line[[grp_des[1]]] <- "Total pais"
-        tot_line_df <- bind_cols(as_tibble(tot_line), tot_vals)
+        tot_line_df <- bind_cols(as_tibble(tot_line), total_values)
         block_unordered <- bind_rows(block_main, tot_line_df) %>%
           rename_with(~ sufijo, all_of(metric_cols))
         factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
