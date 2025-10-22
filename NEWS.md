@@ -1,3 +1,10 @@
+# dosr 0.2.4
+
+## MEJORAS
+
+*   Se añadió el argumento `rm_na_des` (por defecto `FALSE`) a todas las funciones `obs_*` para permitir excluir las categorías "NA" de cada desagregación de forma automática cuando se requiera.
+*   Se corrigieron los totales reportados en Excel para medias, cuantiles, totales y razones cuando `rm_na_des = TRUE`, de modo que las filas "Total país" reflejen los casos y expansiones filtrados en cada desagregación.
+
 # dosr 0.2.3
 
 ## NUEVAS FUNCIONALIDADES PRINCIPALES

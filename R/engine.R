@@ -6,7 +6,7 @@
 #' @description This internal function performs the statistical calculations.
 #' @noRd
 calculate_estimates <- function(dsgn,
-                               var, des, filt, rm_na_var, type = c("prop", "mean", "quantile", "total", "ratio"),
+                               var, des, filt, rm_na_var, rm_na_des = FALSE, type = c("prop", "mean", "quantile", "total", "ratio"),
                                 psu_var, strata_var, weight_var, multi_des, es_var_estudio,
                                 porcentaje = FALSE,
                                 quantile_prob = 0.5,
@@ -56,9 +56,16 @@ calculate_estimates <- function(dsgn,
 
   # --- Función de cálculo interna ---
   calc_tabla <- function(grp_des) {
+    dsgn_loc <- dsgn
+    base_df_loc <- base_df
+    if (rm_na_des && length(grp_des) > 0) {
+      dsgn_loc <- dsgn_loc %>% srvyr::filter(dplyr::if_all(dplyr::all_of(grp_des), ~ !is.na(.x)))
+      base_df_loc <- base_df_loc %>% dplyr::filter(dplyr::if_all(dplyr::all_of(grp_des), ~ !is.na(.x)))
+    }
+    totals_info <- NULL
     if (type == "prop") {
       grp_vars <- c(grp_des, var)
-      est <- dsgn %>%
+      est <- dsgn_loc %>%
         group_by(across(all_of(grp_vars))) %>%
         summarise(prop = survey_prop(vartype = "se"), .groups = "drop") %>%
         rename(se = prop_se)
@@ -70,7 +77,7 @@ calculate_estimates <- function(dsgn,
         )
       }
 
-      tam_num <- base_df %>%
+      tam_num <- base_df_loc %>%
         group_by(across(all_of(grp_vars))) %>%
         summarise(
           n_mues = dplyr::n(),
@@ -79,12 +86,12 @@ calculate_estimates <- function(dsgn,
         )
 
       gl_base <- if (length(grp_des) == 0) {
-        base_df %>%
+        base_df_loc %>%
           summarise(
             gl = n_distinct(.psu) - n_distinct(.str)
           )
       } else {
-        base_df %>%
+        base_df_loc %>%
           group_by(across(all_of(grp_des))) %>%
           summarise(
             gl = n_distinct(.psu) - n_distinct(.str),
@@ -111,10 +118,10 @@ calculate_estimates <- function(dsgn,
 
     } else if (type == "mean") {
       grp_vars <- grp_des
-      est <- dsgn %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
+      est <- dsgn_loc %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
     } else if (type == "total") {
       grp_vars <- grp_des
-      est <- dsgn %>%
+      est <- dsgn_loc %>%
         group_by(across(all_of(grp_vars))) %>%
         summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>%
         rename(se = total_se, cv = total_cv)
@@ -122,7 +129,7 @@ calculate_estimates <- function(dsgn,
       grp_vars <- grp_des
       num_sym <- rlang::sym(numerator_var)
       den_sym <- rlang::sym(denominator_var)
-      est <- dsgn %>%
+      est <- dsgn_loc %>%
         group_by(across(all_of(grp_vars))) %>%
         summarise(
           ratio = survey_ratio(
@@ -137,7 +144,7 @@ calculate_estimates <- function(dsgn,
     } else {
       grp_vars <- grp_des
       est <- tryCatch(
-        dsgn %>%
+        dsgn_loc %>%
           group_by(across(all_of(grp_vars))) %>%
           summarise(
             cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", na.rm = TRUE),
@@ -154,7 +161,7 @@ calculate_estimates <- function(dsgn,
           rlang::warn(paste0(msg, " Se devolverá el cuantil sin error estándar (SE = NA)."))
 
           fallback <- tryCatch(
-            dsgn %>%
+            dsgn_loc %>%
               group_by(across(all_of(grp_vars))) %>%
               summarise(
                 cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = NULL, na.rm = TRUE),
@@ -173,7 +180,7 @@ calculate_estimates <- function(dsgn,
               if (length(grp_vars) == 0) {
                 tibble::tibble(cuantil = NA_real_)
               } else {
-                base_df %>%
+                base_df_loc %>%
                   dplyr::distinct(across(all_of(grp_vars))) %>%
                   dplyr::mutate(cuantil = NA_real_)
               }
@@ -213,7 +220,7 @@ calculate_estimates <- function(dsgn,
 
     if (type != "prop") {
       tam_group_vars <- grp_des
-      tam <- base_df %>%
+      tam <- base_df_loc %>%
         group_by(across(all_of(tam_group_vars))) %>%
         summarise(
           n_mues = n(),
@@ -317,11 +324,188 @@ calculate_estimates <- function(dsgn,
         out <- bind_cols(out, na_cols)
       }
     }
+
+    if (rm_na_des && length(grp_des) > 0) {
+      totals_info <- tryCatch({
+        if (type == "mean") {
+          total_est <- dsgn_loc %>%
+            summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>%
+            rename(se = media_se, cv = media_cv)
+          total_tam <- base_df_loc %>%
+            summarise(
+              n_mues = n(),
+              N_pob  = sum(.w),
+              gl     = n_distinct(.psu) - n_distinct(.str)
+            )
+          bind_cols(total_est, total_tam) %>%
+            mutate(
+              variable = var,
+              fiabilidad = case_when(
+                n_mues == 0 ~ "Sin casos",
+                gl <= 9 ~ "No Fiable",
+                n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+                cv > 0.30 ~ "No Fiable",
+                cv > 0.20 ~ "Poco Fiable",
+                TRUE ~ "Fiable"
+              )
+            ) %>%
+            relocate(variable)
+        } else if (type == "total") {
+          total_est <- dsgn_loc %>%
+            summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>%
+            rename(se = total_se, cv = total_cv)
+          total_tam <- base_df_loc %>%
+            summarise(
+              n_mues = n(),
+              N_pob  = sum(.w),
+              gl     = n_distinct(.psu) - n_distinct(.str)
+            )
+          bind_cols(total_est, total_tam) %>%
+            mutate(
+              variable = var,
+              cv = dplyr::case_when(
+                is.finite(total) & total != 0 ~ se / abs(total),
+                TRUE ~ cv
+              ),
+              fiabilidad = case_when(
+                n_mues == 0 ~ "Sin casos",
+                gl <= 9 ~ "No Fiable",
+                n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+                is.na(cv) ~ NA_character_,
+                cv > 0.30 ~ "No Fiable",
+                cv > 0.20 ~ "Poco Fiable",
+                TRUE ~ "Fiable"
+              )
+            ) %>%
+            relocate(variable)
+        } else if (type == "ratio") {
+          num_sym <- rlang::sym(numerator_var)
+          den_sym <- rlang::sym(denominator_var)
+          total_est <- dsgn_loc %>%
+            summarise(
+              ratio = survey_ratio(
+                !!num_sym,
+                !!den_sym,
+                vartype = c("se", "cv"),
+                na.rm = TRUE
+              ),
+              .groups = "drop"
+            ) %>%
+            rename(se = ratio_se, cv = ratio_cv)
+          total_tam <- base_df_loc %>%
+            summarise(
+              n_mues = n(),
+              N_pob  = sum(.w),
+              gl     = n_distinct(.psu) - n_distinct(.str)
+            )
+          bind_cols(total_est, total_tam) %>%
+            mutate(
+              variable = var,
+              fiabilidad = case_when(
+                n_mues == 0 ~ "Sin casos",
+                gl <= 9 ~ "No Fiable",
+                n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+                is.na(cv) ~ NA_character_,
+                cv > 0.30 ~ "No Fiable",
+                cv > 0.20 ~ "Poco Fiable",
+                TRUE ~ "Fiable"
+              )
+            ) %>%
+            relocate(variable)
+        } else if (type == "quantile") {
+          total_est <- tryCatch(
+            dsgn_loc %>%
+              summarise(
+                cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", na.rm = TRUE),
+                .groups = "drop"
+              ),
+            error = function(err) {
+              msg <- paste0(
+                "No se pudo calcular el cuantil nacional filtrado para la combinaci\u00f3n (",
+                paste(grp_des, collapse = ", "),
+                "): ",
+                conditionMessage(err)
+              )
+              rlang::warn(paste0(msg, " Se devolver\u00e1 el cuantil sin error est\u00e1ndar (SE = NA)."))
+              fallback <- tryCatch(
+                dsgn_loc %>%
+                  summarise(
+                    cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = NULL, na.rm = TRUE),
+                    .groups = "drop"
+                  ),
+                error = function(inner_err) {
+                  rlang::warn(
+                    paste0(
+                      "Tampoco se pudo obtener el cuantil puntual nacional filtrado (",
+                      paste(grp_des, collapse = ", "),
+                      "): ",
+                      conditionMessage(inner_err)
+                    )
+                  )
+                  tibble::tibble(cuantil = NA_real_)
+                }
+              )
+              fallback$se <- NA_real_
+              fallback
+            }
+          )
+          se_col <- grep("_se$", names(total_est), value = TRUE)
+          if (length(se_col) == 1) {
+            total_est <- total_est %>% dplyr::rename(se = dplyr::all_of(se_col))
+          } else if (!"se" %in% names(total_est)) {
+            total_est <- total_est %>% dplyr::mutate(se = NA_real_)
+          }
+          if (!"cuantil" %in% names(total_est)) {
+            candidate_cols <- setdiff(names(total_est), c("se", se_col))
+            candidate_cols <- candidate_cols[vapply(candidate_cols, function(.col) {
+              is.numeric(total_est[[.col]]) && !all(is.na(total_est[[.col]]))
+            }, logical(1))]
+            if (length(candidate_cols) >= 1) {
+              total_est <- total_est %>% dplyr::rename(cuantil = dplyr::all_of(candidate_cols[1]))
+            } else {
+              total_est <- total_est %>% dplyr::mutate(cuantil = NA_real_)
+            }
+          }
+          total_est <- total_est %>%
+            mutate(cv = dplyr::case_when(
+              is.finite(cuantil) & cuantil != 0 ~ se / abs(cuantil),
+              TRUE ~ NA_real_
+            ))
+          total_tam <- base_df_loc %>%
+            summarise(
+              n_mues = n(),
+              N_pob  = sum(.w),
+              gl     = n_distinct(.psu) - n_distinct(.str)
+            )
+          bind_cols(total_est, total_tam) %>%
+            mutate(
+              variable = var,
+              fiabilidad = case_when(
+                n_mues == 0 ~ "Sin casos",
+                gl <= 9 ~ "No Fiable",
+                n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+                is.na(cv) ~ NA_character_,
+                cv > 0.30 ~ "No Fiable",
+                cv > 0.20 ~ "Poco Fiable",
+                TRUE ~ "Fiable"
+              )
+            ) %>%
+            relocate(variable)
+        } else {
+          NULL
+        }
+      }, error = function(e) {
+        rlang::warn(conditionMessage(e))
+        NULL
+      })
+    }
+
     key_cols <- if(type == "prop") c(var, des) else c("variable", des)
     out %>%
       mutate(nivel = if (length(grp_des) == 0) "Nacional" else paste(grp_des, collapse = "-")) %>%
       relocate(any_of(key_cols), nivel) %>%
-      arrange(across(all_of(grp_des)))
+      arrange(across(all_of(grp_des))) %>%
+      { if (!is.null(totals_info)) `attr<-`(., "totals_filtered", totals_info) else . }
   }
 
   combos <- list(character(0))
