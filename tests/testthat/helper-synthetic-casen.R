@@ -2,7 +2,7 @@ make_expr_weights <- function(n, seed, p01 = 13, p50 = 75, p99 = 391, sdlog = 0.
   set.seed(seed)
   w <- stats::rlnorm(n, meanlog = 0, sdlog = sdlog)
   w <- w / stats::median(w) * p50
-  stats::pmin(stats::pmax(w, p01), p99)
+  base::pmin(base::pmax(w, p01), p99)
 }
 
 split_into_households <- function(members) {
