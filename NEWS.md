@@ -1,3 +1,11 @@
+# dosr 0.2.5
+
+## MEJORAS
+
+*   Se configuró la infraestructura de pruebas automatizadas con `testthat` (edición 3) y se añadieron casos unitarios para `obs_media()` basados en datos sintéticos con variables tipo CASEN.
+*   Se reforzaron los datos sintéticos tipo CASEN para las pruebas automatizadas, incluyendo pesos lognormales truncados, PSUs anidadas en estratos, hogares multi-persona y variables de pobreza y hogar/persona.
+*   Se ampliaron las pruebas unitarias para `obs_media()` (escenarios de fiabilidad, multi-año y hogar vs persona) y se añadieron pruebas de `obs_prop()` con dos años.
+
 # dosr 0.2.4
 
 ## MEJORAS
@@ -110,7 +118,6 @@
 ## CORRECCIONES
 
 *   Se ha corregido el orden de las columnas en el `data.frame` que devuelven las funciones a R. Ahora la columna `nivel` aparece consistentemente antes que las variables de desagregación, coincidiendo con el formato de la hoja "Consolidado" en Excel.
-
 
 # dosr 0.1.1
 
