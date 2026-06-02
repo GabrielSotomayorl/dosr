@@ -1,0 +1,341 @@
+# Changelog
+
+## dosr 0.3.0
+
+### Datos incluidos
+
+- Se incorporan los conjuntos de datos `casen_2022` y `casen_2024` con
+  la totalidad de las observaciones de la Encuesta CASEN y las variables
+  necesarias para reproducir todos los ejemplos del paquete (`region`,
+  `area`, `sexo`, `edad`, `pobreza`, `ytotcorh`, `activ`, `r8a`–`r8h`).
+  Los datos están disponibles directamente al cargar el paquete sin
+  necesidad de descargas adicionales.
+
+### Criterios de fiabilidad
+
+- Todos los parámetros de fiabilidad son ahora configurables en cada
+  llamada a `obs_*`: `cv_umbral_alto` (por defecto 0.30),
+  `cv_umbral_medio` (0.20), `n_minimo` (30) y `nivel_confianza` (0.95).
+- Las etiquetas de la columna `fiabilidad` especifican la causa del
+  rechazo: `"No Fiable (gl)"` (grados de libertad insuficientes),
+  `"No Fiable (muestra)"` (tamaño muestral insuficiente),
+  `"No Fiable (CV)"` (coeficiente de variación muy alto),
+  `"Poco Fiable (CV)"` (CV moderado), `"Poco Fiable (EE)"` (error
+  estándar supera el umbral beta), `"Sin casos"` (subgrupo sin
+  observaciones en la muestra). Esta nomenclatura es consistente en
+  todas las funciones `obs_*` y
+  [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md).
+- Nuevo argumento `universo_crit` en
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md):
+  fuerza el uso del N total del dominio (suma de categorías) como
+  criterio muestral, independientemente del número de categorías de la
+  variable.
+- Nuevo argumento `es_var_estudio` disponible en todas las funciones
+  `obs_*`: relaja el criterio de tamaño muestral para variables
+  centrales del instrumento.
+
+### Nuevos argumentos de reporte (todas las funciones `obs_*`)
+
+- `nombre`: sobreescribe el título del indicador en el reporte Excel.
+- `fuente`: escribe un pie de fuente con el nombre del instrumento y el
+  rango de años. Acepta las claves `"casen"`, `"ebs"`, `"endide"`,
+  `"eanna"`, `"elpi"` o texto libre.
+- `snac`: omite la hoja de formato del nivel nacional (el consolidado
+  siempre incluye el nivel nacional).
+- `mostrar_pct_fiable`: incluye el porcentaje de estimaciones fiables en
+  la nota automática de calidad.
+- `color_fiabilidad`: colorea el texto de las celdas de estimación en
+  ámbar (poco fiable) o rojo (no fiable).
+- `categoria` (solo
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)):
+  filtra el output a una o más categorías específicas del outcome,
+  aceptando etiquetas de texto o códigos numéricos.
+
+### Reportes Excel
+
+- Todas las hojas de formato incluyen una nota de calidad automática que
+  lista las estimaciones poco o no fiables por año, especificando la
+  causa. Incluye advertencia cuando menos del 50% del cuadro es
+  publicable.
+- La línea de fuente (`fuente =`) se escribe en negrita en el Excel.
+
+### Pruebas de significancia (`sig = TRUE`)
+
+- El nivel nacional genera la tabla “Test contra último año” al comparar
+  múltiples diseños.
+- Las desagregaciones múltiples (`multi_des = TRUE`) incluyen las tablas
+  “Test contra último año” y “Test contra estimación nacional”.
+- Las pruebas se calculan mediante un test t de Welch adaptado a diseños
+  complejos: `t = (θ₁ − θ₂) / √(EE₁² + EE₂²)`, con grados de libertad
+  igual al mínimo de los dos dominios comparados. El resultado reportado
+  es el p-valor bilateral.
+
+### Documentación y sitio
+
+- Ejemplos ejecutables (`\donttest{}`) en todas las funciones
+  exportadas, usando los datos `casen_2022` y `casen_2024` incluidos en
+  el paquete.
+- Viñeta introductoria
+  ([`vignette("introduccion")`](https://gabrielsotomayorl.github.io/dosr/articles/introduccion.md))
+  con ejemplos reales de la CASEN para todos los tipos de estimación.
+- Nueva viñeta de metodología
+  ([`vignette("metodologia")`](https://gabrielsotomayorl.github.io/dosr/articles/metodologia.md))
+  que documenta los criterios de fiabilidad con fórmulas, diagrama de
+  flujo y referencias citables, y describe las tres pruebas de
+  significancia disponibles.
+- Sitio web del paquete disponible en
+  <https://gabrielsotomayorl.github.io/dosr/>.
+
+## dosr 0.2.4
+
+### MEJORAS
+
+- Se añadió el argumento `rm_na_des` (por defecto `FALSE`) a todas las
+  funciones `obs_*` para permitir excluir las categorías “NA” de cada
+  desagregación de forma automática cuando se requiera.
+- Se corrigieron los totales reportados en Excel para medias, cuantiles,
+  totales y razones cuando `rm_na_des = TRUE`, de modo que las filas
+  “Total país” reflejen los casos y expansiones filtrados en cada
+  desagregación.
+
+## dosr 0.2.3
+
+### NUEVAS FUNCIONALIDADES PRINCIPALES
+
+- Se incorporó la nueva función
+  [`obs_cuantil()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_cuantil.md)
+  para calcular cuantiles (mediana por defecto) con las mismas
+  capacidades de desagregación, criterios de fiabilidad, pruebas de
+  significancia y reportes en Excel que
+  [`obs_media()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_media.md).
+- Se añadió la función
+  [`obs_total()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_total.md)
+  para estimar totales ponderados con idéntico flujo de trabajo
+  (significancia, fiabilidad y reportes en Excel) que las utilidades
+  existentes.
+- Se incorporó la función
+  [`obs_ratio()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_ratio.md)
+  para estimar razones ponderadas (numerador/denominador) replicando la
+  lógica de filtrado, desagregaciones, significancia y reportes de las
+  demás herramientas `obs_*`.
+
+### MEJORAS Y CORRECCIONES
+
+- Todas las funciones `obs_*` ejecutadas en paralelo heredan
+  automáticamente la opción global `survey.lonely.psu`, evitando errores
+  en estratos con una sola PSU al usar `parallel = TRUE`.
+- [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
+  y
+  [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md)
+  corrigen el cálculo de los grados de libertad para obtenerlos a nivel
+  de dominio.
+
+## dosr 0.2.2
+
+### NUEVA FUNCIONALIDAD: PERFILADO RÁPIDO DE VARIABLES BINARIAS
+
+- Se ha añadido una nueva función
+  [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md)
+  al paquete.
+- Esta función está diseñada para el análisis exploratorio rápido de
+  **múltiples variables dicotómicas (0/1)** dentro de un **único diseño
+  de encuesta**.
+- Calcula estimaciones de proporción (presentadas como porcentajes por
+  defecto), errores estándar, N expandido (de los “1s”), N muestral (de
+  los “1s”) y criterios de fiabilidad.
+- Permite desagregaciones simples (no cruzadas) a través del argumento
+  `des`, generando hojas de reporte separadas.
+- Incluye argumentos para personalizar el número de decimales de la
+  estimación y del error estándar por separado (`decimales` y
+  `decimales_se`).
+- Genera un reporte en Excel con una hoja consolidada y hojas de formato
+  profesional, siguiendo el estilo de `obs_prop` y `obs_media`.
+
+### MEJORAS INTERNAS
+
+- Se ha movido el operador helper `%||%` a un archivo de utilidades
+  (`R/utils.R`) para mejorar la estructura del paquete y seguir las
+  mejores prácticas, eliminando código ejecutable del nivel superior de
+  los scripts de funciones.
+
+## dosr 0.2.1
+
+### MEJORAS DE USABILIDAD
+
+- Se ha añadido un nuevo argumento `dir` a
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
+  y
+  [`obs_media()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_media.md).
+- Este argumento permite al usuario especificar el directorio de destino
+  donde se guardará el archivo Excel.
+- El valor por defecto es `dir = "output"`, manteniendo la
+  compatibilidad con el comportamiento de versiones anteriores. La
+  función crea el directorio si este no existe.
+
+## dosr 0.2.0
+
+### FUNCIONALIDAD MAYOR: PRUEBAS DE SIGNIFICANCIA ESTADÍSTICA
+
+- Se ha introducido una nueva funcionalidad para calcular y reportar
+  pruebas de significancia estadística, controlada por el nuevo
+  argumento `sig` (Booleano, por defecto `FALSE`) en
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
+  y
+  [`obs_media()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_media.md).
+- Cuando `sig = TRUE`, las hojas de formato en los reportes de Excel
+  ahora incluyen tablas adicionales con los p-values de las siguientes
+  comparaciones:
+  1.  **Test Intra-Anual:** Una matriz que compara todas las categorías
+      de una desagregación simple entre sí, para cada año.
+  2.  **Test Contra Último Año:** Compara la estimación de cada
+      categoría contra la del año anterior (disponible cuando se
+      procesan múltiples diseños).
+  3.  **Test Contra Estimación Nacional:** Compara la estimación de cada
+      categoría contra el total nacional de ese mismo año.
+- Los cálculos se realizan mediante un test t de Student que considera
+  las estimaciones, los errores estándar y los grados de libertad de
+  cada grupo, asegurando la validez estadística para diseños muestrales
+  complejos.
+- Se ha creado un nuevo módulo interno (`R/significance.R`) con una
+  lógica robusta y defensiva para manejar todos los casos de cálculo y
+  prevenir errores con datos vacíos o casos límite.
+
+## dosr 0.1.5
+
+### MEJORAS DE FORMATO Y USABILIDAD
+
+- Se ha añadido el argumento `usar_etiqueta_var` (Booleano, por defecto
+  `TRUE`) a
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
+  y
+  [`obs_media()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_media.md).
+  Si está activo, se utiliza la etiqueta de la variable de interés
+  (extraída con el paquete `labelled`) como título del indicador en los
+  reportes de Excel.
+- En
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md),
+  el argumento `porcentaje = TRUE` ahora multiplica las estimaciones y
+  errores estándar por 100 directamente en los datos, en lugar de
+  depender del formato de celda de Excel. Esto mejora la portabilidad y
+  consistencia de los resultados.
+
+### CORRECCIONES
+
+- Se ha solucionado un bug que causaba que la columna `fiabilidad`
+  apareciera en blanco para las categorías sin casos generadas por
+  [`tidyr::complete()`](https://tidyr.tidyverse.org/reference/complete.html).
+  Ahora se muestra correctamente como “Sin casos”.
+- Se ha corregido una inconsistencia en la columna `nivel` para las
+  categorías sin casos, asegurando que siempre muestre los nombres de
+  las variables de desagregación.
+- El paquete ahora pasa `R CMD check` sin `NOTE`s, gracias a la correcta
+  declaración de variables globales y la importación explícita de todas
+  las funciones necesarias.
+
+## dosr 0.1.4
+
+### CAMBIO FUNDAMENTAL EN CRITERIOS DE FIABILIDAD
+
+- Se ha reescrito por completo la lógica para clasificar la fiabilidad
+  de las estimaciones (`Fiable`, `Poco Fiable`, `No Fiable`) para
+  alinearse con los nuevos estándares de calidad.
+- **Para proporciones:**
+  - La clasificación ahora distingue entre variables dicotómicas y no
+    dicotómicas, infiriendo esto automáticamente del número de niveles
+    de la variable.
+  - Se aplican umbrales de tamaño muestral diferenciados (`n_universo`
+    para dicotómicas, `n_mues` para no dicotómicas).
+  - Se introduce un nuevo argumento `es_var_estudio` (Booleano, por
+    defecto `FALSE`) que permite relajar los criterios de tamaño
+    muestral para variables clave del instrumento.
+- **Para medias:**
+  - La lógica de clasificación también ha sido actualizada para seguir
+    el nuevo flujo de decisión basado en grados de libertad, tamaño
+    muestral, el argumento `es_var_estudio` y el coeficiente de
+    variación (CV).
+
+### MEJORAS INTERNAS Y CORRECCIONES
+
+- Se ha añadido el argumento `es_var_estudio` a las funciones
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
+  y
+  [`obs_media()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_media.md).
+
+## dosr 0.1.3
+
+### NUEVAS FUNCIONALIDADES
+
+- Se ha añadido un nuevo argumento `multi_des` a
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
+  y
+  [`obs_media()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_media.md)
+  para controlar el comportamiento de las desagregaciones:
+  - Si `multi_des = TRUE` (valor por defecto), el paquete calcula todas
+    las combinaciones posibles de las variables de desagregación, como
+    en versiones anteriores.
+  - Si `multi_des = FALSE`, el paquete solo calcula las desagregaciones
+    simples (por cada variable en `des` de forma individual), lo que
+    acelera significativamente los cálculos y es ideal para análisis
+    exploratorios o cuando se usan muchas variables.
+- Se ha implementado un “fusible de seguridad” para proteger al usuario.
+  Si se solicitan más de 3 variables de desagregación con
+  `multi_des = TRUE`, la función se detendrá con un error informativo,
+  previniendo ejecuciones excesivamente largas y posibles cuelgues de la
+  sesión.
+
+### MEJORAS INTERNAS
+
+- Se ha refactorizado la lógica interna para pasar el parámetro
+  `multi_des` al motor de cálculo, permitiendo la nueva funcionalidad.
+
+## dosr 0.1.2
+
+### MEJORAS DE FORMATO Y USABILIDAD
+
+- Se ha rediseñado por completo el formato de las hojas de reporte en
+  Excel para seguir un estándar de publicación:
+  - Los títulos de cada bloque de métricas (ej. “Estimación”, “Error
+    estándar”) ahora se muestran en una única celda combinada
+    horizontalmente sobre su respectiva tabla.
+  - La estructura superior de cada hoja de formato ha sido estandarizada
+    a: Fila vacía, “Nombre indicador” (en negrita), “Tipo de cálculo”,
+    Fila vacía.
+  - Se han corregido los estilos de borde y negrita que no se aplicaban
+    correctamente en versiones anteriores.
+  - Se han añadido las tildes a los títulos de los bloques
+    (“Estimación”, “Población expandida”, etc.).
+- Se ha añadido un nuevo argumento `verbose` a
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
+  y
+  [`obs_media()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_media.md).
+  Por defecto es `TRUE` y muestra mensajes de progreso por etapas en la
+  consola, informando al usuario sobre el estado de los cálculos.
+- Los nombres de las hojas de reporte en Excel han sido simplificados
+  (ej. de `Formato_nac` a `2_nac`) para ser más concisos.
+
+### CORRECCIONES
+
+- Se ha corregido el orden de las columnas en el `data.frame` que
+  devuelven las funciones a R. Ahora la columna `nivel` aparece
+  consistentemente antes que las variables de desagregación,
+  coincidiendo con el formato de la hoja “Consolidado” en Excel.
+
+## dosr 0.1.1
+
+### CORRECCIONES Y MEJORAS
+
+- Se ha solucionado un error fatal en `obs_prop` que impedía su
+  ejecución.
+- Se ha corregido el problema que causaba filas vacías en los reportes
+  de `obs_media` para combinaciones sin casos.
+- Se ha implementado la generación de la pestaña de reporte formateado
+  para los resultados a nivel nacional en `obs_media`.
+- Se ha corregido el ordenamiento en la hoja de consolidado para
+  respetar la jerarquía de las desagregaciones (nacional -\> 1 variable
+  -\> 2 variables, etc.).
+- Se ha eliminado un `warning` innecesario que aparecía al solicitar un
+  reporte nacional formateado.
+
+## dosr 0.1.0
+
+- Initial submission.
