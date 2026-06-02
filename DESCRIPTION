@@ -36,7 +36,9 @@ Suggests:
     survey,
     knitr,
     rmarkdown,
-    withr
+    withr,
+    bench,
+    profvis
 Config/testthat/edition: 3
 Config/Needs/website: pkgdown
 VignetteBuilder: knitr

@@ -5,7 +5,7 @@
 #' @importFrom purrr map map2 pmap reduce set_names compact
 #' @importFrom openxlsx createWorkbook addWorksheet writeData addStyle createStyle mergeCells saveWorkbook
 #' @importFrom rlang parse_expr sym `:=` syms
-#' @importFrom future plan multisession
+#' @importFrom future supportsMulticore multicore multisession plan
 #' @importFrom furrr future_pmap
 #' @importFrom haven as_factor zap_labels
 #' @importFrom labelled var_label

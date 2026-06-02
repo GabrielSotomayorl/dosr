@@ -105,7 +105,8 @@
       n_cores
     }
     if (verbose) message(paste("... usando modo paralelo con", cores, "workers."))
-    old_plan <- future::plan(multisession, workers = cores)
+    plan_fun <- if (future::supportsMulticore()) future::multicore else future::multisession
+    old_plan <- future::plan(plan_fun, workers = cores)
     on.exit(future::plan(old_plan), add = TRUE)
     furrr::future_pmap(pmap_args, calc_fun, .progress = FALSE)
   } else {

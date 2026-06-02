@@ -13,7 +13,6 @@ utils::globalVariables(c(
   "media_cv",
   "prop",
   "nivel",
-  "multisession",
   "cv",
   "se",
   "se_umbral_prop",

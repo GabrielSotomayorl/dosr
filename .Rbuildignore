@@ -13,3 +13,4 @@
 ^stata$
 ^.*\.DS_Store$
 ^PLAN_MEJORAS\.md$
+^dev$

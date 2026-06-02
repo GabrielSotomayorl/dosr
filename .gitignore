@@ -56,3 +56,6 @@ output/
 
 # Claude Code — configuración local del agente
 .claude/
+
+# Resultados de benchmarks (específicos de cada máquina, no versionar)
+dev/bench_out/

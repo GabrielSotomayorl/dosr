@@ -1,3 +1,21 @@
+# dosr 0.3.1
+
+## Rendimiento
+
+*   `multi_bin()`: el cálculo interno de estimaciones se vectorizó para procesar
+    todas las variables binarias en una sola pasada de `summarise` por tipo de
+    estadístico (medias, totales, conteos), en lugar de iterar variable por
+    variable. Para 8 indicadores desagregados por región la mejora es ~5 %;
+    el efecto es mayor cuando se usan muchas variables o muchas categorías de
+    desagregación, al reducir el overhead de setup del diseño muestral.
+
+*   `parallel = TRUE`: en macOS y Linux el plan de paralelización usa ahora
+    `future::multicore` (fork, copia en escritura) en lugar de `multisession`.
+    Esto elimina la serialización de los datos de diseño a cada worker, lo que
+    es especialmente relevante en la serie CASEN multi-año donde cada diseño
+    pesa ~15 MB. En Windows el comportamiento es idéntico al anterior
+    (`multisession`).
+
 # dosr 0.3.0
 
 ## Datos incluidos
