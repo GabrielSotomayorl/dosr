@@ -3,7 +3,7 @@ Type: Package
 Depends: R (>= 3.5.0)
 Title: Herramientas para el Análisis de Encuestas del Observatorio Social
 Version: 0.3.0
-Authors@R: 
+Authors@R:
     person("Gabriel", "Sotomayor", , "gabrielsotomayorl@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9889-9637"))
 Description: Proporciona funciones de alto nivel para calcular estimaciones
@@ -14,6 +14,7 @@ Description: Proporciona funciones de alto nivel para calcular estimaciones
     inter-anuales y generación de reportes estandarizados en formato
     'Excel' (via 'openxlsx').
 License: MIT + file LICENSE
+Language: es
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2

@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-`dosr` provee funciones de alto nivel para calcular estimaciones sobre diseños de encuestas complejas —como la CASEN— y generar reportes estandarizados en Excel con clasificación de fiabilidad estadística.
+`dosr` provee funciones de alto nivel para calcular estimaciones sobre diseños de encuestas complejas (como la CASEN) y generar reportes estandarizados en Excel con clasificación de fiabilidad estadística.
 
 ## Instalación
 

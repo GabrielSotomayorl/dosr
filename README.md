@@ -6,7 +6,7 @@
 
 Herramientas de análisis de encuestas para el Observatorio Social del Ministerio de Desarrollo Social de Chile.
 
-`dosr` provee funciones de alto nivel para calcular estimaciones (medias, proporciones, totales, razones y cuantiles) sobre diseños de encuestas complejas —como la CASEN— y generar reportes estandarizados en Excel con clasificación automática de fiabilidad estadística.
+`dosr` provee funciones de alto nivel para calcular estimaciones (medias, proporciones, totales, razones y cuantiles) sobre diseños de encuestas complejas (como la CASEN) y generar reportes estandarizados en Excel con clasificación automática de fiabilidad estadística.
 
 ## Instalación
 
@@ -45,11 +45,11 @@ obs_media(
 
 Cada función genera automáticamente un `.xlsx` con dos tipos de hojas:
 
-**Hoja consolidada** — tabla completa con todas las estimaciones y métricas de calidad para todas las desagregaciones solicitadas:
+**Hoja consolidada**: tabla completa con todas las estimaciones y métricas de calidad para todas las desagregaciones solicitadas:
 
 ![Hoja consolidada con estimaciones por región y área](man/figures/excel-consolidado.png)
 
-**Hojas de formato** — presentación lista para publicar, con bloques separados por métrica (estimación, error estándar, población expandida, casos muestrales) y, cuando `sig = TRUE`, tablas de p-valores para comparaciones intra-año, contra el último año y contra el total nacional:
+**Hojas de formato**: presentación lista para publicar, con bloques separados por métrica (estimación, error estándar, población expandida, casos muestrales) y, cuando `sig = TRUE`, tablas de p-valores para comparaciones intra-año, contra el último año y contra el total nacional:
 
 ![Hoja de formato con series de tiempo y tests de significancia](man/figures/excel-formato.png)
 
@@ -59,9 +59,9 @@ Todas las funciones `obs_*` comparten los siguientes parámetros:
 
 | Parámetro | Descripción | Default |
 |-----------|-------------|---------|
-| `designs` | Objeto `tbl_svy` o lista de ellos (varios años) | — |
+| `designs` | Objeto `tbl_svy` o lista de ellos (varios años) | (requerido) |
 | `sufijo` | Etiquetas para cada diseño (p.ej. `c("2022", "2024")`) | autodetectado |
-| `var` | Nombre de la variable de interés | — |
+| `var` | Nombre de la variable de interés | (requerido) |
 | `des` | Variable(s) de desagregación | `NULL` (solo nacional) |
 | `filt` | Filtro como expresión R en string | `NULL` |
 | `sig` | Calcular pruebas de significancia estadística | `FALSE` |
