@@ -1,7 +1,7 @@
 # Introducción a dosr
 
 `dosr` provee funciones de alto nivel para calcular estimaciones sobre
-diseños de encuestas complejas —como la CASEN— y generar reportes
+diseños de encuestas complejas (como la CASEN) y generar reportes
 estandarizados en Excel con clasificación de fiabilidad estadística.
 
 ## Instalación
@@ -243,7 +243,7 @@ resultado_bin <- multi_bin(
   dir           = tempdir(),
   verbose       = FALSE
 )
-#> Reporte Excel creado en: /tmp/Rtmp5MrPs4/r8a-r8h_area_MULT.xlsx
+#> Reporte Excel creado en: /tmp/RtmptKOfXV/r8a-r8h_area_MULT.xlsx
 nac <- resultado_bin$desagregacion_tipo == "Nacional"
 resultado_bin[nac, c("etiqueta", "estimacion", "fiabilidad")]
 #> # A tibble: 8 × 3

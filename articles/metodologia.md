@@ -46,7 +46,7 @@ Los criterios se aplican **en orden de prioridad**:
 | 2 | **No Fiable (gl)** | $`\text{gl} \leq 9`$ |
 | 3 | **No Fiable (muestra)** | Tamaño insuficiente (ver abajo) |
 | 4 | **Poco Fiable (EE)** | Error estándar supera el umbral $`\beta`$ |
-| — | **Fiable** | Ninguno de los anteriores |
+| \- | **Fiable** | Ninguno de los anteriores |
 
 **Criterio de tamaño muestral** para proporciones:
 
@@ -85,7 +85,7 @@ Para estas estimaciones se usa el **coeficiente de variación** (CV = EE
 | 3 | **No Fiable (muestra)** | $`n_{\text{muestral}} < n_{\text{mínimo}}`$ (salvo `es_var_estudio`) |
 | 4 | **No Fiable (CV)** | $`\text{CV} > \text{cv\_umbral\_alto}`$ (por defecto 0.30) |
 | 5 | **Poco Fiable (CV)** | $`\text{CV} > \text{cv\_umbral\_medio}`$ (por defecto 0.20) |
-| — | **Fiable** | Ninguno de los anteriores |
+| \- | **Fiable** | Ninguno de los anteriores |
 
 ### Parámetros configurables
 
@@ -221,9 +221,11 @@ serie[serie$nivel != "Nacional", cols_serie]
 
 - Lumley, T. (2010). *Complex Surveys: A Guide to Analysis Using R*.
   Wiley.
-- Observatorio Social, Ministerio de Desarrollo Social y Familia (2022).
-  *Manual metodológico Encuesta CASEN 2022*. Santiago: Ministerio de
+- División Observatorio Social, Subsecretaría de Evaluación Social,
+  Ministerio de Desarrollo Social y Familia (2023, actualizado marzo
+  2024). *Manual para la Investigación. Guía práctica para el uso y
+  análisis de información. Casen 2022*. Santiago: Ministerio de
   Desarrollo Social y Familia.
-  <https://observatorio.ministeriodesarrollosocial.gob.cl/encuesta-casen>
+  <https://observatorio.ministeriodesarrollosocial.gob.cl/storage/docs/casen/2022/Manual_para_la_investigacion_Casen_2022(18marzo2024).pdf>
 - Valliant, R., Dever, J. A., & Kreuter, F. (2018). *Practical Tools for
   Designing and Weighting Survey Samples* (2nd ed.). Springer.

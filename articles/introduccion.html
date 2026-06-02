@@ -83,7 +83,7 @@
     
     
 <p><code>dosr</code> provee funciones de alto nivel para calcular
-estimaciones sobre diseños de encuestas complejas —como la CASEN— y
+estimaciones sobre diseños de encuestas complejas (como la CASEN) y
 generar reportes estandarizados en Excel con clasificación de fiabilidad
 estadística.</p>
 <div class="section level2">
@@ -309,7 +309,7 @@ de la CASEN 2024, desagregada por área urbana/rural:</p>
 <span>  dir           <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  verbose       <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Reporte Excel creado en: /tmp/Rtmp5MrPs4/r8a-r8h_area_MULT.xlsx</span></span>
+<span><span class="co">#&gt; Reporte Excel creado en: /tmp/RtmptKOfXV/r8a-r8h_area_MULT.xlsx</span></span>
 <span><span class="va">nac</span> <span class="op">&lt;-</span> <span class="va">resultado_bin</span><span class="op">$</span><span class="va">desagregacion_tipo</span> <span class="op">==</span> <span class="st">"Nacional"</span></span>
 <span><span class="va">resultado_bin</span><span class="op">[</span><span class="va">nac</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"etiqueta"</span>, <span class="st">"estimacion"</span>, <span class="st">"fiabilidad"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 8 × 3</span></span></span>

@@ -80,7 +80,7 @@
 </div>
 <p><a href="https://github.com/GabrielSotomayorl/dosr/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/GabrielSotomayorl/dosr/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://lifecycle.r-lib.org/articles/stages.html#stable" class="external-link"><img src="https://img.shields.io/badge/lifecycle-stable-brightgreen.svg" alt="Lifecycle: stable"></a> <a href="https://opensource.org/licenses/MIT" class="external-link"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a></p>
 <p>Herramientas de análisis de encuestas para el Observatorio Social del Ministerio de Desarrollo Social de Chile.</p>
-<p><code>dosr</code> provee funciones de alto nivel para calcular estimaciones (medias, proporciones, totales, razones y cuantiles) sobre diseños de encuestas complejas —como la CASEN— y generar reportes estandarizados en Excel con clasificación automática de fiabilidad estadística.</p>
+<p><code>dosr</code> provee funciones de alto nivel para calcular estimaciones (medias, proporciones, totales, razones y cuantiles) sobre diseños de encuestas complejas (como la CASEN) y generar reportes estandarizados en Excel con clasificación automática de fiabilidad estadística.</p>
 <div class="section level2">
 <h2 id="instalación">Instalación<a class="anchor" aria-label="anchor" href="#instalaci%C3%B3n"></a>
 </h2>
@@ -118,11 +118,11 @@
 <h2 id="reportes-excel">Reportes Excel<a class="anchor" aria-label="anchor" href="#reportes-excel"></a>
 </h2>
 <p>Cada función genera automáticamente un <code>.xlsx</code> con dos tipos de hojas:</p>
-<p><strong>Hoja consolidada</strong> — tabla completa con todas las estimaciones y métricas de calidad para todas las desagregaciones solicitadas:</p>
+<p><strong>Hoja consolidada</strong>: tabla completa con todas las estimaciones y métricas de calidad para todas las desagregaciones solicitadas:</p>
 <div class="float">
 <img src="reference/figures/excel-consolidado.png" alt="Hoja consolidada con estimaciones por región y área"><div class="figcaption">Hoja consolidada con estimaciones por región y área</div>
 </div>
-<p><strong>Hojas de formato</strong> — presentación lista para publicar, con bloques separados por métrica (estimación, error estándar, población expandida, casos muestrales) y, cuando <code>sig = TRUE</code>, tablas de p-valores para comparaciones intra-año, contra el último año y contra el total nacional:</p>
+<p><strong>Hojas de formato</strong>: presentación lista para publicar, con bloques separados por métrica (estimación, error estándar, población expandida, casos muestrales) y, cuando <code>sig = TRUE</code>, tablas de p-valores para comparaciones intra-año, contra el último año y contra el total nacional:</p>
 <div class="float">
 <img src="reference/figures/excel-formato.png" alt="Hoja de formato con series de tiempo y tests de significancia"><div class="figcaption">Hoja de formato con series de tiempo y tests de significancia</div>
 </div>
@@ -146,7 +146,7 @@
 <tr>
 <td><code>designs</code></td>
 <td>Objeto <code>tbl_svy</code> o lista de ellos (varios años)</td>
-<td>—</td>
+<td>(requerido)</td>
 </tr>
 <tr>
 <td><code>sufijo</code></td>
@@ -156,7 +156,7 @@
 <tr>
 <td><code>var</code></td>
 <td>Nombre de la variable de interés</td>
-<td>—</td>
+<td>(requerido)</td>
 </tr>
 <tr>
 <td><code>des</code></td>
