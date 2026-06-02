@@ -14,6 +14,7 @@ multi_bin(
   filename = NULL,
   decimales = 1,
   decimales_se = 3,
+  n_minimo = 30,
   verbose = TRUE
 )
 }
@@ -39,6 +40,8 @@ estrictos para el tamaño muestral.}
 
 \item{decimales_se}{Entero. Número de decimales para el error estándar. Por defecto es 3.}
 
+\item{n_minimo}{Entero. Tamaño muestral mínimo para clasificar una estimación como fiable. Por defecto es `30`.}
+
 \item{verbose}{Booleano. Si `TRUE`, muestra mensajes de progreso.}
 }
 \value{
@@ -53,4 +56,16 @@ Para un **único diseño de encuesta**, calcula la proporción de
   Genera un reporte en Excel con una hoja consolidada (con todas las métricas
   de calidad) y hojas de formato para el nivel nacional y cada desagregación
   simple.
+}
+\examples{
+\donttest{
+library(srvyr)
+
+design_2024 <- as_survey_design(casen_2024, ids = varunit,
+                                strata = varstrat, weights = expr, nest = TRUE)
+
+# Prevalencia de indicadores de inseguridad alimentaria por región
+multi_bin(design_2024, vars_binarias = paste0("r8", letters[1:8]),
+          des = "region", dir = tempdir())
+}
 }

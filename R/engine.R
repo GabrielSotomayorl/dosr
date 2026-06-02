@@ -10,7 +10,12 @@ calculate_estimates <- function(dsgn,
                                 psu_var, strata_var, weight_var, multi_des, es_var_estudio,
                                 porcentaje = FALSE,
                                 quantile_prob = 0.5,
-                                ratio_vars = NULL) {
+                                ratio_vars = NULL,
+                                cv_umbral_alto = 0.30,
+                                cv_umbral_medio = 0.20,
+                                n_minimo = 30,
+                                nivel_confianza = 0.95,
+                                universo_crit = FALSE) {
 
   type <- match.arg(type)
 
@@ -67,7 +72,7 @@ calculate_estimates <- function(dsgn,
       grp_vars <- c(grp_des, var)
       est <- dsgn_loc %>%
         group_by(across(all_of(grp_vars))) %>%
-        summarise(prop = survey_prop(vartype = "se"), .groups = "drop") %>%
+        summarise(prop = survey_prop(vartype = "se", level = nivel_confianza), .groups = "drop") %>%
         rename(se = prop_se)
 
       if (porcentaje) {
@@ -118,12 +123,12 @@ calculate_estimates <- function(dsgn,
 
     } else if (type == "mean") {
       grp_vars <- grp_des
-      est <- dsgn_loc %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
+      est <- dsgn_loc %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), level = nivel_confianza, na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
     } else if (type == "total") {
       grp_vars <- grp_des
       est <- dsgn_loc %>%
         group_by(across(all_of(grp_vars))) %>%
-        summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>%
+        summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), level = nivel_confianza, na.rm = TRUE), .groups = "drop") %>%
         rename(se = total_se, cv = total_cv)
     } else if (type == "ratio") {
       grp_vars <- grp_des
@@ -136,6 +141,7 @@ calculate_estimates <- function(dsgn,
             !!num_sym,
             !!den_sym,
             vartype = c("se", "cv"),
+            level = nivel_confianza,
             na.rm = TRUE
           ),
           .groups = "drop"
@@ -147,18 +153,18 @@ calculate_estimates <- function(dsgn,
         dsgn_loc %>%
           group_by(across(all_of(grp_vars))) %>%
           summarise(
-            cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", na.rm = TRUE),
+            cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", level = nivel_confianza, na.rm = TRUE),
             .groups = "drop"
           ),
         error = function(err) {
           msg <- paste0(
-            "No se pudo calcular el cuantil para la combinación solicitada (",
+            "No se pudo calcular el cuantil para la combinaci\u00f3n solicitada (",
             paste(grp_vars, collapse = ", "),
             "): ",
             conditionMessage(err)
           )
 
-          rlang::warn(paste0(msg, " Se devolverá el cuantil sin error estándar (SE = NA)."))
+          rlang::warn(paste0(msg, " Se devolver\u00e1 el cuantil sin error est\u00e1ndar (SE = NA)."))
 
           fallback <- tryCatch(
             dsgn_loc %>%
@@ -170,7 +176,7 @@ calculate_estimates <- function(dsgn,
             error = function(inner_err) {
               rlang::warn(
                 paste0(
-                  "Tampoco se pudo obtener el cuantil puntual para la combinación (",
+                  "Tampoco se pudo obtener el cuantil puntual para la combinaci\u00f3n (",
                   paste(grp_vars, collapse = ", "),
                   "): ",
                   conditionMessage(inner_err)
@@ -249,10 +255,11 @@ calculate_estimates <- function(dsgn,
           se_umbral = if (porcentaje) se_umbral_prop * 100 else se_umbral_prop,
           fiabilidad = case_when(
             n_mues == 0 ~ "Sin casos",
-            is.na(gl) | gl <= 9 ~ "No Fiable",
-            n_niveles == 2 & n_universo < 30 & es_var_estudio == FALSE ~ "No Fiable",
-            n_niveles != 2 & n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
-            se > se_umbral ~ "Poco Fiable",
+            is.na(gl) | gl <= 9 ~ "No Fiable (gl)",
+            universo_crit & n_universo < n_minimo & !es_var_estudio ~ "No Fiable (muestra)",
+            !universo_crit & n_niveles == 2 & n_universo < n_minimo & !es_var_estudio ~ "No Fiable (muestra)",
+            !universo_crit & n_niveles != 2 & n_mues < n_minimo & !es_var_estudio ~ "No Fiable (muestra)",
+            se > se_umbral ~ "Poco Fiable (EE)",
             TRUE ~ "Fiable"
           )
         )
@@ -262,10 +269,11 @@ calculate_estimates <- function(dsgn,
           variable = var,
           fiabilidad = case_when(
             n_mues == 0 ~ "Sin casos",
-            gl <= 9 ~ "No Fiable",
-            n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
-            cv > 0.30 ~ "No Fiable",
-            cv > 0.20 ~ "Poco Fiable",
+            gl <= 9 ~ "No Fiable (gl)",
+            n_mues < n_minimo & es_var_estudio == FALSE ~ "No Fiable (muestra)",
+            !is.finite(cv) ~ NA_character_,
+            cv > cv_umbral_alto ~ "No Fiable (CV)",
+            cv > cv_umbral_medio ~ "Poco Fiable (CV)",
             TRUE ~ "Fiable"
           )
         )
@@ -279,11 +287,11 @@ calculate_estimates <- function(dsgn,
           ),
           fiabilidad = case_when(
             n_mues == 0 ~ "Sin casos",
-            gl <= 9 ~ "No Fiable",
-            n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+            gl <= 9 ~ "No Fiable (gl)",
+            n_mues < n_minimo & es_var_estudio == FALSE ~ "No Fiable (muestra)",
             is.na(cv) ~ NA_character_,
-            cv > 0.30 ~ "No Fiable",
-            cv > 0.20 ~ "Poco Fiable",
+            cv > cv_umbral_alto ~ "No Fiable (CV)",
+            cv > cv_umbral_medio ~ "Poco Fiable (CV)",
             TRUE ~ "Fiable"
           )
         )
@@ -293,11 +301,11 @@ calculate_estimates <- function(dsgn,
           variable = var,
           fiabilidad = case_when(
             n_mues == 0 ~ "Sin casos",
-            gl <= 9 ~ "No Fiable",
-            n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
-            is.na(cv) ~ NA_character_,
-            cv > 0.30 ~ "No Fiable",
-            cv > 0.20 ~ "Poco Fiable",
+            gl <= 9 ~ "No Fiable (gl)",
+            n_mues < n_minimo & es_var_estudio == FALSE ~ "No Fiable (muestra)",
+            !is.finite(cv) ~ NA_character_,
+            cv > cv_umbral_alto ~ "No Fiable (CV)",
+            cv > cv_umbral_medio ~ "Poco Fiable (CV)",
             TRUE ~ "Fiable"
           )
         )
@@ -307,11 +315,11 @@ calculate_estimates <- function(dsgn,
           variable = var,
           fiabilidad = case_when(
             n_mues == 0 ~ "Sin casos",
-            gl <= 9 ~ "No Fiable",
-            n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
-            is.na(cv) ~ NA_character_,
-            cv > 0.30 ~ "No Fiable",
-            cv > 0.20 ~ "Poco Fiable",
+            gl <= 9 ~ "No Fiable (gl)",
+            n_mues < n_minimo & es_var_estudio == FALSE ~ "No Fiable (muestra)",
+            !is.finite(cv) ~ NA_character_,
+            cv > cv_umbral_alto ~ "No Fiable (CV)",
+            cv > cv_umbral_medio ~ "Poco Fiable (CV)",
             TRUE ~ "Fiable"
           )
         )
@@ -329,7 +337,7 @@ calculate_estimates <- function(dsgn,
       totals_info <- tryCatch({
         if (type == "mean") {
           total_est <- dsgn_loc %>%
-            summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>%
+            summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), level = nivel_confianza, na.rm = TRUE), .groups = "drop") %>%
             rename(se = media_se, cv = media_cv)
           total_tam <- base_df_loc %>%
             summarise(
@@ -342,17 +350,18 @@ calculate_estimates <- function(dsgn,
               variable = var,
               fiabilidad = case_when(
                 n_mues == 0 ~ "Sin casos",
-                gl <= 9 ~ "No Fiable",
-                n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
-                cv > 0.30 ~ "No Fiable",
-                cv > 0.20 ~ "Poco Fiable",
+                gl <= 9 ~ "No Fiable (gl)",
+                n_mues < n_minimo & es_var_estudio == FALSE ~ "No Fiable (muestra)",
+                !is.finite(cv) ~ NA_character_,
+                cv > cv_umbral_alto ~ "No Fiable (CV)",
+                cv > cv_umbral_medio ~ "Poco Fiable (CV)",
                 TRUE ~ "Fiable"
               )
             ) %>%
             relocate(variable)
         } else if (type == "total") {
           total_est <- dsgn_loc %>%
-            summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), na.rm = TRUE), .groups = "drop") %>%
+            summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), level = nivel_confianza, na.rm = TRUE), .groups = "drop") %>%
             rename(se = total_se, cv = total_cv)
           total_tam <- base_df_loc %>%
             summarise(
@@ -369,11 +378,11 @@ calculate_estimates <- function(dsgn,
               ),
               fiabilidad = case_when(
                 n_mues == 0 ~ "Sin casos",
-                gl <= 9 ~ "No Fiable",
-                n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
+                gl <= 9 ~ "No Fiable (gl)",
+                n_mues < n_minimo & es_var_estudio == FALSE ~ "No Fiable (muestra)",
                 is.na(cv) ~ NA_character_,
-                cv > 0.30 ~ "No Fiable",
-                cv > 0.20 ~ "Poco Fiable",
+                cv > cv_umbral_alto ~ "No Fiable (CV)",
+                cv > cv_umbral_medio ~ "Poco Fiable (CV)",
                 TRUE ~ "Fiable"
               )
             ) %>%
@@ -387,7 +396,8 @@ calculate_estimates <- function(dsgn,
                 !!num_sym,
                 !!den_sym,
                 vartype = c("se", "cv"),
-                na.rm = TRUE
+                level = nivel_confianza,
+            na.rm = TRUE
               ),
               .groups = "drop"
             ) %>%
@@ -403,11 +413,11 @@ calculate_estimates <- function(dsgn,
               variable = var,
               fiabilidad = case_when(
                 n_mues == 0 ~ "Sin casos",
-                gl <= 9 ~ "No Fiable",
-                n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
-                is.na(cv) ~ NA_character_,
-                cv > 0.30 ~ "No Fiable",
-                cv > 0.20 ~ "Poco Fiable",
+                gl <= 9 ~ "No Fiable (gl)",
+                n_mues < n_minimo & es_var_estudio == FALSE ~ "No Fiable (muestra)",
+                !is.finite(cv) ~ NA_character_,
+                cv > cv_umbral_alto ~ "No Fiable (CV)",
+                cv > cv_umbral_medio ~ "Poco Fiable (CV)",
                 TRUE ~ "Fiable"
               )
             ) %>%
@@ -416,7 +426,7 @@ calculate_estimates <- function(dsgn,
           total_est <- tryCatch(
             dsgn_loc %>%
               summarise(
-                cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", na.rm = TRUE),
+                cuantil = survey_quantile(.data[[var]], quantile_prob, vartype = "se", level = nivel_confianza, na.rm = TRUE),
                 .groups = "drop"
               ),
             error = function(err) {
@@ -482,11 +492,11 @@ calculate_estimates <- function(dsgn,
               variable = var,
               fiabilidad = case_when(
                 n_mues == 0 ~ "Sin casos",
-                gl <= 9 ~ "No Fiable",
-                n_mues < 30 & es_var_estudio == FALSE ~ "No Fiable",
-                is.na(cv) ~ NA_character_,
-                cv > 0.30 ~ "No Fiable",
-                cv > 0.20 ~ "Poco Fiable",
+                gl <= 9 ~ "No Fiable (gl)",
+                n_mues < n_minimo & es_var_estudio == FALSE ~ "No Fiable (muestra)",
+                !is.finite(cv) ~ NA_character_,
+                cv > cv_umbral_alto ~ "No Fiable (CV)",
+                cv > cv_umbral_medio ~ "Poco Fiable (CV)",
                 TRUE ~ "Fiable"
               )
             ) %>%

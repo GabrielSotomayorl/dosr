@@ -1,8 +1,6 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: significance.R (VERSIÓN FINAL CON MÁXIMA ROBUSTEZ)
+# Archivo: significance.R
 # ---------------------------------------------------------------------------- #
-
-# --- Helpers Seguros ---
 
 .perform_t_test <- function(est1, se1, gl1, est2, se2, gl2) {
   if (anyNA(c(est1, se1, gl1, est2, se2, gl2)) || !is.finite(se1) || !is.finite(se2)) return(NA_real_)
@@ -73,7 +71,6 @@
   mat_df
 }
 
-# ## CORRECCIÓN ##: Helpers robustecidos para manejar cualquier tipo de columna
 .drop_all_na_or_empty_key_rows <- function(df, key_cols) {
   if (length(key_cols) == 0 || is.null(df) || nrow(df) == 0) return(df)
   df %>%
@@ -97,24 +94,33 @@
 # --- Orquestador Principal ---
 
 calculate_significance <- function(hojas_list, sufijo, type, main_var_prop, des_vars) {
-  if (is.null(des_vars)) return(NULL)
   est_prefix <- switch(type,
-    prop = "prop",
-    mean = "media",
-    total = "total",
+    prop     = "prop",
+    mean     = "media",
+    total    = "total",
     quantile = "cuantil",
-    ratio = "ratio"
+    ratio    = "ratio"
   )
-  se_prefix  <- "se"
-  gl_prefix  <- "gl"
+  se_prefix <- "se"
+  gl_prefix <- "gl"
+
+  # Key columns to keep in test output tables for a given combo
+  get_key_cols <- function(grp_des) {
+    if (type == "prop") {
+      unique(c(main_var_prop, grp_des))
+    } else {
+      unique(c("variable", "nivel", grp_des))
+    }
+  }
 
   all_tests <- list()
 
-  # --- Test 1: Comparaciones Intra-Anuales ---
+  # --- Test 1: Comparaciones Intra-Anuales (single des combos only) ---
   intra_year_list <- purrr::map(names(hojas_list), function(combo) {
     if (combo == "nac") return(NULL)
     grp_des <- strsplit(combo, "__", fixed = TRUE)[[1]]
     if (length(grp_des) > 1) return(NULL)
+    if (type != "prop" && length(grp_des) == 0) return(NULL)
 
     main_cmp_var <- if (type == "prop") main_var_prop else grp_des[1]
 
@@ -122,7 +128,9 @@ calculate_significance <- function(hojas_list, sufijo, type, main_var_prop, des_
       df <- hojas_list[[combo]] %>% .filter_out_totals(c(main_cmp_var, main_var_prop))
       if (is.null(df) || nrow(df) < 2) return(NULL)
 
-      est_col <- paste0(est_prefix, "_", sfx); se_col  <- paste0(se_prefix,  "_", sfx); gl_col  <- paste0(gl_prefix,  "_", sfx)
+      est_col <- paste0(est_prefix, "_", sfx)
+      se_col  <- paste0(se_prefix,  "_", sfx)
+      gl_col  <- paste0(gl_prefix,  "_", sfx)
       if (!all(c(est_col, se_col, gl_col) %in% names(df))) return(NULL)
 
       .calculate_intra_year_tests(df, main_cmp_var, grp_des, est_col, se_col, gl_col)
@@ -132,52 +140,79 @@ calculate_significance <- function(hojas_list, sufijo, type, main_var_prop, des_
 
   if (length(sufijo) < 2) return(all_tests)
 
-  key_cols_for_test <- if (type == "prop") unique(c(main_var_prop, des_vars)) else unique(des_vars)
+  last_sfx <- sufijo[length(sufijo)]
 
-  # --- Test 2: Contra Último Año ---
+  # --- Test 2: Contra Último Año (all combos: nac, single des, multi_des) ---
   against_last_year_list <- purrr::map(names(hojas_list), function(combo) {
-    if (combo == "nac") return(NULL)
-    df <- hojas_list[[combo]] %>% .drop_all_na_or_empty_key_rows(key_cols_for_test) %>% .filter_out_totals(key_cols_for_test)
+    grp_des        <- if (combo == "nac") character(0) else strsplit(combo, "__", fixed = TRUE)[[1]]
+    key_cols_combo <- get_key_cols(grp_des)
+    filter_cols    <- intersect(key_cols_combo, names(hojas_list[[combo]]))
+
+    df <- hojas_list[[combo]] %>%
+      .drop_all_na_or_empty_key_rows(filter_cols) %>%
+      .filter_out_totals(filter_cols)
     if (is.null(df) || nrow(df) == 0) return(NULL)
 
-    last_sfx <- sufijo[length(sufijo)]
+    comparisons <- purrr::compact(purrr::map(sufijo[-length(sufijo)], function(sfx) {
+      est_col_last <- paste0(est_prefix, "_", last_sfx)
+      se_col_last  <- paste0(se_prefix,  "_", last_sfx)
+      gl_col_last  <- paste0(gl_prefix,  "_", last_sfx)
+      est_col      <- paste0(est_prefix, "_", sfx)
+      se_col       <- paste0(se_prefix,  "_", sfx)
+      gl_col       <- paste0(gl_prefix,  "_", sfx)
 
-    comparisons <- purrr::map(sufijo[-length(sufijo)], function(sfx) {
+      if (!all(c(est_col_last, se_col_last, gl_col_last, est_col, se_col, gl_col) %in% names(df))) return(NULL)
+
       p_values <- purrr::map_dbl(seq_len(nrow(df)), ~ .perform_t_test(
-        est1 = df[[paste0(est_prefix, "_", last_sfx)]][.x], se1  = df[[paste0(se_prefix,  "_", last_sfx)]][.x], gl1  = df[[paste0(gl_prefix,  "_", last_sfx)]][.x],
-        est2 = df[[paste0(est_prefix, "_", sfx)]][.x],      se2  = df[[paste0(se_prefix,  "_", sfx)]][.x],      gl2  = df[[paste0(gl_prefix,  "_", sfx)]][.x]
+        est1 = df[[est_col_last]][.x], se1 = df[[se_col_last]][.x], gl1 = df[[gl_col_last]][.x],
+        est2 = df[[est_col]][.x],      se2 = df[[se_col]][.x],      gl2 = df[[gl_col]][.x]
       ))
       tibble::tibble(!!paste0("p_value_", sfx) := p_values)
-    })
+    }))
 
-    df_keys <- dplyr::select(df, dplyr::any_of(key_cols_for_test))
-    dplyr::bind_cols(df_keys, !!!purrr::compact(comparisons))
+    if (length(comparisons) == 0) return(NULL)
+    df_keys <- dplyr::select(df, dplyr::any_of(key_cols_combo))
+    dplyr::bind_cols(df_keys, !!!comparisons)
   }) %>% rlang::set_names(names(hojas_list))
   all_tests$against_last_year <- purrr::compact(against_last_year_list)
 
-  # --- Test 3: Contra Nacional ---
+  # --- Test 3: Contra Nacional (skip nac; single des and multi_des) ---
   against_national_list <- purrr::map(names(hojas_list), function(combo) {
     if (combo == "nac") return(NULL)
-    df <- hojas_list[[combo]] %>% .drop_all_na_or_empty_key_rows(key_cols_for_test) %>% .filter_out_totals(key_cols_for_test)
+    grp_des        <- strsplit(combo, "__", fixed = TRUE)[[1]]
+    key_cols_combo <- get_key_cols(grp_des)
+    filter_cols    <- intersect(key_cols_combo, names(hojas_list[[combo]]))
+
+    df          <- hojas_list[[combo]] %>% .drop_all_na_or_empty_key_rows(filter_cols) %>% .filter_out_totals(filter_cols)
     df_nac_base <- hojas_list[["nac"]]
     if (is.null(df) || nrow(df) == 0 || is.null(df_nac_base) || nrow(df_nac_base) == 0) return(NULL)
 
-    comparisons <- purrr::map(sufijo, function(sfx) {
-      est_col <- paste0(est_prefix, "_", sfx); se_col  <- paste0(se_prefix,  "_", sfx); gl_col  <- paste0(gl_prefix,  "_", sfx)
+    comparisons <- purrr::compact(purrr::map(sufijo, function(sfx) {
+      est_col <- paste0(est_prefix, "_", sfx)
+      se_col  <- paste0(se_prefix,  "_", sfx)
+      gl_col  <- paste0(gl_prefix,  "_", sfx)
+      if (!all(c(est_col, se_col, gl_col) %in% names(df))) return(NULL)
 
       p_values <- purrr::map_dbl(seq_len(nrow(df)), ~ {
-        df_nac <- if (type == "prop") df_nac_base %>% dplyr::filter(.data[[main_var_prop]] == as.character(df[[main_var_prop]][.x])) else df_nac_base
+        df_nac <- if (type == "prop") {
+          df_nac_base %>%
+            dplyr::filter(as.character(.data[[main_var_prop]]) == as.character(df[[main_var_prop]][.x]))
+        } else {
+          df_nac_base %>%
+            dplyr::filter(as.character(.data[["variable"]]) == as.character(df[["variable"]][.x]))
+        }
         if (nrow(df_nac) != 1) return(NA_real_)
         .perform_t_test(
-          est1 = df[[est_col]][.x], se1 = df[[se_col]][.x], gl1 = df[[gl_col]][.x],
+          est1 = df[[est_col]][.x],    se1 = df[[se_col]][.x],    gl1 = df[[gl_col]][.x],
           est2 = df_nac[[est_col]][1], se2 = df_nac[[se_col]][1], gl2 = df_nac[[gl_col]][1]
         )
       })
       tibble::tibble(!!paste0("p_value_", sfx) := p_values)
-    })
+    }))
 
-    df_keys <- dplyr::select(df, dplyr::any_of(key_cols_for_test))
-    dplyr::bind_cols(df_keys, !!!purrr::compact(comparisons))
+    if (length(comparisons) == 0) return(NULL)
+    df_keys <- dplyr::select(df, dplyr::any_of(key_cols_combo))
+    dplyr::bind_cols(df_keys, !!!comparisons)
   }) %>% rlang::set_names(names(hojas_list))
   all_tests$against_national <- purrr::compact(against_national_list)
 

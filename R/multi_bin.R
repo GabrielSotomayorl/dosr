@@ -25,9 +25,21 @@
 #' @param filename Un string con el nombre del archivo Excel.
 #' @param decimales Entero. Número de decimales para la estimación puntual. Por defecto es 1.
 #' @param decimales_se Entero. Número de decimales para el error estándar. Por defecto es 3.
+#' @param n_minimo Entero. Tamaño muestral mínimo para clasificar una estimación como fiable. Por defecto es `30`.
 #' @param verbose Booleano. Si `TRUE`, muestra mensajes de progreso.
 #'
 #' @return Un data.frame con todos los resultados consolidados (invisiblemente).
+#' @examples
+#' \donttest{
+#' library(srvyr)
+#'
+#' design_2024 <- as_survey_design(casen_2024, ids = varunit,
+#'                                 strata = varstrat, weights = expr, nest = TRUE)
+#'
+#' # Prevalencia de indicadores de inseguridad alimentaria por región
+#' multi_bin(design_2024, vars_binarias = paste0("r8", letters[1:8]),
+#'           des = "region", dir = tempdir())
+#' }
 #' @export
 multi_bin <- function(
   design,
@@ -39,6 +51,7 @@ multi_bin <- function(
   filename = NULL,
   decimales = 1,
   decimales_se = 3,
+  n_minimo = 30,
   verbose = TRUE
 ) {
   # --- Helpers Internos ---
@@ -72,7 +85,7 @@ multi_bin <- function(
 
       tam_num <- d_calc %>%
         srvyr::summarise(
-          n_muestral = srvyr::unweighted(sum(!!rlang::sym(v) == 1, na.rm = TRUE))
+          n_mues = srvyr::unweighted(sum(!!rlang::sym(v) == 1, na.rm = TRUE))
         )
 
       gl_base <- d_calc %>%
@@ -99,7 +112,7 @@ multi_bin <- function(
         dplyr::mutate(
           variable = v,
           etiqueta = labelled::var_label(d$variables[[v]]) %||% v,
-          n_muestral = as.integer(dplyr::coalesce(n_muestral, 0)),
+          n_mues = as.integer(dplyr::coalesce(n_mues, 0)),
           gl = as.numeric(gl),
           .before = 1
         )
@@ -107,7 +120,7 @@ multi_bin <- function(
     })
   }
 
-  .calculate_reliability_multi <- function(df, by_vars = NULL) {
+  .calculate_reliability_multi <- function(df, by_vars = NULL, n_minimo = 30) {
     if (nrow(df) == 0) {
       return(dplyr::mutate(
         df,
@@ -122,7 +135,7 @@ multi_bin <- function(
     df %>%
       dplyr::group_by(dplyr::across(dplyr::all_of(by_vars))) %>%
       dplyr::mutate(
-        n_universo = sum(n_muestral, na.rm = TRUE),
+        n_universo = sum(n_mues, na.rm = TRUE),
         n_niveles = 2
       ) %>%
       dplyr::ungroup() %>%
@@ -135,10 +148,10 @@ multi_bin <- function(
         ),
         se_umbral = se_umbral_prop * 100,
         fiabilidad = dplyr::case_when(
-          is.na(n_muestral) | n_muestral == 0 ~ "Sin casos",
-          is.na(gl) | gl <= 9 ~ "No Fiable",
-          n_universo < 30 & !es_var_estudio ~ "No Fiable",
-          is.na(estimacion_se) | estimacion_se > se_umbral ~ "Poco Fiable",
+          is.na(n_mues) | n_mues == 0 ~ "Sin casos",
+          is.na(gl) | gl <= 9 ~ "No Fiable (gl)",
+          n_universo < n_minimo & !es_var_estudio ~ "No Fiable (muestra)",
+          is.na(estimacion_se) | estimacion_se > se_umbral ~ "Poco Fiable (EE)",
           TRUE ~ "Fiable"
         )
       )
@@ -157,7 +170,7 @@ multi_bin <- function(
     message("Calculando perfil nacional...")
   }
   res_nacional <- .calculate_estimates_multi(design, vars_binarias) %>%
-    .calculate_reliability_multi()
+    .calculate_reliability_multi(n_minimo = n_minimo)
 
   res_desagregados <- list()
   if (!is.null(des)) {
@@ -168,7 +181,7 @@ multi_bin <- function(
       design_des <- design %>%
         dplyr::mutate(dplyr::across(dplyr::all_of(d_var), haven::as_factor))
       .calculate_estimates_multi(design_des, vars_binarias, by = d_var) %>%
-        .calculate_reliability_multi(by_vars = d_var)
+        .calculate_reliability_multi(by_vars = d_var, n_minimo = n_minimo)
     }) %>%
       rlang::set_names(des)
   }
@@ -267,7 +280,7 @@ multi_bin <- function(
   )
 
   df_nac_final <- res_nacional %>%
-    dplyr::select(etiqueta, estimacion, estimacion_se, n_expandido, n_muestral)
+    dplyr::select(etiqueta, estimacion, estimacion_se, n_expandido, n_mues)
   openxlsx::writeData(
     wb,
     "2_Nacional",
@@ -333,7 +346,7 @@ multi_bin <- function(
         estimacion,
         estimacion_se,
         n_expandido,
-        n_muestral
+        n_mues
       )
 
     openxlsx::writeData(

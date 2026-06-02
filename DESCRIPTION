@@ -1,14 +1,18 @@
 Package: dosr
 Type: Package
-Title: Herramientas para el Analisis de Encuestas del Observatorio Social
-Version: 0.2.4
+Depends: R (>= 3.5.0)
+Title: Herramientas para el Análisis de Encuestas del Observatorio Social
+Version: 0.3.0
 Authors@R: 
     person("Gabriel", "Sotomayor", , "gabrielsotomayorl@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9889-9637"))
-Description: Proporciona un conjunto de funciones de alto nivel para automatizar 
-    el calculo de estimaciones (medias, proporciones) a partir de disenos 
-    de encuestas complejas (ej. CASEN) y generar reportes estandarizados 
-    en formato Excel.
+Description: Proporciona funciones de alto nivel para calcular estimaciones
+    (medias, proporciones, totales, razones y cuantiles) sobre diseños de
+    encuestas complejas como la 'CASEN', con clasificación automática de
+    fiabilidad estadística según criterios del Observatorio Social del
+    Ministerio de Desarrollo Social de Chile, pruebas de significancia
+    inter-anuales y generación de reportes estandarizados en formato
+    'Excel' (via 'openxlsx').
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -26,5 +30,14 @@ Imports:
     stringr,
     labelled,
     tibble
-URL: https://github.com/GabrielSotomayorl/dosr
+Suggests:
+    testthat (>= 3.0.0),
+    survey,
+    knitr,
+    rmarkdown,
+    withr
+Config/testthat/edition: 3
+Config/Needs/website: pkgdown
+VignetteBuilder: knitr
+URL: https://gabrielsotomayorl.github.io/dosr/, https://github.com/GabrielSotomayorl/dosr
 BugReports: https://github.com/GabrielSotomayorl/dosr/issues

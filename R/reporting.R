@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: reporting.R (VERSIÓN CON ESCRITURA DE TESTS DE SIGNIFICANCIA)
+# Archivo: reporting.R (VERSI\u00d3N CON ESCRITURA DE TESTS DE SIGNIFICANCIA)
 # ---------------------------------------------------------------------------- #
 
 # --- Ayudante para fusionar celdas ---
@@ -19,7 +19,7 @@ merge_group_cells <- function(wb, sheet, df, grp_des, start_row) {
   }
 }
 
-# --- Obtener niveles de factores sin ordenar alfabéticamente ---
+# --- Obtener niveles de factores sin ordenar alfab\u00e9ticamente ---
 get_all_levels <- function(designs, vars) {
   purrr::map(vars, function(v) {
     if (v %in% names(designs[[1]]$variables)) {
@@ -107,8 +107,187 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
   return(hojas_list)
 }
 
-# --- Reporte específico para Proporciones ---
-generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs, consolidated_df, nombre_indicador, lista_tests = NULL) {
+# ---------------------------------------------------------------------------- #
+# Helpers de nota de fiabilidad, fuente y colores
+# ---------------------------------------------------------------------------- #
+
+# Construye las l\u00edneas de la nota de fiabilidad para una hoja de formato.
+.build_quality_note <- function(df_wide, sufijo, id_cols, mostrar_pct = FALSE) {
+  fial_cols <- paste0("fiabilidad_", sufijo)
+  fial_cols <- intersect(fial_cols, names(df_wide))
+  if (length(fial_cols) == 0) return(character(0))
+
+  classify_kind <- function(x) {
+    if (is.na(x) || x == "" || x == "Sin casos") return(NA_character_)
+    if (startsWith(as.character(x), "No Fiable"))   return("no")
+    if (startsWith(as.character(x), "Poco Fiable")) return("poco")
+    if (startsWith(as.character(x), "Fiable"))      return("fiable")
+    NA_character_
+  }
+
+  row_label <- function(row) {
+    parts <- vapply(id_cols, function(col) {
+      v <- if (col %in% names(row)) as.character(row[[col]]) else NA_character_
+      if (is.na(v) || !nzchar(v)) NA_character_ else v
+    }, character(1))
+    parts <- parts[!is.na(parts)]
+    if (length(parts) == 0) "Total" else paste(parts, collapse = " - ")
+  }
+
+  join_labels <- function(lbls) {
+    if (length(lbls) == 1) return(lbls)
+    if (length(lbls) == 2) return(paste(lbls[1], "y", lbls[2]))
+    paste0(paste(lbls[-length(lbls)], collapse = "; "), "; y ", lbls[length(lbls)])
+  }
+
+  total_q <- 0L
+  total_f <- 0L
+  excep_poco <- list()
+  excep_no   <- list()
+
+  for (sfx in sufijo) {
+    fcol <- paste0("fiabilidad_", sfx)
+    if (!fcol %in% names(df_wide)) next
+    poco_lbl <- character(0)
+    no_lbl   <- character(0)
+    for (i in seq_len(nrow(df_wide))) {
+      kind <- classify_kind(df_wide[[fcol]][i])
+      if (is.na(kind)) next
+      total_q <- total_q + 1L
+      lbl <- row_label(as.list(df_wide[i, ]))
+      if (kind == "fiable") {
+        total_f <- total_f + 1L
+      } else if (kind == "poco") {
+        poco_lbl <- c(poco_lbl, lbl)
+      } else {
+        no_lbl <- c(no_lbl, lbl)
+      }
+    }
+    if (length(poco_lbl) > 0) excep_poco[[sfx]] <- poco_lbl
+    if (length(no_lbl)   > 0) excep_no[[sfx]]   <- no_lbl
+  }
+
+  if (total_q == 0L) return(character(0))
+
+  pct <- 100 * total_f / total_q
+  lines <- "Nota:"
+
+  if (mostrar_pct) {
+    lines <- c(lines, sprintf("El %.1f%% de las estimaciones del cuadro son fiables.", pct))
+  }
+
+  if (pct < 50) {
+    lines <- c(lines, "Dado que menos del 50% de las estimaciones del cuadro son fiables, se recomienda no publicar.")
+  }
+
+  has_excep <- length(excep_poco) > 0 || length(excep_no) > 0
+  if (!has_excep) {
+    lines <- c(lines, "Todas las estimaciones son fiables.")
+  } else {
+    lines <- c(lines, "Todas las estimaciones son fiables, exceptuando las siguientes:")
+    for (sfx in sufijo) {
+      if (!is.null(excep_poco[[sfx]]))
+        lines <- c(lines, paste0(sfx, " - Poco fiables: ", join_labels(excep_poco[[sfx]]), "."))
+      if (!is.null(excep_no[[sfx]]))
+        lines <- c(lines, paste0(sfx, " - No fiables: ", join_labels(excep_no[[sfx]]), "."))
+    }
+  }
+  lines
+}
+
+# Escribe nota de fiabilidad en la hoja. Devuelve la siguiente fila disponible.
+.write_quality_note <- function(wb, sheet_nm, start_row, note_lines, n_cols) {
+  if (length(note_lines) == 0) return(start_row)
+  bold_st  <- openxlsx::createStyle(textDecoration = "bold")
+  plain_st <- openxlsx::createStyle()
+  n_cols   <- max(2L, n_cols)
+  for (i in seq_along(note_lines)) {
+    r <- start_row + i - 1L
+    openxlsx::writeData(wb, sheet_nm, note_lines[i], startRow = r, startCol = 1)
+    openxlsx::mergeCells(wb, sheet_nm, cols = 1:n_cols, rows = r)
+    sty <- if (note_lines[i] == "Nota:") bold_st else plain_st
+    openxlsx::addStyle(wb, sheet_nm, style = sty, rows = r, cols = 1)
+  }
+  start_row + length(note_lines)
+}
+
+# Escribe l\u00ednea de fuente. Acepta claves est\u00e1ndar o texto libre.
+.write_fuente <- function(wb, sheet_nm, row, fuente, sufijo, n_cols) {
+  if (is.null(fuente) || !nzchar(fuente)) return()
+  mapa <- c(
+    casen  = "Encuesta Casen",
+    ebs    = "Encuesta de Bienestar Social",
+    endide = "Encuesta de Discapacidad y Dependencia",
+    eanna  = "Encuesta de Actividades de Ni\u00f1os, Ni\u00f1as y Adolescentes",
+    elpi   = "Encuesta Longitudinal de Primera Infancia"
+  )
+  display <- mapa[tolower(fuente)]
+  if (is.na(display)) display <- fuente
+  sfx_num <- suppressWarnings(as.integer(sufijo))
+  yr_txt  <- if (all(!is.na(sfx_num)) && length(sfx_num) > 0) {
+    rng <- range(sfx_num)
+    if (rng[1] == rng[2]) as.character(rng[1]) else paste0(rng[1], "-", rng[2])
+  } else paste(sufijo, collapse = "-")
+  txt <- paste0("Fuente: ", display, " ", yr_txt)
+  n_cols <- max(2L, n_cols)
+  openxlsx::writeData(wb, sheet_nm, txt, startRow = row, startCol = 1)
+  openxlsx::mergeCells(wb, sheet_nm, cols = 1:n_cols, rows = row)
+  openxlsx::addStyle(wb, sheet_nm,
+    style = openxlsx::createStyle(textDecoration = "bold"),
+    rows = row, cols = 1, stack = TRUE)
+}
+
+# Aplica colores de fiabilidad a celdas num\u00e9ricas de un bloque ya escrito.
+.apply_quality_colors <- function(wb, sheet_nm, block_df, df_wide, key_cols,
+                                   sufijo, first_data_row, first_num_col) {
+  color_poco <- openxlsx::createStyle(fontColour = "#BF9000")
+  color_no   <- openxlsx::createStyle(fontColour = "#C00000")
+
+  classify_kind <- function(x) {
+    if (is.na(x) || x == "" || x == "Sin casos") return(NA_character_)
+    if (startsWith(as.character(x), "No Fiable"))   return("no")
+    if (startsWith(as.character(x), "Poco Fiable")) return("poco")
+    NA_character_
+  }
+
+  for (i in seq_len(nrow(block_df))) {
+    for (j in seq_along(sufijo)) {
+      sfx   <- sufijo[j]
+      fcol  <- paste0("fiabilidad_", sfx)
+      if (!fcol %in% names(df_wide)) next
+
+      valid_keys <- intersect(key_cols, intersect(names(block_df), names(df_wide)))
+      if (length(valid_keys) > 0) {
+        mask <- rep(TRUE, nrow(df_wide))
+        for (kc in valid_keys) {
+          bv <- as.character(block_df[[kc]][i])
+          dv <- as.character(df_wide[[kc]])
+          mask <- mask & (!is.na(dv)) & (dv == bv)
+        }
+        match_rows <- which(mask)
+      } else {
+        match_rows <- i
+      }
+      if (length(match_rows) == 0) next
+      kind <- classify_kind(df_wide[[fcol]][match_rows[1]])
+      if (is.na(kind)) next
+      sty <- if (kind == "poco") color_poco else color_no
+      excel_row <- first_data_row + i - 1L
+      excel_col <- first_num_col + j - 1L
+      openxlsx::addStyle(wb, sheet_nm, style = sty, rows = excel_row, cols = excel_col, stack = TRUE)
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------- #
+# --- Reporte espec\u00edfico para Proporciones ---
+# ---------------------------------------------------------------------------- #
+generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcentaje, decimales, designs, consolidated_df, nombre_indicador,
+                                  lista_tests = NULL,
+                                  snac = FALSE,
+                                  mostrar_pct_fiable = FALSE,
+                                  color_fiabilidad = FALSE,
+                                  fuente = NULL) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -171,6 +350,7 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
   }
 
   for (combo in names(hojas_list)) {
+    if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
     hoja_nm <- truncate_sheet_name(paste0("2_", combo))
     openxlsx::addWorksheet(wb, hoja_nm)
@@ -200,8 +380,23 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
       if(length(numeric_cols) > 0 && length(data_rows) > 0) {
         openxlsx::addStyle(wb, hoja_nm, style = estilos[[i]], rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
       }
+      # Aplicar colores de fiabilidad solo al primer bloque (Estimaci\u00f3n)
+      if (i == 1 && color_fiabilidad) {
+        block_for_color <- make_prop_block(df_combo_wide, grp_des, met_suffix_list[[metricas[i]]], all_factor_levels)
+        .apply_quality_colors(wb, hoja_nm, block_for_color, df_combo_wide, c(grp_des, var),
+                              sufijo,
+                              first_data_row = fila + 2L,
+                              first_num_col  = length(grp_des) + length(var) + 1L)
+      }
       fila <- fila + nrow(block) + 3
     }
+
+    # Nota de fiabilidad y fuente
+    note_id_cols <- c(grp_des, var)
+    note_lines <- .build_quality_note(df_combo_wide, sufijo, note_id_cols, mostrar_pct = mostrar_pct_fiable)
+    fila_nota <- fila + 1L
+    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
       fila <- 5
@@ -265,8 +460,70 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
   message("Reporte Excel de proporciones creado en: ", filename)
 }
 
-# --- Reporte específico para Medias ---
-generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimales, designs, consolidated_df, nombre_indicador, lista_tests = NULL) {
+# ---------------------------------------------------------------------------- #
+# Helper interno para el bloque de datos de reportes continuos
+# ---------------------------------------------------------------------------- #
+.make_continuous_block <- function(df_combo_wide, combo, grp_des, metric_cols, sufijo,
+                                    all_factor_levels, total_row) {
+  if (combo == "nac") {
+    block <- df_combo_wide %>%
+      select(nivel, all_of(metric_cols)) %>%
+      rename_with(~ sufijo, all_of(metric_cols))
+  } else {
+    block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
+    totals_lookup <- attr(df_combo_wide, "totals_filtered")
+    metric_id <- sub("_[^_]+$", "", metric_cols[1])  # strip suffix
+
+    get_total_val <- function(col_nm) {
+      sufijo_id <- sub("^.*_", "", col_nm)
+      if (!is.null(totals_lookup) && sufijo_id %in% names(totals_lookup)) {
+        total_tbl  <- totals_lookup[[sufijo_id]]
+        value_col  <- metric_id
+        if (!is.null(total_tbl) && value_col %in% names(total_tbl)) {
+          return(total_tbl[[value_col]][1])
+        }
+      }
+      if (!is.null(total_row) && col_nm %in% names(total_row)) {
+        return(total_row[[col_nm]][1])
+      }
+      NA_real_
+    }
+
+    total_values <- purrr::map_dfc(metric_cols, function(col_nm) {
+      tibble::tibble(!!col_nm := get_total_val(col_nm))
+    })
+    tot_line <- as.list(rep(".", length(grp_des)))
+    names(tot_line) <- grp_des
+    tot_line[[grp_des[1]]] <- "Total pais"
+    tot_line_df <- bind_cols(as_tibble(tot_line), total_values)
+
+    block_unordered <- bind_rows(block_main, tot_line_df) %>%
+      rename_with(~ sufijo, all_of(metric_cols))
+    factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
+    for (col in factor_cols) {
+      if (col %in% names(block_unordered)) {
+        current_levels <- all_factor_levels[[col]]
+        if (any(grepl("Total", block_unordered[[col]], ignore.case = TRUE))) {
+          total_label    <- unique(grep("Total", block_unordered[[col]], value = TRUE, ignore.case = TRUE))
+          current_levels <- c(current_levels, total_label)
+        }
+        block_unordered[[col]] <- factor(block_unordered[[col]], levels = unique(current_levels))
+      }
+    }
+    block <- block_unordered %>% arrange(across(all_of(grp_des)))
+  }
+  block
+}
+
+# ---------------------------------------------------------------------------- #
+# --- Reporte espec\u00edfico para Medias ---
+# ---------------------------------------------------------------------------- #
+generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimales, designs, consolidated_df, nombre_indicador,
+                                  lista_tests = NULL,
+                                  snac = FALSE,
+                                  mostrar_pct_fiable = FALSE,
+                                  color_fiabilidad = FALSE,
+                                  fuente = NULL) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -285,6 +542,7 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
   bold_style <- createStyle(textDecoration = "bold")
 
   for (combo in names(hojas_list)) {
+    if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
     hoja_nm <- truncate_sheet_name(paste0("2_", combo))
     openxlsx::addWorksheet(wb, hoja_nm)
@@ -298,56 +556,8 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
     fila <- 5
     max_col_metrics <- 0
     for (i in seq_along(titulos)) {
-      metric_name <- metricas[i]
-      metric_cols <- met_suffix_list[[metric_name]]
-      if (combo == "nac") {
-        block <- df_combo_wide %>%
-          select(nivel, all_of(metric_cols)) %>%
-          rename_with(~ sufijo, all_of(metric_cols))
-      } else {
-        block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
-        totals_lookup <- attr(df_combo_wide, "totals_filtered")
-        get_total_val <- function(col_nm, metric_id) {
-          sufijo_id <- sub("^.*_", "", col_nm)
-          if (!is.null(totals_lookup) && sufijo_id %in% names(totals_lookup)) {
-            total_tbl <- totals_lookup[[sufijo_id]]
-            value_col <- switch(metric_id,
-              media = "media",
-              N_pob = "N_pob",
-              se = "se",
-              n_mues = "n_mues"
-            )
-            if (!is.null(total_tbl) && value_col %in% names(total_tbl)) {
-              return(total_tbl[[value_col]][1])
-            }
-          }
-          if (!is.null(total_row) && col_nm %in% names(total_row)) {
-            return(total_row[[col_nm]][1])
-          }
-          NA_real_
-        }
-        total_values <- purrr::map_dfc(metric_cols, function(col_nm) {
-          tibble::tibble(!!col_nm := get_total_val(col_nm, metric_name))
-        })
-        tot_line <- as.list(rep(".", length(grp_des)))
-        names(tot_line) <- grp_des
-        tot_line[[grp_des[1]]] <- "Total pais"
-        tot_line_df <- bind_cols(as_tibble(tot_line), total_values)
-        block_unordered <- bind_rows(block_main, tot_line_df) %>%
-          rename_with(~ sufijo, all_of(metric_cols))
-        factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
-        for(col in factor_cols) {
-          if(col %in% names(block_unordered)) {
-            current_levels <- all_factor_levels[[col]]
-            if(any(grepl("Total", block_unordered[[col]], ignore.case = TRUE))) {
-              total_label <- unique(grep("Total", block_unordered[[col]], value = TRUE, ignore.case = TRUE))
-              current_levels <- c(current_levels, total_label)
-            }
-            block_unordered[[col]] <- factor(block_unordered[[col]], levels = unique(current_levels))
-          }
-        }
-        block <- block_unordered %>% arrange(across(all_of(grp_des)))
-      }
+      metric_cols <- met_suffix_list[[metricas[i]]]
+      block <- .make_continuous_block(df_combo_wide, combo, grp_des, metric_cols, sufijo, all_factor_levels, total_row)
       if (ncol(block) > max_col_metrics) max_col_metrics <- ncol(block)
       openxlsx::writeData(wb, hoja_nm, titulos[i], startRow = fila, startCol = 1)
       cols_to_merge <- 1:ncol(block)
@@ -364,8 +574,21 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
       if(length(numeric_cols) > 0 && length(data_rows) > 0) {
         openxlsx::addStyle(wb, hoja_nm, style = estilos[[i]], rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
       }
+      if (i == 1 && color_fiabilidad) {
+        block_for_color <- .make_continuous_block(df_combo_wide, combo, grp_des, metric_cols, sufijo, all_factor_levels, total_row)
+        .apply_quality_colors(wb, hoja_nm, block_for_color, df_combo_wide, grp_des,
+                              sufijo,
+                              first_data_row = fila + 2L,
+                              first_num_col  = length(grp_des) + 1L)
+      }
       fila <- fila + nrow(block) + 3
     }
+
+    # Nota de fiabilidad y fuente
+    note_lines <- .build_quality_note(df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable)
+    fila_nota <- fila + 1L
+    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
       fila <- 5
@@ -429,8 +652,15 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
   message("Reporte Excel de medias creado en: ", filename)
 }
 
-# --- Reporte específico para Totales ---
-generate_total_report <- function(hojas_list, filename, var, des, sufijo, decimales, designs, consolidated_df, nombre_indicador, lista_tests = NULL) {
+# ---------------------------------------------------------------------------- #
+# --- Reporte espec\u00edfico para Totales ---
+# ---------------------------------------------------------------------------- #
+generate_total_report <- function(hojas_list, filename, var, des, sufijo, decimales, designs, consolidated_df, nombre_indicador,
+                                   lista_tests = NULL,
+                                   snac = FALSE,
+                                   mostrar_pct_fiable = FALSE,
+                                   color_fiabilidad = FALSE,
+                                   fuente = NULL) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -441,7 +671,7 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
   testStyle <- openxlsx::createStyle(numFmt = "0.000")
 
   estilos <- list(numStyle, countStyle, numStyle, countStyle)
-  titulos  <- c("Estimación", "Población expandida", "Error estándar", "Casos muestrales")
+  titulos  <- c("Estimaci\u00f3n", "Poblaci\u00f3n expandida", "Error est\u00e1ndar", "Casos muestrales")
   metricas <- c("total", "N_pob", "se", "n_mues")
   met_suffix_list <- purrr::map(metricas, ~ paste0(.x, "_", sufijo))
   names(met_suffix_list) <- metricas
@@ -450,69 +680,22 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
   bold_style <- createStyle(textDecoration = "bold")
 
   for (combo in names(hojas_list)) {
+    if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
     hoja_nm <- truncate_sheet_name(paste0("2_", combo))
     openxlsx::addWorksheet(wb, hoja_nm)
 
     openxlsx::writeData(wb, hoja_nm, nombre_indicador, startRow = 2, startCol = 1)
     openxlsx::addStyle(wb, hoja_nm, style = bold_style, rows = 2, cols = 1)
-    openxlsx::writeData(wb, hoja_nm, "Tipo de cálculo", startRow = 3, startCol = 1)
+    openxlsx::writeData(wb, hoja_nm, "Tipo de c\u00e1lculo", startRow = 3, startCol = 1)
 
     df_combo_wide <- hojas_list[[combo]]
 
     fila <- 5
     max_col_metrics <- 0
     for (i in seq_along(titulos)) {
-      metric_name <- metricas[i]
-      metric_cols <- met_suffix_list[[metric_name]]
-      if (combo == "nac") {
-        block <- df_combo_wide %>%
-          select(nivel, all_of(metric_cols)) %>%
-          rename_with(~ sufijo, all_of(metric_cols))
-      } else {
-        block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
-        totals_lookup <- attr(df_combo_wide, "totals_filtered")
-        get_total_val <- function(col_nm, metric_id) {
-          sufijo_id <- sub("^.*_", "", col_nm)
-          if (!is.null(totals_lookup) && sufijo_id %in% names(totals_lookup)) {
-            total_tbl <- totals_lookup[[sufijo_id]]
-            value_col <- switch(metric_id,
-              total = "total",
-              N_pob = "N_pob",
-              se = "se",
-              n_mues = "n_mues"
-            )
-            if (!is.null(total_tbl) && value_col %in% names(total_tbl)) {
-              return(total_tbl[[value_col]][1])
-            }
-          }
-          if (!is.null(total_row) && col_nm %in% names(total_row)) {
-            return(total_row[[col_nm]][1])
-          }
-          NA_real_
-        }
-        total_values <- purrr::map_dfc(metric_cols, function(col_nm) {
-          tibble::tibble(!!col_nm := get_total_val(col_nm, metric_name))
-        })
-        tot_line <- as.list(rep(".", length(grp_des)))
-        names(tot_line) <- grp_des
-        tot_line[[grp_des[1]]] <- "Total pais"
-        tot_line_df <- bind_cols(as_tibble(tot_line), total_values)
-        block_unordered <- bind_rows(block_main, tot_line_df) %>%
-          rename_with(~ sufijo, all_of(metric_cols))
-        factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
-        for(col in factor_cols) {
-          if(col %in% names(block_unordered)) {
-            current_levels <- all_factor_levels[[col]]
-            if(any(grepl("Total", block_unordered[[col]], ignore.case = TRUE))) {
-              total_label <- unique(grep("Total", block_unordered[[col]], value = TRUE, ignore.case = TRUE))
-              current_levels <- c(current_levels, total_label)
-            }
-            block_unordered[[col]] <- factor(block_unordered[[col]], levels = unique(current_levels))
-          }
-        }
-        block <- block_unordered %>% arrange(across(all_of(grp_des)))
-      }
+      metric_cols <- met_suffix_list[[metricas[i]]]
+      block <- .make_continuous_block(df_combo_wide, combo, grp_des, metric_cols, sufijo, all_factor_levels, total_row)
       if (ncol(block) > max_col_metrics) max_col_metrics <- ncol(block)
       openxlsx::writeData(wb, hoja_nm, titulos[i], startRow = fila, startCol = 1)
       cols_to_merge <- 1:ncol(block)
@@ -529,8 +712,21 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
       if(length(numeric_cols) > 0 && length(data_rows) > 0) {
         openxlsx::addStyle(wb, hoja_nm, style = estilos[[i]], rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
       }
+      if (i == 1 && color_fiabilidad) {
+        block_for_color <- .make_continuous_block(df_combo_wide, combo, grp_des, metric_cols, sufijo, all_factor_levels, total_row)
+        .apply_quality_colors(wb, hoja_nm, block_for_color, df_combo_wide, grp_des,
+                              sufijo,
+                              first_data_row = fila + 2L,
+                              first_num_col  = length(grp_des) + 1L)
+      }
       fila <- fila + nrow(block) + 3
     }
+
+    # Nota de fiabilidad y fuente
+    note_lines <- .build_quality_note(df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable)
+    fila_nota <- fila + 1L
+    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
       fila <- 5
@@ -540,7 +736,7 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
       for (sfx in names(tests_combo)) {
         test_df <- tests_combo[[sfx]]
         if (!is.null(test_df)) {
-          titulo_test <- paste0("Test entre categorías año: ", sfx)
+          titulo_test <- paste0("Test entre categor\u00edas a\u00f1o: ", sfx)
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
@@ -559,7 +755,7 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
       if (length(sufijo) > 1) {
         test_df_last <- lista_tests$against_last_year[[combo]]
         if (!is.null(test_df_last)) {
-          titulo_test <- "Test contra último año:"
+          titulo_test <- "Test contra \u00faltimo a\u00f1o:"
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_last) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
@@ -575,7 +771,7 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
 
         test_df_nac <- lista_tests$against_national[[combo]]
         if (!is.null(test_df_nac)) {
-          titulo_test <- "Test contra estimación nacional:"
+          titulo_test <- "Test contra estimaci\u00f3n nacional:"
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_nac) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
@@ -594,8 +790,15 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
   message("Reporte Excel de totales creado en: ", filename)
 }
 
-# --- Reporte específico para Ratios ---
-generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decimales, designs, consolidated_df, nombre_indicador, lista_tests = NULL) {
+# ---------------------------------------------------------------------------- #
+# --- Reporte espec\u00edfico para Ratios ---
+# ---------------------------------------------------------------------------- #
+generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decimales, designs, consolidated_df, nombre_indicador,
+                                   lista_tests = NULL,
+                                   snac = FALSE,
+                                   mostrar_pct_fiable = FALSE,
+                                   color_fiabilidad = FALSE,
+                                   fuente = NULL) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -605,7 +808,7 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
   testStyle <- openxlsx::createStyle(numFmt = "0.000")
 
   estilos <- list(numStyle, openxlsx::createStyle(numFmt = "#,##0"), numStyle, openxlsx::createStyle(numFmt = "#,##0"))
-  titulos  <- c("Estimación", "Población expandida", "Error estándar", "Casos muestrales")
+  titulos  <- c("Estimaci\u00f3n", "Poblaci\u00f3n expandida", "Error est\u00e1ndar", "Casos muestrales")
   metricas <- c("ratio", "N_pob", "se", "n_mues")
   met_suffix_list <- purrr::map(metricas, ~ paste0(.x, "_", sufijo))
   names(met_suffix_list) <- metricas
@@ -614,69 +817,22 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
   bold_style <- createStyle(textDecoration = "bold")
 
   for (combo in names(hojas_list)) {
+    if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
     hoja_nm <- truncate_sheet_name(paste0("2_", combo))
     openxlsx::addWorksheet(wb, hoja_nm)
 
     openxlsx::writeData(wb, hoja_nm, nombre_indicador, startRow = 2, startCol = 1)
     openxlsx::addStyle(wb, hoja_nm, style = bold_style, rows = 2, cols = 1)
-    openxlsx::writeData(wb, hoja_nm, "Tipo de cálculo", startRow = 3, startCol = 1)
+    openxlsx::writeData(wb, hoja_nm, "Tipo de c\u00e1lculo", startRow = 3, startCol = 1)
 
     df_combo_wide <- hojas_list[[combo]]
 
     fila <- 5
     max_col_metrics <- 0
     for (i in seq_along(titulos)) {
-      metric_name <- metricas[i]
-      metric_cols <- met_suffix_list[[metric_name]]
-      if (combo == "nac") {
-        block <- df_combo_wide %>%
-          select(nivel, all_of(metric_cols)) %>%
-          rename_with(~ sufijo, all_of(metric_cols))
-      } else {
-        block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
-        totals_lookup <- attr(df_combo_wide, "totals_filtered")
-        get_total_val <- function(col_nm, metric_id) {
-          sufijo_id <- sub("^.*_", "", col_nm)
-          if (!is.null(totals_lookup) && sufijo_id %in% names(totals_lookup)) {
-            total_tbl <- totals_lookup[[sufijo_id]]
-            value_col <- switch(metric_id,
-              ratio = "ratio",
-              N_pob = "N_pob",
-              se = "se",
-              n_mues = "n_mues"
-            )
-            if (!is.null(total_tbl) && value_col %in% names(total_tbl)) {
-              return(total_tbl[[value_col]][1])
-            }
-          }
-          if (!is.null(total_row) && col_nm %in% names(total_row)) {
-            return(total_row[[col_nm]][1])
-          }
-          NA_real_
-        }
-        total_values <- purrr::map_dfc(metric_cols, function(col_nm) {
-          tibble::tibble(!!col_nm := get_total_val(col_nm, metric_name))
-        })
-        tot_line <- as.list(rep(".", length(grp_des)))
-        names(tot_line) <- grp_des
-        tot_line[[grp_des[1]]] <- "Total pais"
-        tot_line_df <- bind_cols(as_tibble(tot_line), total_values)
-        block_unordered <- bind_rows(block_main, tot_line_df) %>%
-          rename_with(~ sufijo, all_of(metric_cols))
-        factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
-        for(col in factor_cols) {
-          if(col %in% names(block_unordered)) {
-            current_levels <- all_factor_levels[[col]]
-            if(any(grepl("Total", block_unordered[[col]], ignore.case = TRUE))) {
-              total_label <- unique(grep("Total", block_unordered[[col]], value = TRUE, ignore.case = TRUE))
-              current_levels <- c(current_levels, total_label)
-            }
-            block_unordered[[col]] <- factor(block_unordered[[col]], levels = unique(current_levels))
-          }
-        }
-        block <- block_unordered %>% arrange(across(all_of(grp_des)))
-      }
+      metric_cols <- met_suffix_list[[metricas[i]]]
+      block <- .make_continuous_block(df_combo_wide, combo, grp_des, metric_cols, sufijo, all_factor_levels, total_row)
       if (ncol(block) > max_col_metrics) max_col_metrics <- ncol(block)
       openxlsx::writeData(wb, hoja_nm, titulos[i], startRow = fila, startCol = 1)
       cols_to_merge <- 1:ncol(block)
@@ -693,8 +849,21 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
       if(length(numeric_cols) > 0 && length(data_rows) > 0) {
         openxlsx::addStyle(wb, hoja_nm, style = estilos[[i]], rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
       }
+      if (i == 1 && color_fiabilidad) {
+        block_for_color <- .make_continuous_block(df_combo_wide, combo, grp_des, metric_cols, sufijo, all_factor_levels, total_row)
+        .apply_quality_colors(wb, hoja_nm, block_for_color, df_combo_wide, grp_des,
+                              sufijo,
+                              first_data_row = fila + 2L,
+                              first_num_col  = length(grp_des) + 1L)
+      }
       fila <- fila + nrow(block) + 3
     }
+
+    # Nota de fiabilidad y fuente
+    note_lines <- .build_quality_note(df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable)
+    fila_nota <- fila + 1L
+    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
       fila <- 5
@@ -704,7 +873,7 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
       for (sfx in names(tests_combo)) {
         test_df <- tests_combo[[sfx]]
         if (!is.null(test_df)) {
-          titulo_test <- paste0("Test entre categorías año: ", sfx)
+          titulo_test <- paste0("Test entre categor\u00edas a\u00f1o: ", sfx)
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
@@ -723,7 +892,7 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
       if (length(sufijo) > 1) {
         test_df_last <- lista_tests$against_last_year[[combo]]
         if (!is.null(test_df_last)) {
-          titulo_test <- "Test contra último año:"
+          titulo_test <- "Test contra \u00faltimo a\u00f1o:"
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_last) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
@@ -739,7 +908,7 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
 
         test_df_nac <- lista_tests$against_national[[combo]]
         if (!is.null(test_df_nac)) {
-          titulo_test <- "Test contra estimación nacional:"
+          titulo_test <- "Test contra estimaci\u00f3n nacional:"
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_nac) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
@@ -758,8 +927,15 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
   message("Reporte Excel de ratios creado en: ", filename)
 }
 
-# --- Reporte específico para Cuantiles ---
-generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cuant, decimales, designs, consolidated_df, nombre_indicador, lista_tests = NULL) {
+# ---------------------------------------------------------------------------- #
+# --- Reporte espec\u00edfico para Cuantiles ---
+# ---------------------------------------------------------------------------- #
+generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cuant, decimales, designs, consolidated_df, nombre_indicador,
+                                      lista_tests = NULL,
+                                      snac = FALSE,
+                                      mostrar_pct_fiable = FALSE,
+                                      color_fiabilidad = FALSE,
+                                      fuente = NULL) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -770,7 +946,7 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
 
   prob_label <- formatC(cuant, format = "f", digits = 2)
   estilos <- list(numStyle, openxlsx::createStyle(numFmt = "#,##0"), numStyle, openxlsx::createStyle(numFmt = "#,##0"))
-  titulos  <- c(paste0("Estimación (p = ", prob_label, ")"), "Población expandida", "Error estándar", "Casos muestrales")
+  titulos  <- c(paste0("Estimaci\u00f3n (p = ", prob_label, ")"), "Poblaci\u00f3n expandida", "Error est\u00e1ndar", "Casos muestrales")
   metricas <- c("cuantil", "N_pob", "se", "n_mues")
   met_suffix_list <- purrr::map(metricas, ~ paste0(.x, "_", sufijo))
   names(met_suffix_list) <- metricas
@@ -779,69 +955,22 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
   bold_style <- createStyle(textDecoration = "bold")
 
   for (combo in names(hojas_list)) {
+    if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
     hoja_nm <- truncate_sheet_name(paste0("2_", combo))
     openxlsx::addWorksheet(wb, hoja_nm)
 
     openxlsx::writeData(wb, hoja_nm, nombre_indicador, startRow = 2, startCol = 1)
     openxlsx::addStyle(wb, hoja_nm, style = bold_style, rows = 2, cols = 1)
-    openxlsx::writeData(wb, hoja_nm, "Tipo de cálculo", startRow = 3, startCol = 1)
+    openxlsx::writeData(wb, hoja_nm, "Tipo de c\u00e1lculo", startRow = 3, startCol = 1)
 
     df_combo_wide <- hojas_list[[combo]]
 
     fila <- 5
     max_col_metrics <- 0
     for (i in seq_along(titulos)) {
-      metric_name <- metricas[i]
-      metric_cols <- met_suffix_list[[metric_name]]
-      if (combo == "nac") {
-        block <- df_combo_wide %>%
-          select(nivel, all_of(metric_cols)) %>%
-          rename_with(~ sufijo, all_of(metric_cols))
-      } else {
-        block_main <- df_combo_wide %>% select(all_of(c(grp_des, metric_cols)))
-        totals_lookup <- attr(df_combo_wide, "totals_filtered")
-        get_total_val <- function(col_nm, metric_id) {
-          sufijo_id <- sub("^.*_", "", col_nm)
-          if (!is.null(totals_lookup) && sufijo_id %in% names(totals_lookup)) {
-            total_tbl <- totals_lookup[[sufijo_id]]
-            value_col <- switch(metric_id,
-              cuantil = "cuantil",
-              N_pob = "N_pob",
-              se = "se",
-              n_mues = "n_mues"
-            )
-            if (!is.null(total_tbl) && value_col %in% names(total_tbl)) {
-              return(total_tbl[[value_col]][1])
-            }
-          }
-          if (!is.null(total_row) && col_nm %in% names(total_row)) {
-            return(total_row[[col_nm]][1])
-          }
-          NA_real_
-        }
-        total_values <- purrr::map_dfc(metric_cols, function(col_nm) {
-          tibble::tibble(!!col_nm := get_total_val(col_nm, metric_name))
-        })
-        tot_line <- as.list(rep(".", length(grp_des)))
-        names(tot_line) <- grp_des
-        tot_line[[grp_des[1]]] <- "Total pais"
-        tot_line_df <- bind_cols(as_tibble(tot_line), total_values)
-        block_unordered <- bind_rows(block_main, tot_line_df) %>%
-          rename_with(~ sufijo, all_of(metric_cols))
-        factor_cols <- intersect(names(all_factor_levels), names(block_unordered))
-        for(col in factor_cols) {
-          if(col %in% names(block_unordered)) {
-            current_levels <- all_factor_levels[[col]]
-            if(any(grepl("Total", block_unordered[[col]], ignore.case = TRUE))) {
-              total_label <- unique(grep("Total", block_unordered[[col]], value = TRUE, ignore.case = TRUE))
-              current_levels <- c(current_levels, total_label)
-            }
-            block_unordered[[col]] <- factor(block_unordered[[col]], levels = unique(current_levels))
-          }
-        }
-        block <- block_unordered %>% arrange(across(all_of(grp_des)))
-      }
+      metric_cols <- met_suffix_list[[metricas[i]]]
+      block <- .make_continuous_block(df_combo_wide, combo, grp_des, metric_cols, sufijo, all_factor_levels, total_row)
       if (ncol(block) > max_col_metrics) max_col_metrics <- ncol(block)
       openxlsx::writeData(wb, hoja_nm, titulos[i], startRow = fila, startCol = 1)
       cols_to_merge <- 1:ncol(block)
@@ -858,8 +987,21 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
       if(length(numeric_cols) > 0 && length(data_rows) > 0) {
         openxlsx::addStyle(wb, hoja_nm, style = estilos[[i]], rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
       }
+      if (i == 1 && color_fiabilidad) {
+        block_for_color <- .make_continuous_block(df_combo_wide, combo, grp_des, metric_cols, sufijo, all_factor_levels, total_row)
+        .apply_quality_colors(wb, hoja_nm, block_for_color, df_combo_wide, grp_des,
+                              sufijo,
+                              first_data_row = fila + 2L,
+                              first_num_col  = length(grp_des) + 1L)
+      }
       fila <- fila + nrow(block) + 3
     }
+
+    # Nota de fiabilidad y fuente
+    note_lines <- .build_quality_note(df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable)
+    fila_nota <- fila + 1L
+    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
       fila <- 5
@@ -869,7 +1011,7 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
       for (sfx in names(tests_combo)) {
         test_df <- tests_combo[[sfx]]
         if (!is.null(test_df)) {
-          titulo_test <- paste0("Test entre categorías año: ", sfx)
+          titulo_test <- paste0("Test entre categor\u00edas a\u00f1o: ", sfx)
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
@@ -888,7 +1030,7 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
       if (length(sufijo) > 1) {
         test_df_last <- lista_tests$against_last_year[[combo]]
         if (!is.null(test_df_last)) {
-          titulo_test <- "Test contra último año:"
+          titulo_test <- "Test contra \u00faltimo a\u00f1o:"
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_last) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
@@ -904,7 +1046,7 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
 
         test_df_nac <- lista_tests$against_national[[combo]]
         if (!is.null(test_df_nac)) {
-          titulo_test <- "Test contra estimación nacional:"
+          titulo_test <- "Test contra estimaci\u00f3n nacional:"
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_nac) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)

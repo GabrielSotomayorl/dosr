@@ -23,6 +23,16 @@ obs_ratio(
   dir = "output",
   formato = TRUE,
   decimales = 2,
+  nombre = NULL,
+  fuente = NULL,
+  snac = FALSE,
+  mostrar_pct_fiable = FALSE,
+  color_fiabilidad = FALSE,
+  universo_crit = FALSE,
+  cv_umbral_alto = 0.3,
+  cv_umbral_medio = 0.2,
+  n_minimo = 30L,
+  nivel_confianza = 0.95,
   verbose = TRUE
 )
 }
@@ -52,7 +62,8 @@ de Excel; si no hay etiqueta disponible, usa el nombre de la variable.}
 \item{rm_na_var}{Booleano. Si `TRUE`, elimina observaciones con `NA` en el
 **numerador o** el **denominador** antes de calcular la razón.}
 
-\item{rm_na_des}{Booleano. Si `TRUE`, excluye observaciones con `NA` en las variables de desagregación relevantes para cada tabla.}
+\item{rm_na_des}{Booleano. Si `TRUE`, excluye las observaciones con `NA` en las variables de desagregación correspondientes a
+cada tabla solicitada.}
 
 \item{parallel}{Booleano. Activa el cálculo en paralelo.}
 
@@ -66,6 +77,26 @@ de Excel; si no hay etiqueta disponible, usa el nombre de la variable.}
 
 \item{decimales}{Entero. Número de decimales para las estimaciones en Excel.}
 
+\item{nombre}{String. Nombre del indicador que se muestra en el reporte Excel. Si se especifica, sobreescribe la etiqueta de variable aunque `usar_etiqueta_var = TRUE`.}
+
+\item{fuente}{String. Fuente de los datos para el pie del reporte Excel. Acepta claves estándar (`"casen"`, `"ebs"`, `"endide"`, `"eanna"`, `"elpi"`) o texto libre.}
+
+\item{snac}{Booleano. Si `TRUE`, omite la hoja de formato del nivel nacional. El consolidado siempre incluye el nivel nacional. Por defecto `FALSE`.}
+
+\item{mostrar_pct_fiable}{Booleano. Si `TRUE`, la nota de fiabilidad incluye el porcentaje de estimaciones fiables del cuadro. Por defecto `FALSE`.}
+
+\item{color_fiabilidad}{Booleano. Si `TRUE`, colorea el texto de las celdas de estimación según su fiabilidad: ámbar para poco fiable, rojo para no fiable. Por defecto `FALSE`.}
+
+\item{universo_crit}{Booleano. Solo aplica a `obs_prop`. Si `TRUE`, fuerza el uso del N total del dominio (suma de categorías) para el criterio muestral de fiabilidad, independientemente del número de categorías. Por defecto `FALSE` (comportamiento automático).}
+
+\item{cv_umbral_alto}{Numérico. Umbral de CV para clasificar una estimación como "No Fiable (CV)". Por defecto `0.30`.}
+
+\item{cv_umbral_medio}{Numérico. Umbral de CV para clasificar una estimación como "Poco Fiable (CV)". Por defecto `0.20`.}
+
+\item{n_minimo}{Entero. Tamaño muestral mínimo para el criterio de fiabilidad. Por defecto `30`.}
+
+\item{nivel_confianza}{Numérico. Nivel de confianza para intervalos y pruebas de significancia. Por defecto `0.95`.}
+
 \item{verbose}{Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.}
 }
 \value{
@@ -75,4 +106,17 @@ Un `data.frame` con los resultados consolidados (invisiblemente).
 Calcula la razón entre dos variables numéricas (numerador/denominador)
 sobre uno o más objetos `tbl_svy`, con las mismas opciones de desagregación,
 paralelización y reporte usadas en `obs_media`.
+}
+\examples{
+\donttest{
+library(srvyr)
+library(dplyr)
+design_2022 <- as_survey_design(casen_2022, ids = varunit,
+                                strata = varstrat, weights = expr, nest = TRUE)
+design_2022$variables <- design_2022$variables \%>\%
+  mutate(mujer  = as.integer(as.numeric(sexo) == 2),
+         hombre = as.integer(as.numeric(sexo) == 1))
+obs_ratio(design_2022, sufijo = "2022", num = "mujer", den = "hombre",
+          save_xlsx = FALSE, verbose = FALSE)
+}
 }

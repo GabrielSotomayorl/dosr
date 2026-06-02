@@ -40,3 +40,19 @@ vignettes/*.pdf
 # R package: bookdown caching files
 /*_files/
 .DS_Store
+
+# pkgdown site generado localmente (el workflow lo publica en gh-pages)
+docs/
+
+# Bases CASEN completas (solo los fixtures en inst/testdata van al repo)
+casen_2022.RData
+casen_2024.RData
+
+# Documentos de contexto locales
+stata/
+
+# Directorio de salida por defecto de los reportes Excel
+output/
+
+# Claude Code — configuración local del agente
+.claude/

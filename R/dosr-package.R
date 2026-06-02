@@ -9,8 +9,8 @@
 #' @importFrom furrr future_pmap
 #' @importFrom haven as_factor zap_labels
 #' @importFrom labelled var_label
-#' @importFrom stats filter na.omit pt
-#' @importFrom tibble tibble rownames_to_column
+#' @importFrom stats pt
+#' @importFrom tibble tibble
 #' @importFrom utils combn
 ## usethis namespace: end
 NULL

@@ -1,3 +1,80 @@
+# dosr 0.3.0
+
+## Datos incluidos
+
+*   Se incorporan los conjuntos de datos `casen_2022` y `casen_2024` con la
+    totalidad de las observaciones de la Encuesta CASEN y las variables
+    necesarias para reproducir todos los ejemplos del paquete (`region`,
+    `area`, `sexo`, `edad`, `pobreza`, `ytotcorh`, `activ`, `r8a`–`r8h`).
+    Los datos están disponibles directamente al cargar el paquete sin
+    necesidad de descargas adicionales.
+
+## Criterios de fiabilidad
+
+*   Todos los parámetros de fiabilidad son ahora configurables en cada
+    llamada a `obs_*`: `cv_umbral_alto` (por defecto 0.30), `cv_umbral_medio`
+    (0.20), `n_minimo` (30) y `nivel_confianza` (0.95).
+*   Las etiquetas de la columna `fiabilidad` especifican la causa del rechazo:
+    `"No Fiable (gl)"` (grados de libertad insuficientes),
+    `"No Fiable (muestra)"` (tamaño muestral insuficiente),
+    `"No Fiable (CV)"` (coeficiente de variación muy alto),
+    `"Poco Fiable (CV)"` (CV moderado),
+    `"Poco Fiable (EE)"` (error estándar supera el umbral beta),
+    `"Sin casos"` (subgrupo sin observaciones en la muestra).
+    Esta nomenclatura es consistente en todas las funciones `obs_*` y
+    `multi_bin()`.
+*   Nuevo argumento `universo_crit` en `obs_prop()`: fuerza el uso del N
+    total del dominio (suma de categorías) como criterio muestral,
+    independientemente del número de categorías de la variable.
+*   Nuevo argumento `es_var_estudio` disponible en todas las funciones
+    `obs_*`: relaja el criterio de tamaño muestral para variables centrales
+    del instrumento.
+
+## Nuevos argumentos de reporte (todas las funciones `obs_*`)
+
+*   `nombre`: sobreescribe el título del indicador en el reporte Excel.
+*   `fuente`: escribe un pie de fuente con el nombre del instrumento y el
+    rango de años. Acepta las claves `"casen"`, `"ebs"`, `"endide"`,
+    `"eanna"`, `"elpi"` o texto libre.
+*   `snac`: omite la hoja de formato del nivel nacional (el consolidado
+    siempre incluye el nivel nacional).
+*   `mostrar_pct_fiable`: incluye el porcentaje de estimaciones fiables en
+    la nota automática de calidad.
+*   `color_fiabilidad`: colorea el texto de las celdas de estimación en
+    ámbar (poco fiable) o rojo (no fiable).
+*   `categoria` (solo `obs_prop()`): filtra el output a una o más categorías
+    específicas del outcome, aceptando etiquetas de texto o códigos numéricos.
+
+## Reportes Excel
+
+*   Todas las hojas de formato incluyen una nota de calidad automática que
+    lista las estimaciones poco o no fiables por año, especificando la causa.
+    Incluye advertencia cuando menos del 50% del cuadro es publicable.
+*   La línea de fuente (`fuente =`) se escribe en negrita en el Excel.
+
+## Pruebas de significancia (`sig = TRUE`)
+
+*   El nivel nacional genera la tabla "Test contra último año" al comparar
+    múltiples diseños.
+*   Las desagregaciones múltiples (`multi_des = TRUE`) incluyen las tablas
+    "Test contra último año" y "Test contra estimación nacional".
+*   Las pruebas se calculan mediante un test t de Welch adaptado a diseños
+    complejos: `t = (θ₁ − θ₂) / √(EE₁² + EE₂²)`, con grados de libertad
+    igual al mínimo de los dos dominios comparados. El resultado reportado
+    es el p-valor bilateral.
+
+## Documentación y sitio
+
+*   Ejemplos ejecutables (`\donttest{}`) en todas las funciones exportadas,
+    usando los datos `casen_2022` y `casen_2024` incluidos en el paquete.
+*   Viñeta introductoria (`vignette("introduccion")`) con ejemplos reales de
+    la CASEN para todos los tipos de estimación.
+*   Nueva viñeta de metodología (`vignette("metodologia")`) que documenta
+    los criterios de fiabilidad con fórmulas, diagrama de flujo y referencias
+    citables, y describe las tres pruebas de significancia disponibles.
+*   Sitio web del paquete disponible en
+    <https://gabrielsotomayorl.github.io/dosr/>.
+
 # dosr 0.2.4
 
 ## MEJORAS

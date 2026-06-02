@@ -1,3 +1,15 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+^\.claude$
+^\.github$
+^_pkgdown\.yml$
+^docs$
+^casen_2022\.RData$
+^casen_2024\.RData$
+^README\.md$
+^pkgdown$
+^cran-comments\.md$
+^stata$
+^.*\.DS_Store$
+^PLAN_MEJORAS\.md$

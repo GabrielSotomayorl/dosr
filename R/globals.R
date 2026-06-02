@@ -27,5 +27,11 @@ utils::globalVariables(c(
   "n_expandido",
   "n_muestral",
   "n_mues",
-  "n_universo"
+  "n_universo",
+  "N_pob",
+  "total_se",
+  "total_cv",
+  "ratio_se",
+  "ratio_cv",
+  "variable"
 ))

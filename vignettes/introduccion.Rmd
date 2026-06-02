@@ -1,0 +1,198 @@
+---
+title: "Introducción a dosr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introducción a dosr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>"
+)
+```
+
+`dosr` provee funciones de alto nivel para calcular estimaciones sobre diseños de encuestas complejas —como la CASEN— y generar reportes estandarizados en Excel con clasificación de fiabilidad estadística.
+
+## Instalación
+
+```{r install, eval = FALSE}
+remotes::install_github("GabrielSotomayorl/dosr")
+```
+
+## Datos incluidos
+
+El paquete incluye dos subconjuntos de la Encuesta CASEN listos para usar: `casen_2022` (202 231 hogares) y `casen_2024` (218 367 hogares). Ambas contienen las variables necesarias para reproducir todos los ejemplos de esta viñeta.
+
+```{r crear-disenos}
+library(dosr)
+library(srvyr)
+
+design_2022 <- as_survey_design(casen_2022,
+  ids     = varunit,
+  strata  = varstrat,
+  weights = expr
+)
+
+design_2024 <- as_survey_design(casen_2024,
+  ids     = varunit,
+  strata  = varstrat,
+  weights = expr
+)
+```
+
+## Proporciones: `obs_prop()`
+
+Distribución de la población según situación de pobreza, desagregada por región:
+
+```{r obs-prop}
+resultado_prop <- obs_prop(
+  design_2022,
+  sufijo     = "2022",
+  var        = "pobreza",
+  des        = "region",
+  porcentaje = TRUE,
+  save_xlsx  = FALSE,
+  verbose    = FALSE
+)
+head(resultado_prop[, c("region", "pobreza", "prop_2022", "fiabilidad_2022")])
+```
+
+## Medias: `obs_media()`
+
+Ingreso total del hogar corregido (`ytotcorh`) promedio por región en 2022:
+
+```{r obs-media}
+resultado_media <- obs_media(
+  design_2022,
+  sufijo    = "2022",
+  var       = "ytotcorh",
+  des       = "region",
+  save_xlsx = FALSE,
+  verbose   = FALSE
+)
+head(resultado_media[, c("region", "media_2022", "fiabilidad_2022")])
+```
+
+## Cuantiles: `obs_cuantil()`
+
+Mediana del ingreso del hogar por región:
+
+```{r obs-cuantil}
+resultado_cuantil <- obs_cuantil(
+  design_2022,
+  sufijo    = "2022",
+  var       = "ytotcorh",
+  des       = "region",
+  cuant     = 0.5,
+  save_xlsx = FALSE,
+  verbose   = FALSE
+)
+head(resultado_cuantil[, c("region", "cuantil_2022", "fiabilidad_2022")])
+```
+
+## Totales: `obs_total()`
+
+Población en situación de pobreza por ingresos (variable binaria construida desde `pobreza`):
+
+```{r obs-total}
+library(dplyr)
+
+design_2022_pob <- design_2022
+design_2022_pob$variables <- design_2022_pob$variables %>%
+  mutate(pobre = as.integer(as.numeric(pobreza) %in% c(1, 2)))
+
+resultado_total <- obs_total(
+  design_2022_pob,
+  sufijo    = "2022",
+  var       = "pobre",
+  des       = "region",
+  save_xlsx = FALSE,
+  verbose   = FALSE
+)
+head(resultado_total[, c("region", "total_2022", "fiabilidad_2022")])
+```
+
+## Razones: `obs_ratio()`
+
+Razón de feminidad (mujeres / hombres) por región:
+
+```{r obs-ratio}
+design_2022_sex <- design_2022
+design_2022_sex$variables <- design_2022_sex$variables %>%
+  mutate(
+    mujer  = as.integer(as.numeric(sexo) == 2),
+    hombre = as.integer(as.numeric(sexo) == 1)
+  )
+
+resultado_ratio <- obs_ratio(
+  design_2022_sex,
+  sufijo    = "2022",
+  num       = "mujer",
+  den       = "hombre",
+  des       = "region",
+  save_xlsx = FALSE,
+  verbose   = FALSE
+)
+head(resultado_ratio[, c("region", "ratio_2022", "fiabilidad_2022")])
+```
+
+## Trabajo con múltiples diseños
+
+Pasando una lista de diseños con el argumento `sufijo`, se comparan múltiples rondas en una sola llamada. El ejemplo compara la tasa de pobreza por región entre 2022 y 2024:
+
+```{r serie-tiempo}
+resultado_serie <- obs_prop(
+  designs    = list(design_2022, design_2024),
+  sufijo     = c("2022", "2024"),
+  var        = "pobreza",
+  des        = "region",
+  porcentaje = TRUE,
+  save_xlsx  = FALSE,
+  verbose    = FALSE
+)
+cols <- c("region", "pobreza", "prop_2022", "prop_2024",
+          "fiabilidad_2022", "fiabilidad_2024")
+head(resultado_serie[, cols])
+```
+
+## Múltiples variables binarias: `multi_bin()`
+
+Prevalencia de los ocho indicadores de inseguridad alimentaria (FIES) de la CASEN 2024, desagregada por área urbana/rural:
+
+```{r multi-bin}
+resultado_bin <- multi_bin(
+  design_2024,
+  vars_binarias = paste0("r8", letters[1:8]),
+  des           = "area",
+  dir           = tempdir(),
+  verbose       = FALSE
+)
+nac <- resultado_bin$desagregacion_tipo == "Nacional"
+resultado_bin[nac, c("etiqueta", "estimacion", "fiabilidad")]
+```
+
+## Clasificación de fiabilidad
+
+Todos los resultados incluyen una columna `fiabilidad` (o `fiabilidad_{sufijo}` en series de tiempo):
+
+| Valor | Significado |
+|---|---|
+| **Fiable** | Estimación publicable |
+| **Poco Fiable** | Publicar con advertencia |
+| **No Fiable** | No publicar |
+| **Sin casos** | Subgrupo vacío |
+
+Los umbrales son configurables con `cv_umbral_alto`, `cv_umbral_medio` y `n_minimo`.
+
+## Reportes Excel
+
+Cuando `save_xlsx = TRUE` (valor por defecto), cada función genera un `.xlsx` en el directorio `dir` con:
+
+- **1_Consolidado**: tabla completa con todas las métricas de calidad
+- **2_nac**: hoja de formato para el nivel nacional
+- **2_{variable}**: una hoja de formato por cada variable de desagregación
+
+Con `sig = TRUE` y múltiples diseños, las hojas de formato incluyen adicionalmente tablas de p-valores para comparaciones intra-año, contra el año anterior y contra el total nacional.

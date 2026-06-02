@@ -1,0 +1,69 @@
+url: https://gabrielsotomayorl.github.io/dosr/
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  bslib:
+    primary: "#2c7bb6"
+    base_font: {google: "Source Sans Pro"}
+    code_font: {google: "Fira Code"}
+
+lang: es
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    github:
+      icon: fab fa-github
+      href: https://github.com/GabrielSotomayorl/dosr
+      aria-label: GitHub
+
+home:
+  logo: man/figures/logo.png
+  title: "dosr — Encuestas Complejas para el Observatorio Social"
+  description: >
+    Herramientas de alto nivel para calcular estimaciones (medias,
+    proporciones, totales, razones y cuantiles) sobre diseños de
+    encuestas complejas como la CASEN, con clasificación automática
+    de fiabilidad estadística y reportes estandarizados en Excel.
+
+articles:
+  - title: "Guías"
+    navbar: "Guías"
+    contents:
+      - introduccion
+      - metodologia
+
+reference:
+  - title: "Funciones principales"
+    desc: >
+      Estimaciones para una o más rondas de encuesta. Todas generan
+      un reporte en Excel con hoja consolidada y hojas de formato.
+    contents:
+      - obs_prop
+      - obs_media
+      - obs_total
+      - obs_ratio
+      - obs_cuantil
+
+  - title: "Perfilado de variables binarias"
+    desc: >
+      Análisis de múltiples variables dicotómicas (0/1) en un único
+      diseño de encuesta.
+    contents:
+      - multi_bin
+
+  - title: "Datos incluidos"
+    desc: >
+      Subconjuntos de la CASEN 2022 y 2024 con todas las observaciones
+      y las variables necesarias para reproducir los ejemplos del paquete.
+    contents:
+      - casen_2022
+      - casen_2024
+
+news:
+  releases:
+  - text: "Ver historial completo"
+    href: news/index.html
