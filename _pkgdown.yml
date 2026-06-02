@@ -7,6 +7,13 @@ template:
     primary: "#2c7bb6"
     base_font: {google: "Source Sans Pro"}
     code_font: {google: "Fira Code"}
+  includes:
+    in_header: |
+      <style>
+        img.logo {
+          filter: drop-shadow(0 3px 8px rgba(0,0,0,0.18));
+        }
+      </style>
 
 lang: es
 
