@@ -56,3 +56,6 @@ output/
 
 # Claude Code — configuración local del agente
 .claude/
+
+# Scripts de desarrollo y benchmarking (artefactos locales, no forman parte del paquete)
+dev/

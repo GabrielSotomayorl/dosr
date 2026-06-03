@@ -54,16 +54,20 @@ obs_prop(
 
 \item{sig}{Booleano. Si `TRUE`, calcula y añade pruebas de significancia estadística a las hojas de reporte con formato. Por defecto es `FALSE`.}
 
-\item{filt}{Un string con una expresión de filtro para `dplyr::filter()`.}
+\item{filt}{Expresión de filtro. Acepta tanto una expresión R sin comillas
+(`filt = edad > 18`) como un string (`filt = "edad > 18"`). Ambas formas
+son equivalentes y retrocompatibles.}
 
 \item{rm_na_var}{Booleano. Si `TRUE`, elimina NAs en `var` antes de calcular.}
 
 \item{rm_na_des}{Booleano. Si `TRUE`, excluye las observaciones con `NA` en las variables de desagregación correspondientes a
 cada tabla solicitada.}
 
-\item{parallel}{Booleano. Activa el cálculo en paralelo.}
+\item{parallel}{Booleano. Activa el cálculo en paralelo. Con un único diseño
+y múltiples desagregaciones distribuye las combinaciones entre workers;
+con múltiples diseños distribuye los diseños. Por defecto `FALSE`.}
 
-\item{n_cores}{Entero. Número de núcleos a usar. Si es NULL, se usa un valor seguro.}
+\item{n_cores}{Entero. Número de workers a usar. Si es `NULL`, se usa un valor seguro (máximo 4).}
 
 \item{save_xlsx}{Booleano. Si `TRUE`, guarda un reporte en Excel.}
 

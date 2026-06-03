@@ -15,7 +15,8 @@ calculate_estimates <- function(dsgn,
                                 cv_umbral_medio = 0.20,
                                 n_minimo = 30,
                                 nivel_confianza = 0.95,
-                                universo_crit = FALSE) {
+                                universo_crit = FALSE,
+                                par_combos = FALSE) {
 
   type <- match.arg(type)
 
@@ -530,7 +531,12 @@ calculate_estimates <- function(dsgn,
     }
   }
 
-  tablas_loc <- purrr::map(combos, calc_tabla)
+  tablas_loc <- if (par_combos) {
+    furrr::future_map(combos, calc_tabla,
+                      .options = furrr::furrr_options(seed = FALSE))
+  } else {
+    purrr::map(combos, calc_tabla)
+  }
 
   names(tablas_loc) <- purrr::map_chr(combos, ~ if (length(.x) == 0) "nac" else paste(.x, collapse = "__"))
 

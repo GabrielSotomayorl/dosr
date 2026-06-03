@@ -5,7 +5,7 @@
 #' @title Internal helper function for a single worker process
 #' @noRd
 calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, rm_na_des = FALSE, type, multi_des, es_var_estudio, porcentaje, quantile_prob = 0.5, ratio_vars = NULL,
-                                    cv_umbral_alto = 0.30, cv_umbral_medio = 0.20, n_minimo = 30, nivel_confianza = 0.95, universo_crit = FALSE) {
+                                    cv_umbral_alto = 0.30, cv_umbral_medio = 0.20, n_minimo = 30, nivel_confianza = 0.95, universo_crit = FALSE, par_combos = FALSE) {
   calculate_estimates(
     dsgn = dsgn,
     var = var, des = des, filt = filt, rm_na_var = rm_na_var, rm_na_des = rm_na_des, type = type,
@@ -19,7 +19,8 @@ calculate_single_design <- function(dsgn, meta, var, des, filt, rm_na_var, rm_na
     cv_umbral_medio = cv_umbral_medio,
     n_minimo = n_minimo,
     nivel_confianza = nivel_confianza,
-    universo_crit = universo_crit
+    universo_crit = universo_crit,
+    par_combos = par_combos
   )
 }
 
@@ -85,6 +86,7 @@ obs_prop <- function(designs,
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
+  filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
   validate_inputs(designs[[1]], var, des)
   nombre_indicador <- .extract_var_label(designs, var, usar_etiqueta_var, nombre)
@@ -97,7 +99,8 @@ obs_prop <- function(designs,
     cv_umbral_medio = cv_umbral_medio,
     n_minimo        = n_minimo,
     nivel_confianza = nivel_confianza,
-    universo_crit   = universo_crit
+    universo_crit   = universo_crit,
+    par_combos      = parallel && n_designs == 1L
   )
   lista_tablas <- .run_estimations(ml$light, ml$metadata, calc_fun,
                                    parallel, n_cores, n_designs, verbose)
@@ -161,12 +164,16 @@ obs_prop <- function(designs,
 #' @param es_var_estudio Booleano. Si `TRUE`, aplica criterios de fiabilidad menos estrictos para el tamaño muestral. Por defecto es `FALSE`.
 #' @param usar_etiqueta_var Booleano. Si `TRUE` (por defecto), usa la etiqueta de la variable `var` como título en los reportes de Excel. Si es `FALSE` o la variable no tiene etiqueta, usa el nombre de la variable.
 #' @param sig Booleano. Si `TRUE`, calcula y añade pruebas de significancia estadística a las hojas de reporte con formato. Por defecto es `FALSE`.
-#' @param filt Un string con una expresión de filtro para `dplyr::filter()`.
+#' @param filt Expresión de filtro. Acepta tanto una expresión R sin comillas
+#'   (`filt = edad > 18`) como un string (`filt = "edad > 18"`). Ambas formas
+#'   son equivalentes y retrocompatibles.
 #' @param rm_na_var Booleano. Si `TRUE`, elimina NAs en `var` antes de calcular.
 #' @param rm_na_des Booleano. Si `TRUE`, excluye las observaciones con `NA` en las variables de desagregación correspondientes a
 #'   cada tabla solicitada.
-#' @param parallel Booleano. Activa el cálculo en paralelo.
-#' @param n_cores Entero. Número de núcleos a usar. Si es NULL, se usa un valor seguro.
+#' @param parallel Booleano. Activa el cálculo en paralelo. Con un único diseño
+#'   y múltiples desagregaciones distribuye las combinaciones entre workers;
+#'   con múltiples diseños distribuye los diseños. Por defecto `FALSE`.
+#' @param n_cores Entero. Número de workers a usar. Si es `NULL`, se usa un valor seguro (máximo 4).
 #' @param save_xlsx Booleano. Si `TRUE`, guarda un reporte en Excel.
 #' @param dir Un string con la ruta del directorio donde se guardará el archivo Excel. Por defecto es `"output"`.
 #' @param formato Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.
@@ -225,6 +232,7 @@ obs_media <- function(designs,
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
+  filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
   validate_inputs(designs[[1]], var, des)
   nombre_indicador <- .extract_var_label(designs, var, usar_etiqueta_var, nombre)
@@ -236,7 +244,8 @@ obs_media <- function(designs,
     cv_umbral_medio = cv_umbral_medio,
     n_minimo        = n_minimo,
     nivel_confianza = nivel_confianza,
-    universo_crit   = universo_crit
+    universo_crit   = universo_crit,
+    par_combos      = parallel && n_designs == 1L
   )
   lista_tablas <- .run_estimations(ml$light, ml$metadata, calc_fun,
                                    parallel, n_cores, n_designs, verbose)
@@ -320,6 +329,7 @@ obs_total <- function(designs,
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
+  filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
   validate_inputs(designs[[1]], var, des)
   nombre_indicador <- .extract_var_label(designs, var, usar_etiqueta_var, nombre)
@@ -331,7 +341,8 @@ obs_total <- function(designs,
     cv_umbral_medio = cv_umbral_medio,
     n_minimo        = n_minimo,
     nivel_confianza = nivel_confianza,
-    universo_crit   = universo_crit
+    universo_crit   = universo_crit,
+    par_combos      = parallel && n_designs == 1L
   )
   lista_tablas <- .run_estimations(ml$light, ml$metadata, calc_fun,
                                    parallel, n_cores, n_designs, verbose)
@@ -439,6 +450,7 @@ obs_ratio <- function(designs,
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
+  filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
   validate_inputs(designs[[1]], c(num, den), des)
 
@@ -471,7 +483,8 @@ obs_ratio <- function(designs,
     cv_umbral_medio = cv_umbral_medio,
     n_minimo        = n_minimo,
     nivel_confianza = nivel_confianza,
-    universo_crit   = universo_crit
+    universo_crit   = universo_crit,
+    par_combos      = parallel && n_designs == 1L
   )
   lista_tablas <- .run_estimations(ml$light, ml$metadata, calc_fun,
                                    parallel, n_cores, n_designs, verbose)
@@ -564,6 +577,7 @@ obs_cuantil <- function(designs,
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
+  filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
   validate_inputs(designs[[1]], var, des)
   nombre_indicador <- .extract_var_label(designs, var, usar_etiqueta_var, nombre)
@@ -576,7 +590,8 @@ obs_cuantil <- function(designs,
     cv_umbral_medio = cv_umbral_medio,
     n_minimo        = n_minimo,
     nivel_confianza = nivel_confianza,
-    universo_crit   = universo_crit
+    universo_crit   = universo_crit,
+    par_combos      = parallel && n_designs == 1L
   )
   lista_tablas <- .run_estimations(ml$light, ml$metadata, calc_fun,
                                    parallel, n_cores, n_designs, verbose)

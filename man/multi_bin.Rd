@@ -30,7 +30,9 @@ desagregación simple.}
 \item{es_var_estudio}{Booleano. Si `TRUE`, aplica criterios de fiabilidad menos
 estrictos para el tamaño muestral.}
 
-\item{filt}{Un string con una expresión de filtro para `dplyr::filter()`.}
+\item{filt}{Expresión de filtro. Acepta tanto una expresión R sin comillas
+(`filt = edad > 18`) como un string (`filt = "edad > 18"`). Ambas formas
+son equivalentes y retrocompatibles.}
 
 \item{dir}{Un string con la ruta del directorio de salida.}
 

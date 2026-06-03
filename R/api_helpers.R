@@ -67,7 +67,7 @@
                             quantile_prob = 0.5, ratio_vars = NULL,
                             cv_umbral_alto = 0.30, cv_umbral_medio = 0.20,
                             n_minimo = 30L, nivel_confianza = 0.95,
-                            universo_crit = FALSE) {
+                            universo_crit = FALSE, par_combos = FALSE) {
   lonely_psu_option <- getOption("survey.lonely.psu", NULL)
   function(dsgn, meta) {
     if (!is.null(lonely_psu_option)) {
@@ -78,7 +78,7 @@
       }, add = TRUE)
       options(survey.lonely.psu = lonely_psu_option)
     }
-    calculate_single_design(
+    base_args <- list(
       dsgn, meta, var, des, filt, rm_na_var, rm_na_des, type, multi_des,
       es_var_estudio, porcentaje,
       quantile_prob   = quantile_prob,
@@ -89,6 +89,8 @@
       nivel_confianza = nivel_confianza,
       universo_crit   = universo_crit
     )
+    if (isTRUE(par_combos)) base_args$par_combos <- TRUE
+    do.call(calculate_single_design, base_args)
   }
 }
 
@@ -96,18 +98,25 @@
                               parallel, n_cores, n_designs, verbose) {
   if (verbose) message("Fase 2/3: Calculando estimaciones... (Esta etapa puede tardar varios minutos)")
   pmap_args <- list(dsgn = designs_light, meta = design_metadata)
-  if (parallel && n_designs > 1) {
+  if (parallel) {
     max_safe_cores <- 4L
     cores_detected <- tryCatch(parallel::detectCores(), error = function(e) 2L)
     cores <- if (is.null(n_cores)) {
-      max(1L, min(cores_detected - 1L, max_safe_cores, n_designs))
+      max(1L, min(cores_detected - 1L, max_safe_cores,
+                  if (n_designs > 1L) n_designs else max_safe_cores))
     } else {
       n_cores
     }
     if (verbose) message(paste("... usando modo paralelo con", cores, "workers."))
-    old_plan <- future::plan(multisession, workers = cores)
+    old_plan <- future::plan(future::multisession, workers = cores)
     on.exit(future::plan(old_plan), add = TRUE)
-    furrr::future_pmap(pmap_args, calc_fun, .progress = FALSE)
+    if (n_designs > 1L) {
+      furrr::future_pmap(pmap_args, calc_fun, .progress = FALSE)
+    } else {
+      # n_designs == 1: el plan ya está activo; calc_fun usa furrr internamente
+      # para los combos de desagregación (par_combos = TRUE capturado en closure)
+      purrr::pmap(pmap_args, calc_fun)
+    }
   } else {
     purrr::pmap(pmap_args, calc_fun)
   }

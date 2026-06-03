@@ -2,7 +2,7 @@ Package: dosr
 Type: Package
 Depends: R (>= 3.5.0)
 Title: Herramientas para el Análisis de Encuestas del Observatorio Social
-Version: 0.3.0
+Version: 0.3.1
 Authors@R:
     person("Gabriel", "Sotomayor", , "gabrielsotomayorl@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9889-9637"))

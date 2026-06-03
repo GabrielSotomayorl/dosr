@@ -1,3 +1,22 @@
+# dosr 0.3.1
+
+## Nuevas funcionalidades
+
+*   El argumento `filt` ahora acepta expresiones R sin comillas además de
+    strings: `filt = edad > 18` es equivalente a `filt = "edad > 18"`.
+    El comportamiento anterior (string) se mantiene sin cambios.
+
+## Mejoras de rendimiento
+
+*   `parallel = TRUE` ahora también acelera ejecuciones con un **único diseño**
+    que usen múltiples variables de desagregación (`des` de longitud > 1 o
+    `multi_des = TRUE`): las combinaciones de desagregación se distribuyen entre
+    workers. Hasta v0.3.0, esta opción solo tenía efecto en series multi-año.
+
+*   `multi_bin()` reduce el número de llamadas internas a `srvyr::summarise`
+    de N × 3 (una por variable) a 3 independientemente del número de variables,
+    reutilizando la configuración del diseño muestral.
+
 # dosr 0.3.0
 
 ## Datos incluidos

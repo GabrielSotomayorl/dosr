@@ -78,6 +78,19 @@ write_clean_table <- function(
 }
 
 
+#' Normalize filt to a string, accepting both quoted strings and bare expressions.
+#' @noRd
+.resolve_filt <- function(filt_quo) {
+  if (rlang::quo_is_null(filt_quo)) return(NULL)
+  result <- tryCatch(rlang::eval_tidy(filt_quo), error = function(e) NULL)
+  if (is.character(result) && length(result) == 1L) {
+    return(if (nzchar(result)) result else NULL)
+  }
+  expr_text <- paste(deparse(rlang::quo_get_expr(filt_quo)), collapse = " ")
+  if (identical(expr_text, "NULL")) return(NULL)
+  expr_text
+}
+
 #' Validate that a filter string is parseable R code
 #' @noRd
 validate_filt <- function(filt) {

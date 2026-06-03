@@ -302,6 +302,28 @@ test_that("rm_na_des = TRUE produce resultado sin error", {
   expect_true(any(grepl("media", names(result))))
 })
 
+test_that("parallel = TRUE con un diseño y multi_des produce el mismo resultado que secuencial", {
+  res_seq <- obs_media(dsgn_2022, sufijo = "2022", var = "edad",
+                       des = c("sexo", "area"), multi_des = TRUE,
+                       parallel = FALSE, save_xlsx = FALSE, verbose = FALSE)
+  res_par <- obs_media(dsgn_2022, sufijo = "2022", var = "edad",
+                       des = c("sexo", "area"), multi_des = TRUE,
+                       parallel = TRUE, n_cores = 2L,
+                       save_xlsx = FALSE, verbose = FALSE)
+  expect_equal(res_seq, res_par)
+})
+
+test_that("parallel = TRUE con un diseño y obs_prop produce el mismo resultado que secuencial", {
+  res_seq <- obs_prop(dsgn_2022, sufijo = "2022", var = "pobreza",
+                      des = c("sexo", "area"), multi_des = TRUE,
+                      parallel = FALSE, save_xlsx = FALSE, verbose = FALSE)
+  res_par <- obs_prop(dsgn_2022, sufijo = "2022", var = "pobreza",
+                      des = c("sexo", "area"), multi_des = TRUE,
+                      parallel = TRUE, n_cores = 2L,
+                      save_xlsx = FALSE, verbose = FALSE)
+  expect_equal(res_seq, res_par)
+})
+
 test_that("parallel = TRUE con dos diseños produce resultado correcto", {
   result <- obs_media(
     list(dsgn_2022, dsgn_2024),

@@ -20,7 +20,9 @@
 #'   desagregación simple.
 #' @param es_var_estudio Booleano. Si `TRUE`, aplica criterios de fiabilidad menos
 #'   estrictos para el tamaño muestral.
-#' @param filt Un string con una expresión de filtro para `dplyr::filter()`.
+#' @param filt Expresión de filtro. Acepta tanto una expresión R sin comillas
+#'   (`filt = edad > 18`) como un string (`filt = "edad > 18"`). Ambas formas
+#'   son equivalentes y retrocompatibles.
 #' @param dir Un string con la ruta del directorio de salida.
 #' @param filename Un string con el nombre del archivo Excel.
 #' @param decimales Entero. Número de decimales para la estimación puntual. Por defecto es 1.
@@ -56,67 +58,81 @@ multi_bin <- function(
 ) {
   # --- Helpers Internos ---
   .calculate_estimates_multi <- function(d, vars, by = NULL) {
-    purrr::map_dfr(vars, function(v) {
-      if (!v %in% names(d$variables)) {
-        warning(
-          paste("Variable", v, "no encontrada. Se omitir\u00e1."),
-          call. = FALSE
+    vars_valid <- Filter(function(v) {
+      ok <- v %in% names(d$variables)
+      if (!ok) warning(paste("Variable", v, "no encontrada. Se omitir\u00e1."), call. = FALSE)
+      ok
+    }, vars)
+    if (length(vars_valid) == 0L) return(tibble::tibble())
+
+    psu_var    <- colnames(d$cluster)[1]
+    strata_var <- colnames(d$strata)[1]
+
+    d_calc <- if (!is.null(by)) {
+      srvyr::group_by(d, dplyr::across(dplyr::all_of(by)))
+    } else {
+      d
+    }
+
+    # Pasada 1: medias para todas las variables (una sola llamada survey)
+    mean_exprs <- setNames(
+      lapply(vars_valid, function(v)
+        rlang::expr(srvyr::survey_mean(!!rlang::sym(v), na.rm = TRUE, vartype = "se"))),
+      vars_valid
+    )
+    est_means <- d_calc %>% srvyr::summarise(!!!mean_exprs)
+
+    # Pasada 2: totales para todas las variables
+    total_exprs <- setNames(
+      lapply(vars_valid, function(v)
+        rlang::expr(srvyr::survey_total(!!rlang::sym(v), na.rm = TRUE))),
+      paste0(vars_valid, "_tot")
+    )
+    est_totals <- d_calc %>% srvyr::summarise(!!!total_exprs)
+
+    # Pasada 3: conteos no ponderados + gl (una sola llamada)
+    nmues_exprs <- setNames(
+      lapply(vars_valid, function(v)
+        rlang::expr(srvyr::unweighted(sum(!!rlang::sym(v) == 1L, na.rm = TRUE)))),
+      paste0(vars_valid, "_n")
+    )
+    counts_df <- d_calc %>%
+      srvyr::summarise(
+        !!!nmues_exprs,
+        gl = srvyr::unweighted(
+          dplyr::n_distinct(!!rlang::sym(psu_var)) -
+            dplyr::n_distinct(!!rlang::sym(strata_var))
         )
-        return(NULL)
-      }
-      d_calc <- if (!is.null(by)) {
-        srvyr::group_by(d, dplyr::across(dplyr::all_of(by)))
-      } else {
-        d
-      }
-      weight_var <- names(d$allprob)[1]
-      psu_var <- colnames(d$cluster)[1]
-      strata_var <- colnames(d$strata)[1]
+      )
 
-      est <- d_calc %>%
-        srvyr::summarise(
-          estimacion = srvyr::survey_mean(
-            !!rlang::sym(v),
-            na.rm = TRUE,
-            vartype = "se"
-          ),
-          n_expandido = srvyr::survey_total(!!rlang::sym(v), na.rm = TRUE)
-        )
+    wide_df <- if (is.null(by)) {
+      dplyr::bind_cols(est_means, est_totals, counts_df)
+    } else {
+      est_means %>%
+        dplyr::left_join(est_totals, by = by) %>%
+        dplyr::left_join(counts_df, by = by)
+    }
 
-      tam_num <- d_calc %>%
-        srvyr::summarise(
-          n_mues = srvyr::unweighted(sum(!!rlang::sym(v) == 1, na.rm = TRUE))
-        )
-
-      gl_base <- d_calc %>%
-        srvyr::summarise(
-          gl = srvyr::unweighted(
-            dplyr::n_distinct(!!rlang::sym(psu_var)) -
-              dplyr::n_distinct(!!rlang::sym(strata_var))
-          )
-        )
-
-      result <- if (is.null(by)) {
-        dplyr::bind_cols(est, tam_num, gl_base)
-      } else {
-        est %>%
-          dplyr::left_join(tam_num, by = by) %>%
-          dplyr::left_join(gl_base, by = by)
-      }
-
-      result <- result %>%
+    # Pivote a formato largo (solo reshape de datos, sin survey)
+    purrr::map_dfr(vars_valid, function(v) {
+      dplyr::select(wide_df,
+        dplyr::any_of(by),
+        estimacion     = dplyr::all_of(v),
+        estimacion_se  = dplyr::all_of(paste0(v, "_se")),
+        n_expandido    = dplyr::all_of(paste0(v, "_tot")),
+        n_expandido_se = dplyr::all_of(paste0(v, "_tot_se")),
+        n_mues         = dplyr::all_of(paste0(v, "_n")),
+        gl
+      ) %>%
         dplyr::mutate(
-          estimacion = estimacion * 100,
-          estimacion_se = estimacion_se * 100
-        ) %>%
-        dplyr::mutate(
-          variable = v,
-          etiqueta = labelled::var_label(d$variables[[v]]) %||% v,
-          n_mues = as.integer(dplyr::coalesce(n_mues, 0)),
-          gl = as.numeric(gl),
-          .before = 1
+          estimacion    = estimacion * 100,
+          estimacion_se = estimacion_se * 100,
+          variable  = v,
+          etiqueta  = labelled::var_label(d$variables[[v]]) %||% v,
+          n_mues    = as.integer(dplyr::coalesce(n_mues, 0L)),
+          gl        = as.numeric(gl),
+          .before   = 1
         )
-      return(result)
     })
   }
 
@@ -159,6 +175,7 @@ multi_bin <- function(
 
   # --- Lógica Principal ---
 
+  filt <- .resolve_filt(rlang::enquo(filt))
   if (verbose) {
     message("Aplicando filtro (si aplica)...")
   }

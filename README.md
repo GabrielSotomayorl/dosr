@@ -65,6 +65,7 @@ Todas las funciones `obs_*` comparten los siguientes parámetros:
 | `des` | Variable(s) de desagregación | `NULL` (solo nacional) |
 | `filt` | Filtro como expresión R en string | `NULL` |
 | `sig` | Calcular pruebas de significancia estadística | `FALSE` |
+| `parallel` | Cálculo en paralelo (distribuye combos o diseños entre workers) | `FALSE` |
 | `save_xlsx` | Guardar reporte Excel | `TRUE` |
 | `dir` | Directorio de salida | `"output"` |
 | `cv_umbral_alto` | Umbral de CV para "No Fiable (CV)" | `0.30` |

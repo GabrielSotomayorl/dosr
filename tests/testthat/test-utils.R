@@ -1,5 +1,30 @@
 # test-utils.R — Tests de funciones utilitarias internas.
 
+# ── .resolve_filt ────────────────────────────────────────────────────────────
+
+test_that(".resolve_filt: NULL y string vacío devuelven NULL", {
+  expect_null(dosr:::.resolve_filt(rlang::quo(NULL)))
+  expect_null(dosr:::.resolve_filt(rlang::quo("")))
+})
+
+test_that(".resolve_filt: string entre comillas se devuelve tal cual", {
+  expect_equal(dosr:::.resolve_filt(rlang::quo("edad > 18")), "edad > 18")
+})
+
+test_that(".resolve_filt: expresión sin comillas se convierte a string", {
+  expect_equal(dosr:::.resolve_filt(rlang::quo(edad > 18)), "edad > 18")
+  expect_equal(dosr:::.resolve_filt(rlang::quo(region %in% c(1, 13))),
+               "region %in% c(1, 13)")
+})
+
+test_that("obs_media acepta filt como expresión sin comillas", {
+  res_str  <- obs_media(dsgn_2022, sufijo = "2022", var = "edad",
+                        filt = "sexo == 1", save_xlsx = FALSE, verbose = FALSE)
+  res_expr <- obs_media(dsgn_2022, sufijo = "2022", var = "edad",
+                        filt = sexo == 1,  save_xlsx = FALSE, verbose = FALSE)
+  expect_equal(res_str, res_expr)
+})
+
 # ── validate_filt ─────────────────────────────────────────────────────────────
 
 test_that("validate_filt acepta NULL y string vacío sin error", {
