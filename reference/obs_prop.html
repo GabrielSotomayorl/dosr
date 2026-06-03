@@ -11,7 +11,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -126,7 +126,9 @@
 
 
 <dt id="arg-filt">filt<a class="anchor" aria-label="anchor" href="#arg-filt"></a></dt>
-<dd><p>Un string con una expresión de filtro para `dplyr::filter()`.</p></dd>
+<dd><p>Expresión de filtro. Acepta tanto una expresión R sin comillas
+(`filt = edad &gt; 18`) como un string (`filt = "edad &gt; 18"`). Ambas formas
+son equivalentes y retrocompatibles.</p></dd>
 
 
 <dt id="arg-rm-na-var">rm_na_var<a class="anchor" aria-label="anchor" href="#arg-rm-na-var"></a></dt>
@@ -139,11 +141,13 @@ cada tabla solicitada.</p></dd>
 
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
-<dd><p>Booleano. Activa el cálculo en paralelo.</p></dd>
+<dd><p>Booleano. Activa el cálculo en paralelo. Con un único diseño
+y múltiples desagregaciones distribuye las combinaciones entre workers;
+con múltiples diseños distribuye los diseños. Por defecto `FALSE`.</p></dd>
 
 
 <dt id="arg-n-cores">n_cores<a class="anchor" aria-label="anchor" href="#arg-n-cores"></a></dt>
-<dd><p>Entero. Número de núcleos a usar. Si es NULL, se usa un valor seguro.</p></dd>
+<dd><p>Entero. Número de workers a usar. Si es `NULL`, se usa un valor seguro (máximo 4).</p></dd>
 
 
 <dt id="arg-save-xlsx">save_xlsx<a class="anchor" aria-label="anchor" href="#arg-save-xlsx"></a></dt>

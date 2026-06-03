@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -115,7 +115,9 @@ estrictos para el tamaño muestral.</p></dd>
 
 
 <dt id="arg-filt">filt<a class="anchor" aria-label="anchor" href="#arg-filt"></a></dt>
-<dd><p>Un string con una expresión de filtro para `dplyr::filter()`.</p></dd>
+<dd><p>Expresión de filtro. Acepta tanto una expresión R sin comillas
+(`filt = edad &gt; 18`) como un string (`filt = "edad &gt; 18"`). Ambas formas
+son equivalentes y retrocompatibles.</p></dd>
 
 
 <dt id="arg-dir">dir<a class="anchor" aria-label="anchor" href="#arg-dir"></a></dt>
@@ -167,7 +169,7 @@ estrictos para el tamaño muestral.</p></dd>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Calculando perfil nacional...</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Calculando desagregación por: region ...</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Generando reporte Excel...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Reporte Excel creado en: /tmp/Rtmp5mlD58/r8a-r8h_region_MULT.xlsx</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Reporte Excel creado en: /tmp/RtmpZUVqPm/r8a-r8h_region_MULT.xlsx</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

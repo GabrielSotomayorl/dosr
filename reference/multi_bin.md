@@ -50,7 +50,9 @@ multi_bin(
 
 - filt:
 
-  Un string con una expresión de filtro para \`dplyr::filter()\`.
+  Expresión de filtro. Acepta tanto una expresión R sin comillas (\`filt
+  = edad \> 18\`) como un string (\`filt = "edad \> 18"\`). Ambas formas
+  son equivalentes y retrocompatibles.
 
 - dir:
 
@@ -103,6 +105,6 @@ multi_bin(design_2024, vars_binarias = paste0("r8", letters[1:8]),
 #> Calculando perfil nacional...
 #> Calculando desagregación por: region ...
 #> Generando reporte Excel...
-#> Reporte Excel creado en: /tmp/Rtmp5mlD58/r8a-r8h_region_MULT.xlsx
+#> Reporte Excel creado en: /tmp/RtmpZUVqPm/r8a-r8h_region_MULT.xlsx
 # }
 ```

@@ -11,7 +11,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,18 @@
       <small>Source: <a href="https://github.com/GabrielSotomayorl/dosr/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.1" id="dosr-031">dosr 0.3.1<a class="anchor" aria-label="anchor" href="#dosr-031"></a></h2>
+<div class="section level3">
+<h3 id="nuevas-funcionalidades-0-3-1">Nuevas funcionalidades<a class="anchor" aria-label="anchor" href="#nuevas-funcionalidades-0-3-1"></a></h3>
+<ul><li>El argumento <code>filt</code> ahora acepta expresiones R sin comillas además de strings: <code>filt = edad &gt; 18</code> es equivalente a <code>filt = "edad &gt; 18"</code>. El comportamiento anterior (string) se mantiene sin cambios.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="mejoras-de-rendimiento-0-3-1">Mejoras de rendimiento<a class="anchor" aria-label="anchor" href="#mejoras-de-rendimiento-0-3-1"></a></h3>
+<ul><li><p><code>parallel = TRUE</code> ahora también acelera ejecuciones con un <strong>único diseño</strong> que usen múltiples variables de desagregación (<code>des</code> de longitud &gt; 1 o <code>multi_des = TRUE</code>): las combinaciones de desagregación se distribuyen entre workers. Hasta v0.3.0, esta opción solo tenía efecto en series multi-año.</p></li>
+<li><p><code><a href="../reference/multi_bin.html">multi_bin()</a></code> reduce el número de llamadas internas a <code><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">srvyr::summarise</a></code> de N × 3 (una por variable) a 3 independientemente del número de variables, reutilizando la configuración del diseño muestral.</p></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="dosr-030">dosr 0.3.0<a class="anchor" aria-label="anchor" href="#dosr-030"></a></h2>
 <div class="section level3">

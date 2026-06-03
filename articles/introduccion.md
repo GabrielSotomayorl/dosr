@@ -243,7 +243,7 @@ resultado_bin <- multi_bin(
   dir           = tempdir(),
   verbose       = FALSE
 )
-#> Reporte Excel creado en: /tmp/RtmpNuh8hc/r8a-r8h_area_MULT.xlsx
+#> Reporte Excel creado en: /tmp/RtmpH0HnG1/r8a-r8h_area_MULT.xlsx
 nac <- resultado_bin$desagregacion_tipo == "Nacional"
 resultado_bin[nac, c("etiqueta", "estimacion", "fiabilidad")]
 #> # A tibble: 8 × 3

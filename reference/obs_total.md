@@ -80,7 +80,9 @@ obs_total(
 
 - filt:
 
-  Un string con una expresión de filtro para \`dplyr::filter()\`.
+  Expresión de filtro. Acepta tanto una expresión R sin comillas (\`filt
+  = edad \> 18\`) como un string (\`filt = "edad \> 18"\`). Ambas formas
+  son equivalentes y retrocompatibles.
 
 - rm_na_var:
 
@@ -93,11 +95,14 @@ obs_total(
 
 - parallel:
 
-  Booleano. Activa el cálculo en paralelo.
+  Booleano. Activa el cálculo en paralelo. Con un único diseño y
+  múltiples desagregaciones distribuye las combinaciones entre workers;
+  con múltiples diseños distribuye los diseños. Por defecto \`FALSE\`.
 
 - n_cores:
 
-  Entero. Número de núcleos a usar. Si es NULL, se usa un valor seguro.
+  Entero. Número de workers a usar. Si es \`NULL\`, se usa un valor
+  seguro (máximo 4).
 
 - save_xlsx:
 
