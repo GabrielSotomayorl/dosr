@@ -1,5 +1,24 @@
 # Changelog
 
+## dosr 0.3.2
+
+### Mejoras
+
+- Las pruebas de significancia estadística (`sig = TRUE`) ahora se
+  muestran en más escenarios de los reportes con formato. Hasta v0.3.1
+  solo aparecían en los cruces por una variable de desagregación:
+  - **Total nacional**: prueba contra el último año (estadísticos
+    continuos y proporciones) y, en proporciones, prueba entre
+    categorías.
+  - **Cruces de dos o más variables de desagregación** (`multi_des`):
+    prueba contra el último año y contra la estimación nacional.
+
+### Correcciones
+
+- Corrección de formato en las tablas de significancia: los títulos
+  ahora aplican el borde y el formato de encabezado a todo el rango
+  combinado.
+
 ## dosr 0.3.1
 
 ### Nuevas funcionalidades
