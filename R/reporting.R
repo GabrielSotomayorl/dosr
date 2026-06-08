@@ -398,7 +398,10 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
     fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
-    if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
+    if (!is.null(lista_tests) && (
+          combo %in% names(lista_tests$intra_year) ||
+          combo %in% names(lista_tests$against_last_year) ||
+          combo %in% names(lista_tests$against_national))) {
       fila <- 5
       col_inicio_tests <- max_col_metrics + 3
 
@@ -410,7 +413,7 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
@@ -429,7 +432,7 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_last) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
@@ -445,7 +448,7 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_nac) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
@@ -590,7 +593,10 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
     fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
-    if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
+    if (!is.null(lista_tests) && (
+          combo %in% names(lista_tests$intra_year) ||
+          combo %in% names(lista_tests$against_last_year) ||
+          combo %in% names(lista_tests$against_national))) {
       fila <- 5
       col_inicio_tests <- max_col_metrics + 3
 
@@ -602,7 +608,7 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
@@ -621,7 +627,7 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_last) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
@@ -637,7 +643,7 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_nac) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
@@ -728,7 +734,10 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
     fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
-    if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
+    if (!is.null(lista_tests) && (
+          combo %in% names(lista_tests$intra_year) ||
+          combo %in% names(lista_tests$against_last_year) ||
+          combo %in% names(lista_tests$against_national))) {
       fila <- 5
       col_inicio_tests <- max_col_metrics + 3
 
@@ -740,7 +749,7 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
@@ -759,7 +768,7 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_last) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
@@ -775,7 +784,7 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_nac) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
@@ -865,7 +874,10 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
     fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
-    if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
+    if (!is.null(lista_tests) && (
+          combo %in% names(lista_tests$intra_year) ||
+          combo %in% names(lista_tests$against_last_year) ||
+          combo %in% names(lista_tests$against_national))) {
       fila <- 5
       col_inicio_tests <- max_col_metrics + 3
 
@@ -877,7 +889,7 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
@@ -896,7 +908,7 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_last) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
@@ -912,7 +924,7 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_nac) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
@@ -1003,7 +1015,10 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
     fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
-    if (!is.null(lista_tests) && combo %in% names(lista_tests$intra_year)) {
+    if (!is.null(lista_tests) && (
+          combo %in% names(lista_tests$intra_year) ||
+          combo %in% names(lista_tests$against_last_year) ||
+          combo %in% names(lista_tests$against_national))) {
       fila <- 5
       col_inicio_tests <- max_col_metrics + 3
 
@@ -1015,7 +1030,7 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
@@ -1034,7 +1049,7 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_last) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
@@ -1050,7 +1065,7 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
           openxlsx::writeData(wb, hoja_nm, titulo_test, startRow = fila, startCol = col_inicio_tests)
           cols_to_merge <- col_inicio_tests:(col_inicio_tests + ncol(test_df_nac) - 1)
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
-          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = col_inicio_tests)
+          openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
           numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
           data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))

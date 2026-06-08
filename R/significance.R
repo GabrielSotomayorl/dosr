@@ -83,6 +83,7 @@
 }
 
 .filter_out_totals <- function(df, cols) {
+  cols <- intersect(cols, names(df))
   if (length(cols) == 0 || is.null(df) || nrow(df) == 0) return(df)
   df %>%
     dplyr::filter(
@@ -115,12 +116,17 @@ calculate_significance <- function(hojas_list, sufijo, type, main_var_prop, des_
 
   all_tests <- list()
 
-  # --- Test 1: Comparaciones Intra-Anuales (single des combos only) ---
+  # --- Test 1: Comparaciones Intra-Anuales (cruces de 1 variable; y nac solo en prop) ---
   intra_year_list <- purrr::map(names(hojas_list), function(combo) {
-    if (combo == "nac") return(NULL)
-    grp_des <- strsplit(combo, "__", fixed = TRUE)[[1]]
-    if (length(grp_des) > 1) return(NULL)
-    if (type != "prop" && length(grp_des) == 0) return(NULL)
+    if (combo == "nac") {
+      # A nivel nacional solo aplica comparar categorías en proporciones.
+      if (type != "prop") return(NULL)
+      grp_des <- character(0)
+    } else {
+      grp_des <- strsplit(combo, "__", fixed = TRUE)[[1]]
+      if (length(grp_des) > 1) return(NULL)
+      if (type != "prop" && length(grp_des) == 0) return(NULL)
+    }
 
     main_cmp_var <- if (type == "prop") main_var_prop else grp_des[1]
 

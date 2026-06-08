@@ -2,6 +2,7 @@
 # Archivo: multi_bin.R (VERSIÓN FINAL CON CORRECCIONES PARA CHECK)
 # ---------------------------------------------------------------------------- #
 
+#' @importFrom stats setNames
 #' @title Perfilar Múltiples Variables Dicotómicas con Criterios de Calidad
 #'
 #' @description Para un **único diseño de encuesta**, calcula la proporción de
