@@ -243,7 +243,6 @@ resultado_bin <- multi_bin(
   dir           = tempdir(),
   verbose       = FALSE
 )
-#> Reporte Excel creado en: /tmp/RtmpykOX1Y/r8a-r8h_area_MULT.xlsx
 nac <- resultado_bin$desagregacion_tipo == "Nacional"
 resultado_bin[nac, c("etiqueta", "estimacion", "fiabilidad")]
 #> # A tibble: 8 × 3
@@ -277,7 +276,8 @@ Los umbrales son configurables con `cv_umbral_alto`, `cv_umbral_medio` y
 ## Reportes Excel
 
 Cuando `save_xlsx = TRUE` (valor por defecto), cada función genera un
-`.xlsx` en el directorio `dir` con:
+`.xlsx` en el directorio `dir` — que debe especificarse explícitamente,
+p. ej. `dir = tempdir()` o una carpeta del proyecto — con:
 
 - **1_Consolidado**: tabla completa con todas las métricas de calidad
 - **2_nac**: hoja de formato para el nivel nacional

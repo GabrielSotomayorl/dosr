@@ -11,7 +11,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,33 @@
       <small>Source: <a href="https://github.com/GabrielSotomayorl/dosr/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.3" id="dosr-033">dosr 0.3.3<a class="anchor" aria-label="anchor" href="#dosr-033"></a></h2>
+<div class="section level3">
+<h3 id="cambios-de-comportamiento-breaking-0-3-3">Cambios de comportamiento (breaking)<a class="anchor" aria-label="anchor" href="#cambios-de-comportamiento-breaking-0-3-3"></a></h3>
+<ul><li>
+<code>dir</code> ya no tiene valor por defecto (<code>"output"</code>). Cuando <code>save_xlsx = TRUE</code> (o siempre, en el caso de <code><a href="../reference/multi_bin.html">multi_bin()</a></code>), debe especificarse explícitamente el directorio de salida; de lo contrario la función se detiene de inmediato con un mensaje claro. Esto evita escribir en el directorio de trabajo del usuario sin su consentimiento, en línea con la política de CRAN. Los scripts existentes que dependían del default deben agregar <code>dir = "output"</code> (o la ruta que corresponda) a sus llamadas.</li>
+<li>El requisito mínimo de R sube de 3.5.0 a 4.1.0, reflejando las versiones con las que el paquete se desarrolla y testea.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="correcciones-de-robustez-0-3-3">Correcciones de robustez<a class="anchor" aria-label="anchor" href="#correcciones-de-robustez-0-3-3"></a></h3>
+<ul><li>
+<code><a href="../reference/obs_prop.html">obs_prop()</a></code>: una estimación con error estándar <code>NA</code> ya no se clasifica erróneamente como <code>"Fiable"</code>; ahora la columna <code>fiabilidad</code> queda <code>NA</code>, en consistencia con el resto de las funciones <code>obs_*</code>.</li>
+<li>Todas las funciones <code>obs_*</code>: un valor <code>NA</code> en los grados de libertad ahora se clasifica como <code>"No Fiable (gl)"</code> también en medias, totales, razones y cuantiles (antes solo en proporciones).</li>
+<li>Los nombres de hoja de Excel truncados a 31 caracteres ya no pueden colisionar: ante un duplicado se agrega un sufijo <code>~2</code>, <code>~3</code>, … Esto evita un error de <code>openxlsx</code> con nombres de variables largos en <code>multi_des = TRUE</code>. <code><a href="../reference/multi_bin.html">multi_bin()</a></code> también trunca sus nombres de hoja.</li>
+<li>La validación de variables (<code>var</code>, <code>des</code>, <code>num</code>, <code>den</code>) ahora revisa <strong>todos</strong> los diseños de la lista, no solo el primero, e indica en qué diseño falta la variable.</li>
+<li>
+<code>n_cores</code> se valida antes de crear los workers; un valor inválido (0, negativo, <code>NA</code>) produce un error inmediato y claro.</li>
+<li>
+<code><a href="../reference/multi_bin.html">multi_bin()</a></code> valida que <code>design</code> sea un objeto <code>tbl_svy</code> y rechaza listas de diseños con un mensaje informativo.</li>
+<li>
+<code>verbose = FALSE</code> ahora silencia también los mensajes de creación de los reportes Excel.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentación-0-3-3">Documentación<a class="anchor" aria-label="anchor" href="#documentaci%C3%B3n-0-3-3"></a></h3>
+<ul><li>Los ejemplos de <code><a href="../reference/obs_prop.html">obs_prop()</a></code> y <code><a href="../reference/multi_bin.html">multi_bin()</a></code> usan un subconjunto regional de la CASEN para ejecutarse en pocos segundos.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.2" id="dosr-032">dosr 0.3.2<a class="anchor" aria-label="anchor" href="#dosr-032"></a></h2>
 <div class="section level3">

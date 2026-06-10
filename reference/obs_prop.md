@@ -20,7 +20,7 @@ obs_prop(
   parallel = FALSE,
   n_cores = NULL,
   save_xlsx = TRUE,
-  dir = "output",
+  dir = NULL,
   formato = TRUE,
   porcentaje = TRUE,
   decimales = 2,
@@ -113,7 +113,10 @@ obs_prop(
 - dir:
 
   Un string con la ruta del directorio donde se guardará el archivo
-  Excel. Por defecto es \`"output"\`.
+  Excel. Obligatorio cuando \`save_xlsx = TRUE\` (no tiene valor por
+  defecto, para no escribir en el directorio de trabajo sin
+  consentimiento explícito). Use por ejemplo \`dir = tempdir()\` o una
+  ruta de su proyecto. Se crea si no existe.
 
 - formato:
 
@@ -203,8 +206,13 @@ Un data.frame con los resultados consolidados (invisiblemente).
 ``` r
 # \donttest{
 library(srvyr)
-design_2022 <- as_survey_design(casen_2022, ids = varunit,
-                                strata = varstrat, weights = expr, nest = TRUE)
+library(dplyr)
+# Se usa una región como subconjunto para un ejemplo rápido;
+# con la base completa el uso es idéntico.
+design_2022 <- casen_2022 %>%
+  filter(region == 13) %>%
+  as_survey_design(ids = varunit, strata = varstrat,
+                   weights = expr, nest = TRUE)
 obs_prop(design_2022, sufijo = "2022", var = "pobreza",
          porcentaje = TRUE, save_xlsx = FALSE, verbose = FALSE)
 # }

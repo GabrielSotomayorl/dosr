@@ -18,7 +18,7 @@ multi_bin(
   des = NULL,
   es_var_estudio = FALSE,
   filt = NULL,
-  dir = "output",
+  dir = NULL,
   filename = NULL,
   decimales = 1,
   decimales_se = 3,
@@ -56,7 +56,10 @@ multi_bin(
 
 - dir:
 
-  Un string con la ruta del directorio de salida.
+  Un string con la ruta del directorio de salida. Obligatorio (no tiene
+  valor por defecto, para no escribir en el directorio de trabajo sin
+  consentimiento explícito). Use por ejemplo \`dir = tempdir()\`. Se
+  crea si no existe.
 
 - filename:
 
@@ -94,17 +97,30 @@ library(srvyr)
 #> The following object is masked from ‘package:stats’:
 #> 
 #>     filter
+library(dplyr)
+#> 
+#> Attaching package: ‘dplyr’
+#> The following objects are masked from ‘package:stats’:
+#> 
+#>     filter, lag
+#> The following objects are masked from ‘package:base’:
+#> 
+#>     intersect, setdiff, setequal, union
 
-design_2024 <- as_survey_design(casen_2024, ids = varunit,
-                                strata = varstrat, weights = expr, nest = TRUE)
+# Se usa una región como subconjunto para un ejemplo rápido;
+# con la base completa el uso es idéntico.
+design_rm <- casen_2024 %>%
+  filter(region == 13) %>%
+  as_survey_design(ids = varunit, strata = varstrat,
+                   weights = expr, nest = TRUE)
 
-# Prevalencia de indicadores de inseguridad alimentaria por región
-multi_bin(design_2024, vars_binarias = paste0("r8", letters[1:8]),
-          des = "region", dir = tempdir())
+# Prevalencia de indicadores de inseguridad alimentaria por área
+multi_bin(design_rm, vars_binarias = paste0("r8", letters[1:8]),
+          des = "area", dir = tempdir())
 #> Aplicando filtro (si aplica)...
 #> Calculando perfil nacional...
-#> Calculando desagregación por: region ...
+#> Calculando desagregación por: area ...
 #> Generando reporte Excel...
-#> Reporte Excel creado en: /tmp/Rtmpuh3RB6/r8a-r8h_region_MULT.xlsx
+#> Reporte Excel creado en: /tmp/RtmpvSWoae/r8a-r8h_area_MULT.xlsx
 # }
 ```

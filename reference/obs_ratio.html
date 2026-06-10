@@ -15,7 +15,7 @@ paralelización y reporte usadas en `obs_media`."><meta property="og:image" cont
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,7 +77,7 @@ paralelización y reporte usadas en `obs_media`.</p>
 <span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  save_xlsx <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  dir <span class="op">=</span> <span class="st">"output"</span>,</span>
+<span>  dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  formato <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  decimales <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>  nombre <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -167,7 +167,10 @@ con múltiples diseños distribuye los diseños. Por defecto `FALSE`.</p></dd>
 
 
 <dt id="arg-dir">dir<a class="anchor" aria-label="anchor" href="#arg-dir"></a></dt>
-<dd><p>Un string con la ruta del directorio donde se guardará el archivo Excel. Por defecto es `"output"`.</p></dd>
+<dd><p>Un string con la ruta del directorio donde se guardará el archivo Excel.
+Obligatorio cuando `save_xlsx = TRUE` (no tiene valor por defecto, para no
+escribir en el directorio de trabajo sin consentimiento explícito).
+Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no existe.</p></dd>
 
 
 <dt id="arg-formato">formato<a class="anchor" aria-label="anchor" href="#arg-formato"></a></dt>
@@ -232,14 +235,6 @@ con múltiples diseños distribuye los diseños. Por defecto `FALSE`.</p></dd>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Attaching package: ‘dplyr’</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:stats’:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     filter, lag</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:base’:</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect, setdiff, setequal, union</span>
 <span class="r-in"><span><span class="va">design_2022</span> <span class="op">&lt;-</span> <span class="fu"><a href="http://gdfe.co/srvyr/reference/as_survey_design.html" class="external-link">as_survey_design</a></span><span class="op">(</span><span class="va">casen_2022</span>, ids <span class="op">=</span> <span class="va">varunit</span>,</span></span>
 <span class="r-in"><span>                                strata <span class="op">=</span> <span class="va">varstrat</span>, weights <span class="op">=</span> <span class="va">expr</span>, nest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">design_2022</span><span class="op">$</span><span class="va">variables</span> <span class="op">&lt;-</span> <span class="va">design_2022</span><span class="op">$</span><span class="va">variables</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>

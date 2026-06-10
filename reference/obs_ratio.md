@@ -23,7 +23,7 @@ obs_ratio(
   parallel = FALSE,
   n_cores = NULL,
   save_xlsx = TRUE,
-  dir = "output",
+  dir = NULL,
   formato = TRUE,
   decimales = 2,
   nombre = NULL,
@@ -120,7 +120,10 @@ obs_ratio(
 - dir:
 
   Un string con la ruta del directorio donde se guardará el archivo
-  Excel. Por defecto es \`"output"\`.
+  Excel. Obligatorio cuando \`save_xlsx = TRUE\` (no tiene valor por
+  defecto, para no escribir en el directorio de trabajo sin
+  consentimiento explícito). Use por ejemplo \`dir = tempdir()\` o una
+  ruta de su proyecto. Se crea si no existe.
 
 - formato:
 
@@ -200,14 +203,6 @@ Un \`data.frame\` con los resultados consolidados (invisiblemente).
 # \donttest{
 library(srvyr)
 library(dplyr)
-#> 
-#> Attaching package: ‘dplyr’
-#> The following objects are masked from ‘package:stats’:
-#> 
-#>     filter, lag
-#> The following objects are masked from ‘package:base’:
-#> 
-#>     intersect, setdiff, setequal, union
 design_2022 <- as_survey_design(casen_2022, ids = varunit,
                                 strata = varstrat, weights = expr, nest = TRUE)
 design_2022$variables <- design_2022$variables %>%

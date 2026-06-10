@@ -1,5 +1,56 @@
 # Changelog
 
+## dosr 0.3.3
+
+### Cambios de comportamiento (breaking)
+
+- `dir` ya no tiene valor por defecto (`"output"`). Cuando
+  `save_xlsx = TRUE` (o siempre, en el caso de
+  [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md)),
+  debe especificarse explícitamente el directorio de salida; de lo
+  contrario la función se detiene de inmediato con un mensaje claro.
+  Esto evita escribir en el directorio de trabajo del usuario sin su
+  consentimiento, en línea con la política de CRAN. Los scripts
+  existentes que dependían del default deben agregar `dir = "output"` (o
+  la ruta que corresponda) a sus llamadas.
+- El requisito mínimo de R sube de 3.5.0 a 4.1.0, reflejando las
+  versiones con las que el paquete se desarrolla y testea.
+
+### Correcciones de robustez
+
+- [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md):
+  una estimación con error estándar `NA` ya no se clasifica erróneamente
+  como `"Fiable"`; ahora la columna `fiabilidad` queda `NA`, en
+  consistencia con el resto de las funciones `obs_*`.
+- Todas las funciones `obs_*`: un valor `NA` en los grados de libertad
+  ahora se clasifica como `"No Fiable (gl)"` también en medias, totales,
+  razones y cuantiles (antes solo en proporciones).
+- Los nombres de hoja de Excel truncados a 31 caracteres ya no pueden
+  colisionar: ante un duplicado se agrega un sufijo `~2`, `~3`, … Esto
+  evita un error de `openxlsx` con nombres de variables largos en
+  `multi_des = TRUE`.
+  [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md)
+  también trunca sus nombres de hoja.
+- La validación de variables (`var`, `des`, `num`, `den`) ahora revisa
+  **todos** los diseños de la lista, no solo el primero, e indica en qué
+  diseño falta la variable.
+- `n_cores` se valida antes de crear los workers; un valor inválido (0,
+  negativo, `NA`) produce un error inmediato y claro.
+- [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md)
+  valida que `design` sea un objeto `tbl_svy` y rechaza listas de
+  diseños con un mensaje informativo.
+- `verbose = FALSE` ahora silencia también los mensajes de creación de
+  los reportes Excel.
+
+### Documentación
+
+- Los ejemplos de
+  [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
+  y
+  [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md)
+  usan un subconjunto regional de la CASEN para ejecutarse en pocos
+  segundos.
+
 ## dosr 0.3.2
 
 ### Mejoras

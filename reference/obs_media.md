@@ -20,7 +20,7 @@ obs_media(
   parallel = FALSE,
   n_cores = NULL,
   save_xlsx = TRUE,
-  dir = "output",
+  dir = NULL,
   formato = TRUE,
   decimales = 2,
   nombre = NULL,
@@ -111,7 +111,10 @@ obs_media(
 - dir:
 
   Un string con la ruta del directorio donde se guardará el archivo
-  Excel. Por defecto es \`"output"\`.
+  Excel. Obligatorio cuando \`save_xlsx = TRUE\` (no tiene valor por
+  defecto, para no escribir en el directorio de trabajo sin
+  consentimiento explícito). Use por ejemplo \`dir = tempdir()\` o una
+  ruta de su proyecto. Se crea si no existe.
 
 - formato:
 

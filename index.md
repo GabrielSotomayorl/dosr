@@ -86,7 +86,7 @@ Todas las funciones `obs_*` comparten los siguientes parámetros:
 | `sig` | Calcular pruebas de significancia estadística | `FALSE` |
 | `parallel` | Cálculo en paralelo (distribuye combos o diseños entre workers) | `FALSE` |
 | `save_xlsx` | Guardar reporte Excel | `TRUE` |
-| `dir` | Directorio de salida | `"output"` |
+| `dir` | Directorio de salida (obligatorio si `save_xlsx = TRUE`) | — |
 | `cv_umbral_alto` | Umbral de CV para “No Fiable (CV)” | `0.30` |
 | `cv_umbral_medio` | Umbral de CV para “Poco Fiable (CV)” | `0.20` |
 | `n_minimo` | Tamaño muestral mínimo | `30` |
