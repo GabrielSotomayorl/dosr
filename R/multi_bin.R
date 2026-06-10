@@ -24,7 +24,9 @@
 #' @param filt Expresión de filtro. Acepta tanto una expresión R sin comillas
 #'   (`filt = edad > 18`) como un string (`filt = "edad > 18"`). Ambas formas
 #'   son equivalentes y retrocompatibles.
-#' @param dir Un string con la ruta del directorio de salida.
+#' @param dir Un string con la ruta del directorio de salida. Obligatorio (no
+#'   tiene valor por defecto, para no escribir en el directorio de trabajo sin
+#'   consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no existe.
 #' @param filename Un string con el nombre del archivo Excel.
 #' @param decimales Entero. Número de decimales para la estimación puntual. Por defecto es 1.
 #' @param decimales_se Entero. Número de decimales para el error estándar. Por defecto es 3.
@@ -35,13 +37,18 @@
 #' @examples
 #' \donttest{
 #' library(srvyr)
+#' library(dplyr)
 #'
-#' design_2024 <- as_survey_design(casen_2024, ids = varunit,
-#'                                 strata = varstrat, weights = expr, nest = TRUE)
+#' # Se usa una región como subconjunto para un ejemplo rápido;
+#' # con la base completa el uso es idéntico.
+#' design_rm <- casen_2024 %>%
+#'   filter(region == 13) %>%
+#'   as_survey_design(ids = varunit, strata = varstrat,
+#'                    weights = expr, nest = TRUE)
 #'
-#' # Prevalencia de indicadores de inseguridad alimentaria por región
-#' multi_bin(design_2024, vars_binarias = paste0("r8", letters[1:8]),
-#'           des = "region", dir = tempdir())
+#' # Prevalencia de indicadores de inseguridad alimentaria por área
+#' multi_bin(design_rm, vars_binarias = paste0("r8", letters[1:8]),
+#'           des = "area", dir = tempdir())
 #' }
 #' @export
 multi_bin <- function(
@@ -50,7 +57,7 @@ multi_bin <- function(
   des = NULL,
   es_var_estudio = FALSE,
   filt = NULL,
-  dir = "output",
+  dir = NULL,
   filename = NULL,
   decimales = 1,
   decimales_se = 3,
@@ -175,6 +182,12 @@ multi_bin <- function(
   }
 
   # --- Lógica Principal ---
+
+  validate_dir(dir)
+  validate_designs(design)
+  if (is.list(design) && !inherits(design, "tbl_svy")) {
+    stop("'multi_bin' acepta un \u00fanico dise\u00f1o 'tbl_svy', no una lista. Use las funciones 'obs_*' para comparar dise\u00f1os.", call. = FALSE)
+  }
 
   filt <- .resolve_filt(rlang::enquo(filt))
   if (verbose) {
@@ -337,7 +350,7 @@ multi_bin <- function(
   )
 
   for (d_var in names(res_desagregados)) {
-    sheet_name <- paste0("2_", d_var)
+    sheet_name <- truncate_sheet_name(paste0("2_", d_var), existing = names(wb))
     openxlsx::addWorksheet(wb, sheet_name)
 
     openxlsx::writeData(
@@ -422,7 +435,7 @@ multi_bin <- function(
   }
 
   openxlsx::saveWorkbook(wb, filepath, overwrite = TRUE)
-  message(paste("Reporte Excel creado en:", filepath))
+  if (verbose) message(paste("Reporte Excel creado en:", filepath))
 
   invisible(all_results)
 }

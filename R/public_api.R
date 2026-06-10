@@ -45,8 +45,13 @@ create_lightweight_designs <- function(design_list, main_var, des_vars, filter_v
 #' @examples
 #' \donttest{
 #' library(srvyr)
-#' design_2022 <- as_survey_design(casen_2022, ids = varunit,
-#'                                 strata = varstrat, weights = expr, nest = TRUE)
+#' library(dplyr)
+#' # Se usa una región como subconjunto para un ejemplo rápido;
+#' # con la base completa el uso es idéntico.
+#' design_2022 <- casen_2022 %>%
+#'   filter(region == 13) %>%
+#'   as_survey_design(ids = varunit, strata = varstrat,
+#'                    weights = expr, nest = TRUE)
 #' obs_prop(design_2022, sufijo = "2022", var = "pobreza",
 #'          porcentaje = TRUE, save_xlsx = FALSE, verbose = FALSE)
 #' }
@@ -65,7 +70,7 @@ obs_prop <- function(designs,
                      parallel           = FALSE,
                      n_cores            = NULL,
                      save_xlsx          = TRUE,
-                     dir                = "output",
+                     dir                = NULL,
                      formato            = TRUE,
                      porcentaje         = TRUE,
                      decimales          = 2,
@@ -83,12 +88,13 @@ obs_prop <- function(designs,
                      verbose            = TRUE) {
 
   .guard_multi_des(des, multi_des)
+  validate_dir(dir, save_xlsx)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
   filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
-  validate_inputs(designs[[1]], var, des)
+  validate_inputs(designs, var, des)
   nombre_indicador <- .extract_var_label(designs, var, usar_etiqueta_var, nombre)
 
   ml       <- .build_meta_and_light(designs, var, des, filt)
@@ -144,9 +150,10 @@ obs_prop <- function(designs,
                            designs, consolidated_df = resultado_final,
                            nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                            snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                           color_fiabilidad = color_fiabilidad, fuente = fuente)
+                           color_fiabilidad = color_fiabilidad, fuente = fuente,
+                           verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final)
+      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")
@@ -175,7 +182,10 @@ obs_prop <- function(designs,
 #'   con múltiples diseños distribuye los diseños. Por defecto `FALSE`.
 #' @param n_cores Entero. Número de workers a usar. Si es `NULL`, se usa un valor seguro (máximo 4).
 #' @param save_xlsx Booleano. Si `TRUE`, guarda un reporte en Excel.
-#' @param dir Un string con la ruta del directorio donde se guardará el archivo Excel. Por defecto es `"output"`.
+#' @param dir Un string con la ruta del directorio donde se guardará el archivo Excel.
+#'   Obligatorio cuando `save_xlsx = TRUE` (no tiene valor por defecto, para no
+#'   escribir en el directorio de trabajo sin consentimiento explícito).
+#'   Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no existe.
 #' @param formato Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.
 #' @param decimales Entero. Número de decimales para las estimaciones en Excel.
 #' @param nombre String. Nombre del indicador que se muestra en el reporte Excel. Si se especifica, sobreescribe la etiqueta de variable aunque `usar_etiqueta_var = TRUE`.
@@ -213,7 +223,7 @@ obs_media <- function(designs,
                       parallel           = FALSE,
                       n_cores            = NULL,
                       save_xlsx          = TRUE,
-                      dir                = "output",
+                      dir                = NULL,
                       formato            = TRUE,
                       decimales          = 2,
                       nombre             = NULL,
@@ -229,12 +239,13 @@ obs_media <- function(designs,
                       verbose            = TRUE) {
 
   .guard_multi_des(des, multi_des)
+  validate_dir(dir, save_xlsx)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
   filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
-  validate_inputs(designs[[1]], var, des)
+  validate_inputs(designs, var, des)
   nombre_indicador <- .extract_var_label(designs, var, usar_etiqueta_var, nombre)
 
   ml       <- .build_meta_and_light(designs, var, des, filt)
@@ -273,9 +284,10 @@ obs_media <- function(designs,
                            designs = designs, consolidated_df = resultado_final,
                            nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                            snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                           color_fiabilidad = color_fiabilidad, fuente = fuente)
+                           color_fiabilidad = color_fiabilidad, fuente = fuente,
+                           verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final)
+      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")
@@ -310,7 +322,7 @@ obs_total <- function(designs,
                       parallel           = FALSE,
                       n_cores            = NULL,
                       save_xlsx          = TRUE,
-                      dir                = "output",
+                      dir                = NULL,
                       formato            = TRUE,
                       decimales          = 2,
                       nombre             = NULL,
@@ -326,12 +338,13 @@ obs_total <- function(designs,
                       verbose            = TRUE) {
 
   .guard_multi_des(des, multi_des)
+  validate_dir(dir, save_xlsx)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
   filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
-  validate_inputs(designs[[1]], var, des)
+  validate_inputs(designs, var, des)
   nombre_indicador <- .extract_var_label(designs, var, usar_etiqueta_var, nombre)
 
   ml       <- .build_meta_and_light(designs, var, des, filt)
@@ -370,9 +383,10 @@ obs_total <- function(designs,
                             designs = designs, consolidated_df = resultado_final,
                             nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                             snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                            color_fiabilidad = color_fiabilidad, fuente = fuente)
+                            color_fiabilidad = color_fiabilidad, fuente = fuente,
+                           verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final)
+      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")
@@ -423,7 +437,7 @@ obs_ratio <- function(designs,
                       parallel           = FALSE,
                       n_cores            = NULL,
                       save_xlsx          = TRUE,
-                      dir                = "output",
+                      dir                = NULL,
                       formato            = TRUE,
                       decimales          = 2,
                       nombre             = NULL,
@@ -447,12 +461,13 @@ obs_ratio <- function(designs,
   }
 
   .guard_multi_des(des, multi_des)
+  validate_dir(dir, save_xlsx)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
   filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
-  validate_inputs(designs[[1]], c(num, den), des)
+  validate_inputs(designs, c(num, den), des)
 
   ratio_nombre <- paste(num, den, sep = "/")
   num_display  <- num
@@ -513,9 +528,10 @@ obs_ratio <- function(designs,
                             designs = designs, consolidated_df = resultado_final,
                             nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                             snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                            color_fiabilidad = color_fiabilidad, fuente = fuente)
+                            color_fiabilidad = color_fiabilidad, fuente = fuente,
+                           verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final)
+      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")
@@ -552,7 +568,7 @@ obs_cuantil <- function(designs,
                         parallel           = FALSE,
                         n_cores            = NULL,
                         save_xlsx          = TRUE,
-                        dir                = "output",
+                        dir                = NULL,
                         formato            = TRUE,
                         decimales          = 2,
                         nombre             = NULL,
@@ -574,12 +590,13 @@ obs_cuantil <- function(designs,
   )
 
   .guard_multi_des(des, multi_des)
+  validate_dir(dir, save_xlsx)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
   filt <- .resolve_filt(rlang::enquo(filt))
   validate_filt(filt)
-  validate_inputs(designs[[1]], var, des)
+  validate_inputs(designs, var, des)
   nombre_indicador <- .extract_var_label(designs, var, usar_etiqueta_var, nombre)
 
   ml       <- .build_meta_and_light(designs, var, des, filt)
@@ -621,9 +638,10 @@ obs_cuantil <- function(designs,
                                designs = designs, consolidated_df = resultado_final,
                                nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                                snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                               color_fiabilidad = color_fiabilidad, fuente = fuente)
+                               color_fiabilidad = color_fiabilidad, fuente = fuente,
+                           verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final)
+      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")

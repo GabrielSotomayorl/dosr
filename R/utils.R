@@ -7,12 +7,25 @@
 NULL
 
 #' Truncate a sheet name to be compatible with Excel's 31-character limit.
+#' If the truncated name collides with one in `existing`, a numeric suffix
+#' (~2, ~3, ...) is appended to keep sheet names unique within the workbook.
 #' @noRd
-truncate_sheet_name <- function(name) {
+truncate_sheet_name <- function(name, existing = character(0)) {
   if (nchar(name) > 31) {
-    return(stringr::str_trunc(name, 31, side = "right", ellipsis = ""))
-  } else {
+    name <- stringr::str_trunc(name, 31, side = "right", ellipsis = "")
+  }
+  if (!name %in% existing) {
     return(name)
+  }
+  i <- 2L
+  repeat {
+    suffix <- paste0("~", i)
+    base <- stringr::str_trunc(name, 31L - nchar(suffix), side = "right", ellipsis = "")
+    candidate <- paste0(base, suffix)
+    if (!candidate %in% existing) {
+      return(candidate)
+    }
+    i <- i + 1L
   }
 }
 unique_cols <- function(df) {
@@ -129,22 +142,47 @@ validate_designs <- function(designs) {
   )
 }
 
-#' Validate that necessary variables exist in the design
+#' Validate the output directory for Excel reports
 #' @noRd
-validate_inputs <- function(design, var, des) {
-  all_vars <- c(var, des)
-  design_vars <- names(design$variables)
-  missing_vars <- setdiff(all_vars, design_vars)
-
-  if (length(missing_vars) > 0) {
+validate_dir <- function(dir, save_xlsx = TRUE) {
+  if (!save_xlsx) return(invisible(NULL))
+  if (is.null(dir) || !is.character(dir) || length(dir) != 1L || !nzchar(dir)) {
     stop(
-      paste(
-        "Las siguientes variables no se encontraron en el diseno:",
-        paste(missing_vars, collapse = ", ")
-      ),
+      "Debe especificar 'dir' (directorio donde guardar el reporte Excel). ",
+      "Ejemplo: dir = tempdir() o una ruta de su proyecto. ",
+      "Para omitir el Excel use save_xlsx = FALSE.",
       call. = FALSE
     )
   }
+  invisible(NULL)
+}
+
+#' Validate that necessary variables exist in the design(s)
+#' Accepts a single tbl_svy or a (possibly named) list of them.
+#' @noRd
+validate_inputs <- function(design, var, des) {
+  designs <- if (inherits(design, "tbl_svy")) list(design) else design
+  all_vars <- c(var, des)
+  for (i in seq_along(designs)) {
+    missing_vars <- setdiff(all_vars, names(designs[[i]]$variables))
+    if (length(missing_vars) > 0) {
+      etiqueta <- if (length(designs) > 1) {
+        nm <- names(designs)[i]
+        id <- if (!is.null(nm) && nzchar(nm)) nm else as.character(i)
+        paste0(" (dise\u00f1o '", id, "')")
+      } else {
+        ""
+      }
+      stop(
+        paste0(
+          "Las siguientes variables no se encontraron en el dise\u00f1o", etiqueta, ": ",
+          paste(missing_vars, collapse = ", ")
+        ),
+        call. = FALSE
+      )
+    }
+  }
+  invisible(NULL)
 }
 
 #' NULL Coalescing Operator

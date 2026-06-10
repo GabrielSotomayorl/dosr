@@ -10,7 +10,7 @@ multi_bin(
   des = NULL,
   es_var_estudio = FALSE,
   filt = NULL,
-  dir = "output",
+  dir = NULL,
   filename = NULL,
   decimales = 1,
   decimales_se = 3,
@@ -34,7 +34,9 @@ estrictos para el tamaño muestral.}
 (`filt = edad > 18`) como un string (`filt = "edad > 18"`). Ambas formas
 son equivalentes y retrocompatibles.}
 
-\item{dir}{Un string con la ruta del directorio de salida.}
+\item{dir}{Un string con la ruta del directorio de salida. Obligatorio (no
+tiene valor por defecto, para no escribir en el directorio de trabajo sin
+consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no existe.}
 
 \item{filename}{Un string con el nombre del archivo Excel.}
 
@@ -62,12 +64,17 @@ Para un **único diseño de encuesta**, calcula la proporción de
 \examples{
 \donttest{
 library(srvyr)
+library(dplyr)
 
-design_2024 <- as_survey_design(casen_2024, ids = varunit,
-                                strata = varstrat, weights = expr, nest = TRUE)
+# Se usa una región como subconjunto para un ejemplo rápido;
+# con la base completa el uso es idéntico.
+design_rm <- casen_2024 \%>\%
+  filter(region == 13) \%>\%
+  as_survey_design(ids = varunit, strata = varstrat,
+                   weights = expr, nest = TRUE)
 
-# Prevalencia de indicadores de inseguridad alimentaria por región
-multi_bin(design_2024, vars_binarias = paste0("r8", letters[1:8]),
-          des = "region", dir = tempdir())
+# Prevalencia de indicadores de inseguridad alimentaria por área
+multi_bin(design_rm, vars_binarias = paste0("r8", letters[1:8]),
+          des = "area", dir = tempdir())
 }
 }

@@ -14,3 +14,7 @@
 ^.*\.DS_Store$
 ^PLAN_MEJORAS\.md$
 ^dev$
+^dosr_.*\.tar\.gz$
+^\.Rhistory$
+^\.Rapp\.history$
+^output$

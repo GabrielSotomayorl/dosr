@@ -19,7 +19,7 @@ obs_total(
   parallel = FALSE,
   n_cores = NULL,
   save_xlsx = TRUE,
-  dir = "output",
+  dir = NULL,
   formato = TRUE,
   decimales = 2,
   nombre = NULL,
@@ -69,7 +69,10 @@ con múltiples diseños distribuye los diseños. Por defecto `FALSE`.}
 
 \item{save_xlsx}{Booleano. Si `TRUE`, guarda un reporte en Excel.}
 
-\item{dir}{Un string con la ruta del directorio donde se guardará el archivo Excel. Por defecto es `"output"`.}
+\item{dir}{Un string con la ruta del directorio donde se guardará el archivo Excel.
+Obligatorio cuando `save_xlsx = TRUE` (no tiene valor por defecto, para no
+escribir en el directorio de trabajo sin consentimiento explícito).
+Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no existe.}
 
 \item{formato}{Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.}
 

@@ -73,3 +73,63 @@ test_that("truncate_sheet_name recorta a 31 caracteres", {
 test_that("truncate_sheet_name no modifica nombres cortos", {
   expect_equal(dosr:::truncate_sheet_name("Mi hoja"), "Mi hoja")
 })
+
+test_that("truncate_sheet_name evita colisiones tras truncar", {
+  long_a <- paste0(paste(rep("a", 35), collapse = ""), "_x")
+  long_b <- paste0(paste(rep("a", 35), collapse = ""), "_y")
+  nm1 <- dosr:::truncate_sheet_name(long_a)
+  nm2 <- dosr:::truncate_sheet_name(long_b, existing = nm1)
+  expect_false(nm1 == nm2)
+  expect_lte(nchar(nm2), 31)
+
+  nm3 <- dosr:::truncate_sheet_name(long_b, existing = c(nm1, nm2))
+  expect_false(nm3 %in% c(nm1, nm2))
+  expect_lte(nchar(nm3), 31)
+})
+
+# ── validate_inputs ───────────────────────────────────────────────────────────
+
+test_that("validate_inputs revisa todos los diseños de la lista", {
+  dsgn_sin_var <- srvyr::as_survey_design(
+    casen_2022_mini[, setdiff(names(casen_2022_mini), "edad")],
+    ids = varunit, strata = varstrat, weights = expr, nest = TRUE
+  )
+  expect_silent(dosr:::validate_inputs(list(a = dsgn_2022, b = dsgn_2024), "edad", NULL))
+  expect_error(
+    dosr:::validate_inputs(list(a = dsgn_2022, b = dsgn_sin_var), "edad", NULL),
+    "edad"
+  )
+  expect_error(
+    dosr:::validate_inputs(list(a = dsgn_2022, b = dsgn_sin_var), "edad", NULL),
+    "'b'"
+  )
+})
+
+# ── n_cores inválido ──────────────────────────────────────────────────────────
+
+test_that("obs_media con n_cores inválido falla con mensaje claro", {
+  expect_error(
+    obs_media(dsgn_2022, sufijo = "2022", var = "edad",
+              parallel = TRUE, n_cores = 0,
+              save_xlsx = FALSE, verbose = FALSE),
+    "n_cores"
+  )
+})
+
+# ── validate_dir ──────────────────────────────────────────────────────────────
+
+test_that("obs_* exige 'dir' cuando save_xlsx = TRUE", {
+  expect_error(
+    obs_media(dsgn_2022, sufijo = "2022", var = "edad", verbose = FALSE),
+    "dir"
+  )
+  expect_silent(dosr:::validate_dir(NULL, save_xlsx = FALSE))
+  expect_silent(dosr:::validate_dir(tempdir(), save_xlsx = TRUE))
+})
+
+test_that("multi_bin exige 'dir' siempre", {
+  expect_error(
+    multi_bin(dsgn_2024, vars_binarias = R8_VARS, verbose = FALSE),
+    "dir"
+  )
+})

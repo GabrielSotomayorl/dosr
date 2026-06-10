@@ -116,3 +116,19 @@ test_that("multi_bin usa etiquetas de fiabilidad específicas (no genéricas)", 
   expect_true(all(flab %in% valid),
               info = paste("Etiquetas inesperadas:", paste(setdiff(flab, valid), collapse = ", ")))
 })
+
+# ── Validación de entrada ─────────────────────────────────────────────────────
+
+test_that("multi_bin rechaza objetos que no son tbl_svy", {
+  expect_error(
+    multi_bin(casen_2024_mini, vars_binarias = R8_VARS, dir = tempdir()),
+    "tbl_svy"
+  )
+})
+
+test_that("multi_bin rechaza listas de diseños", {
+  expect_error(
+    multi_bin(list(dsgn_2024, dsgn_2022), vars_binarias = R8_VARS, dir = tempdir()),
+    "nico dise"
+  )
+})

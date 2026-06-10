@@ -105,7 +105,12 @@
       max(1L, min(cores_detected - 1L, max_safe_cores,
                   if (n_designs > 1L) n_designs else max_safe_cores))
     } else {
-      n_cores
+      stopifnot(
+        "'n_cores' debe ser un entero positivo de longitud 1" =
+          is.numeric(n_cores) && length(n_cores) == 1L &&
+          is.finite(n_cores) && n_cores >= 1
+      )
+      as.integer(n_cores)
     }
     if (verbose) message(paste("... usando modo paralelo con", cores, "workers."))
     old_plan <- future::plan(future::multisession, workers = cores)
@@ -140,11 +145,11 @@
     select(any_of(keys), everything())
 }
 
-.save_simple_xlsx <- function(dir, filename, resultado_final) {
+.save_simple_xlsx <- function(dir, filename, resultado_final, verbose = TRUE) {
   dir.create(dir, showWarnings = FALSE, recursive = TRUE)
   wb <- createWorkbook()
   addWorksheet(wb, "Consolidado")
   write_clean_table(wb, "Consolidado", resultado_final, startRow = 1L, startCol = 1L)
   saveWorkbook(wb, filename, overwrite = TRUE)
-  message("Reporte Excel simple creado en: ", filename)
+  if (verbose) message("Reporte Excel simple creado en: ", filename)
 }

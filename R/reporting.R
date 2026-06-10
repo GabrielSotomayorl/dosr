@@ -287,7 +287,8 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
                                   snac = FALSE,
                                   mostrar_pct_fiable = FALSE,
                                   color_fiabilidad = FALSE,
-                                  fuente = NULL) {
+                                  fuente = NULL,
+                                  verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -352,7 +353,7 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
   for (combo in names(hojas_list)) {
     if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
-    hoja_nm <- truncate_sheet_name(paste0("2_", combo))
+    hoja_nm <- truncate_sheet_name(paste0("2_", combo), existing = names(wb))
     openxlsx::addWorksheet(wb, hoja_nm)
 
     openxlsx::writeData(wb, hoja_nm, nombre_indicador, startRow = 2, startCol = 1)
@@ -460,7 +461,7 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
     }
   }
   openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
-  message("Reporte Excel de proporciones creado en: ", filename)
+  if (verbose) message("Reporte Excel de proporciones creado en: ", filename)
 }
 
 # ---------------------------------------------------------------------------- #
@@ -526,7 +527,8 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
                                   snac = FALSE,
                                   mostrar_pct_fiable = FALSE,
                                   color_fiabilidad = FALSE,
-                                  fuente = NULL) {
+                                  fuente = NULL,
+                                  verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -547,7 +549,7 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
   for (combo in names(hojas_list)) {
     if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
-    hoja_nm <- truncate_sheet_name(paste0("2_", combo))
+    hoja_nm <- truncate_sheet_name(paste0("2_", combo), existing = names(wb))
     openxlsx::addWorksheet(wb, hoja_nm)
 
     openxlsx::writeData(wb, hoja_nm, nombre_indicador, startRow = 2, startCol = 1)
@@ -655,7 +657,7 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
     }
   }
   openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
-  message("Reporte Excel de medias creado en: ", filename)
+  if (verbose) message("Reporte Excel de medias creado en: ", filename)
 }
 
 # ---------------------------------------------------------------------------- #
@@ -666,7 +668,8 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
                                    snac = FALSE,
                                    mostrar_pct_fiable = FALSE,
                                    color_fiabilidad = FALSE,
-                                   fuente = NULL) {
+                                   fuente = NULL,
+                                  verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -688,7 +691,7 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
   for (combo in names(hojas_list)) {
     if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
-    hoja_nm <- truncate_sheet_name(paste0("2_", combo))
+    hoja_nm <- truncate_sheet_name(paste0("2_", combo), existing = names(wb))
     openxlsx::addWorksheet(wb, hoja_nm)
 
     openxlsx::writeData(wb, hoja_nm, nombre_indicador, startRow = 2, startCol = 1)
@@ -796,7 +799,7 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
     }
   }
   openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
-  message("Reporte Excel de totales creado en: ", filename)
+  if (verbose) message("Reporte Excel de totales creado en: ", filename)
 }
 
 # ---------------------------------------------------------------------------- #
@@ -807,7 +810,8 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
                                    snac = FALSE,
                                    mostrar_pct_fiable = FALSE,
                                    color_fiabilidad = FALSE,
-                                   fuente = NULL) {
+                                   fuente = NULL,
+                                  verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -828,7 +832,7 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
   for (combo in names(hojas_list)) {
     if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
-    hoja_nm <- truncate_sheet_name(paste0("2_", combo))
+    hoja_nm <- truncate_sheet_name(paste0("2_", combo), existing = names(wb))
     openxlsx::addWorksheet(wb, hoja_nm)
 
     openxlsx::writeData(wb, hoja_nm, nombre_indicador, startRow = 2, startCol = 1)
@@ -936,7 +940,7 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
     }
   }
   openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
-  message("Reporte Excel de ratios creado en: ", filename)
+  if (verbose) message("Reporte Excel de ratios creado en: ", filename)
 }
 
 # ---------------------------------------------------------------------------- #
@@ -947,7 +951,8 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
                                       snac = FALSE,
                                       mostrar_pct_fiable = FALSE,
                                       color_fiabilidad = FALSE,
-                                      fuente = NULL) {
+                                      fuente = NULL,
+                                  verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
   openxlsx::addWorksheet(wb, "1_Consolidado")
   write_clean_table(wb, "1_Consolidado", consolidated_df, startRow = 1, startCol = 1)
@@ -969,7 +974,7 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
   for (combo in names(hojas_list)) {
     if (snac && combo == "nac") next
     grp_des <- if (combo == "nac") character(0) else strsplit(combo, "__")[[1]]
-    hoja_nm <- truncate_sheet_name(paste0("2_", combo))
+    hoja_nm <- truncate_sheet_name(paste0("2_", combo), existing = names(wb))
     openxlsx::addWorksheet(wb, hoja_nm)
 
     openxlsx::writeData(wb, hoja_nm, nombre_indicador, startRow = 2, startCol = 1)
@@ -1077,5 +1082,5 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
     }
   }
   openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
-  message("Reporte Excel de cuantiles creado en: ", filename)
+  if (verbose) message("Reporte Excel de cuantiles creado en: ", filename)
 }
