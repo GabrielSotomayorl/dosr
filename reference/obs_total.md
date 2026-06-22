@@ -128,7 +128,7 @@ obs_total(
 - nombre:
 
   String. Nombre del indicador que se muestra en el reporte Excel. Si se
-  especifica, sobreescribe la etiqueta de variable aunque
+  especifica, sobrescribe la etiqueta de variable aunque
   \`usar_etiqueta_var = TRUE\`.
 
 - fuente:
