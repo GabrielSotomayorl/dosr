@@ -81,7 +81,7 @@ Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no exist
 
 \item{decimales}{Entero. Número de decimales para las estimaciones en Excel.}
 
-\item{nombre}{String. Nombre del indicador que se muestra en el reporte Excel. Si se especifica, sobreescribe la etiqueta de variable aunque `usar_etiqueta_var = TRUE`.}
+\item{nombre}{String. Nombre del indicador que se muestra en el reporte Excel. Si se especifica, sobrescribe la etiqueta de variable aunque `usar_etiqueta_var = TRUE`.}
 
 \item{fuente}{String. Fuente de los datos para el pie del reporte Excel. Acepta claves estándar (`"casen"`, `"ebs"`, `"endide"`, `"eanna"`, `"elpi"`) o texto libre.}
 

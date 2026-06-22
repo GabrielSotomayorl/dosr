@@ -188,7 +188,7 @@ obs_prop <- function(designs,
 #'   Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no existe.
 #' @param formato Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.
 #' @param decimales Entero. Número de decimales para las estimaciones en Excel.
-#' @param nombre String. Nombre del indicador que se muestra en el reporte Excel. Si se especifica, sobreescribe la etiqueta de variable aunque `usar_etiqueta_var = TRUE`.
+#' @param nombre String. Nombre del indicador que se muestra en el reporte Excel. Si se especifica, sobrescribe la etiqueta de variable aunque `usar_etiqueta_var = TRUE`.
 #' @param fuente String. Fuente de los datos para el pie del reporte Excel. Acepta claves estándar (`"casen"`, `"ebs"`, `"endide"`, `"eanna"`, `"elpi"`) o texto libre.
 #' @param snac Booleano. Si `TRUE`, omite la hoja de formato del nivel nacional. El consolidado siempre incluye el nivel nacional. Por defecto `FALSE`.
 #' @param mostrar_pct_fiable Booleano. Si `TRUE`, la nota de fiabilidad incluye el porcentaje de estimaciones fiables del cuadro. Por defecto `FALSE`.
