@@ -18,3 +18,4 @@
 ^\.Rhistory$
 ^\.Rapp\.history$
 ^output$
+^dosr-manual\.(pdf|tex)$
