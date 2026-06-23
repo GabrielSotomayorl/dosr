@@ -26,7 +26,9 @@
 * macOS aarch64 (Apple Silicon), R 4.4.3 (local) — 0 errors, 0 warnings,
   2 notes (see above; a third local-only NOTE "unable to verify current
   time" is an artifact of the offline check environment).
-* win-builder (R-devel) — to be re-run for 0.3.3 before submission.
+* win-builder (R-devel, R 4.6.0) — 0 errors, 0 warnings, 1 note
+  ("New submission").
+* win-builder (R-release) — submitted; same result expected.
 
 ## Reverse dependencies
 
