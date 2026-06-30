@@ -43,18 +43,16 @@ create_lightweight_designs <- function(design_list, main_var, des_vars, filter_v
 #' @param categoria Vector de valores (labels o códigos numéricos) para filtrar las categorías de `var` a mostrar en el output. Las demás categorías se excluyen del resultado y del reporte Excel.
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @examples
-#' \donttest{
 #' library(srvyr)
 #' library(dplyr)
-#' # Se usa una región como subconjunto para un ejemplo rápido;
+#' # Se usa una región pequeña (Aysén) para un ejemplo rápido;
 #' # con la base completa el uso es idéntico.
 #' design_2022 <- casen_2022 %>%
-#'   filter(region == 13) %>%
+#'   filter(region == 11) %>%
 #'   as_survey_design(ids = varunit, strata = varstrat,
 #'                    weights = expr, nest = TRUE)
 #' obs_prop(design_2022, sufijo = "2022", var = "pobreza",
 #'          porcentaje = TRUE, save_xlsx = FALSE, verbose = FALSE)
-#' }
 #' @export
 obs_prop <- function(designs,
                      sufijo             = NULL,
@@ -201,13 +199,16 @@ obs_prop <- function(designs,
 #' @param verbose Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @examples
-#' \donttest{
 #' library(srvyr)
-#' design_2022 <- as_survey_design(casen_2022, ids = varunit,
-#'                                 strata = varstrat, weights = expr, nest = TRUE)
+#' library(dplyr)
+#' # Se usa una región pequeña (Aysén) para un ejemplo rápido;
+#' # con la base completa el uso es idéntico.
+#' design_2022 <- casen_2022 %>%
+#'   filter(region == 11) %>%
+#'   as_survey_design(ids = varunit, strata = varstrat,
+#'                    weights = expr, nest = TRUE)
 #' obs_media(design_2022, sufijo = "2022", var = "ytotcorh",
 #'           save_xlsx = FALSE, verbose = FALSE)
-#' }
 #' @export
 obs_media <- function(designs,
                       sufijo             = NULL,
@@ -300,13 +301,16 @@ obs_media <- function(designs,
 #' @inheritParams obs_media
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @examples
-#' \donttest{
 #' library(srvyr)
-#' design_2022 <- as_survey_design(casen_2022, ids = varunit,
-#'                                 strata = varstrat, weights = expr, nest = TRUE)
+#' library(dplyr)
+#' # Se usa una región pequeña (Aysén) para un ejemplo rápido;
+#' # con la base completa el uso es idéntico.
+#' design_2022 <- casen_2022 %>%
+#'   filter(region == 11) %>%
+#'   as_survey_design(ids = varunit, strata = varstrat,
+#'                    weights = expr, nest = TRUE)
 #' obs_total(design_2022, sufijo = "2022", var = "ytotcorh",
 #'           save_xlsx = FALSE, verbose = FALSE)
-#' }
 #' @export
 obs_total <- function(designs,
                       sufijo             = NULL,
@@ -410,17 +414,19 @@ obs_total <- function(designs,
 #'
 #' @return Un `data.frame` con los resultados consolidados (invisiblemente).
 #' @examples
-#' \donttest{
 #' library(srvyr)
 #' library(dplyr)
-#' design_2022 <- as_survey_design(casen_2022, ids = varunit,
-#'                                 strata = varstrat, weights = expr, nest = TRUE)
+#' # Se usa una región pequeña (Aysén) para un ejemplo rápido;
+#' # con la base completa el uso es idéntico.
+#' design_2022 <- casen_2022 %>%
+#'   filter(region == 11) %>%
+#'   as_survey_design(ids = varunit, strata = varstrat,
+#'                    weights = expr, nest = TRUE)
 #' design_2022$variables <- design_2022$variables %>%
 #'   mutate(mujer  = as.integer(as.numeric(sexo) == 2),
 #'          hombre = as.integer(as.numeric(sexo) == 1))
 #' obs_ratio(design_2022, sufijo = "2022", num = "mujer", den = "hombre",
 #'           save_xlsx = FALSE, verbose = FALSE)
-#' }
 #' @export
 obs_ratio <- function(designs,
                       sufijo             = NULL,
@@ -545,13 +551,16 @@ obs_ratio <- function(designs,
 #' @param cuant Probabilidad del cuantil a calcular. Debe estar entre 0 y 1. Por defecto `0.5` (mediana).
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @examples
-#' \donttest{
 #' library(srvyr)
-#' design_2022 <- as_survey_design(casen_2022, ids = varunit,
-#'                                 strata = varstrat, weights = expr, nest = TRUE)
+#' library(dplyr)
+#' # Se usa una región pequeña (Aysén) para un ejemplo rápido;
+#' # con la base completa el uso es idéntico.
+#' design_2022 <- casen_2022 %>%
+#'   filter(region == 11) %>%
+#'   as_survey_design(ids = varunit, strata = varstrat,
+#'                    weights = expr, nest = TRUE)
 #' obs_cuantil(design_2022, sufijo = "2022", var = "ytotcorh", cuant = 0.5,
 #'             save_xlsx = FALSE, verbose = FALSE)
-#' }
 #' @export
 obs_cuantil <- function(designs,
                         sufijo             = NULL,

@@ -107,11 +107,14 @@ Un data.frame con los resultados consolidados (invisiblemente).
 Procesa uno o más `tbl_svy` para calcular medias.
 }
 \examples{
-\donttest{
 library(srvyr)
-design_2022 <- as_survey_design(casen_2022, ids = varunit,
-                                strata = varstrat, weights = expr, nest = TRUE)
+library(dplyr)
+# Se usa una región pequeña (Aysén) para un ejemplo rápido;
+# con la base completa el uso es idéntico.
+design_2022 <- casen_2022 \%>\%
+  filter(region == 11) \%>\%
+  as_survey_design(ids = varunit, strata = varstrat,
+                   weights = expr, nest = TRUE)
 obs_media(design_2022, sufijo = "2022", var = "ytotcorh",
           save_xlsx = FALSE, verbose = FALSE)
-}
 }

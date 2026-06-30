@@ -1,3 +1,20 @@
+# dosr 0.3.4
+
+## Cambios para la publicación en CRAN
+
+*   El `Title` y la `Description` del paquete se redactaron en inglés,
+    reflejando el propósito general del paquete: herramientas desarrolladas
+    para la División Observatorio Social aplicables a cualquier encuesta de
+    diseño complejo (la 'CASEN' se incluye solo como datos de ejemplo). Se
+    añadieron las referencias de los métodos siguiendo las convenciones de
+    CRAN: la metodología de fiabilidad del Observatorio Social (División
+    Observatorio Social, 2023) y del INE (2020), y los métodos de estimación
+    en encuestas complejas (Lumley, 2010). La documentación de las funciones
+    y las viñetas permanecen en español.
+*   Los ejemplos de todas las funciones exportadas dejan de estar envueltos
+    en `\donttest{}` y ahora se ejecutan (y se testean) automáticamente,
+    usando una región pequeña de la CASEN para correr en pocos segundos.
+
 # dosr 0.3.3
 
 ## Cambios de comportamiento (breaking)

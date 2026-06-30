@@ -113,16 +113,14 @@ Un data.frame con los resultados consolidados (invisiblemente).
 Procesa uno o más `tbl_svy` para calcular proporciones.
 }
 \examples{
-\donttest{
 library(srvyr)
 library(dplyr)
-# Se usa una región como subconjunto para un ejemplo rápido;
+# Se usa una región pequeña (Aysén) para un ejemplo rápido;
 # con la base completa el uso es idéntico.
 design_2022 <- casen_2022 \%>\%
-  filter(region == 13) \%>\%
+  filter(region == 11) \%>\%
   as_survey_design(ids = varunit, strata = varstrat,
                    weights = expr, nest = TRUE)
 obs_prop(design_2022, sufijo = "2022", var = "pobreza",
          porcentaje = TRUE, save_xlsx = FALSE, verbose = FALSE)
-}
 }

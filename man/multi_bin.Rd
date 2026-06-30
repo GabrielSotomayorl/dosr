@@ -62,19 +62,17 @@ Para un **único diseño de encuesta**, calcula la proporción de
   simple.
 }
 \examples{
-\donttest{
 library(srvyr)
 library(dplyr)
 
-# Se usa una región como subconjunto para un ejemplo rápido;
+# Se usa una región pequeña (Aysén) para un ejemplo rápido;
 # con la base completa el uso es idéntico.
-design_rm <- casen_2024 \%>\%
-  filter(region == 13) \%>\%
+design_ays <- casen_2024 \%>\%
+  filter(region == 11) \%>\%
   as_survey_design(ids = varunit, strata = varstrat,
                    weights = expr, nest = TRUE)
 
 # Prevalencia de indicadores de inseguridad alimentaria por área
-multi_bin(design_rm, vars_binarias = paste0("r8", letters[1:8]),
-          des = "area", dir = tempdir())
-}
+multi_bin(design_ays, vars_binarias = paste0("r8", letters[1:8]),
+          des = "area", dir = tempdir(), verbose = FALSE)
 }

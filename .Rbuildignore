@@ -19,3 +19,4 @@
 ^\.Rapp\.history$
 ^output$
 ^dosr-manual\.(pdf|tex)$
+^CRAN-SUBMISSION$
