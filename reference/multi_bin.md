@@ -90,7 +90,6 @@ Un data.frame con todos los resultados consolidados (invisiblemente).
 ## Examples
 
 ``` r
-# \donttest{
 library(srvyr)
 #> 
 #> Attaching package: ‘srvyr’
@@ -107,20 +106,14 @@ library(dplyr)
 #> 
 #>     intersect, setdiff, setequal, union
 
-# Se usa una región como subconjunto para un ejemplo rápido;
+# Se usa una región pequeña (Aysén) para un ejemplo rápido;
 # con la base completa el uso es idéntico.
-design_rm <- casen_2024 %>%
-  filter(region == 13) %>%
+design_ays <- casen_2024 %>%
+  filter(region == 11) %>%
   as_survey_design(ids = varunit, strata = varstrat,
                    weights = expr, nest = TRUE)
 
 # Prevalencia de indicadores de inseguridad alimentaria por área
-multi_bin(design_rm, vars_binarias = paste0("r8", letters[1:8]),
-          des = "area", dir = tempdir())
-#> Aplicando filtro (si aplica)...
-#> Calculando perfil nacional...
-#> Calculando desagregación por: area ...
-#> Generando reporte Excel...
-#> Reporte Excel creado en: /tmp/RtmpEvnOa5/r8a-r8h_area_MULT.xlsx
-# }
+multi_bin(design_ays, vars_binarias = paste0("r8", letters[1:8]),
+          des = "area", dir = tempdir(), verbose = FALSE)
 ```

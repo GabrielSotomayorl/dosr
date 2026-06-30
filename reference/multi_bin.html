@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -153,8 +153,7 @@ consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no exi
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Attaching package: ‘srvyr’</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The following object is masked from ‘package:stats’:</span>
@@ -170,22 +169,16 @@ consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no exi
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect, setdiff, setequal, union</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Se usa una región como subconjunto para un ejemplo rápido;</span></span></span>
+<span class="r-in"><span><span class="co"># Se usa una región pequeña (Aysén) para un ejemplo rápido;</span></span></span>
 <span class="r-in"><span><span class="co"># con la base completa el uso es idéntico.</span></span></span>
-<span class="r-in"><span><span class="va">design_rm</span> <span class="op">&lt;-</span> <span class="va">casen_2024</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">region</span> <span class="op">==</span> <span class="fl">13</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span><span class="va">design_ays</span> <span class="op">&lt;-</span> <span class="va">casen_2024</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">region</span> <span class="op">==</span> <span class="fl">11</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="http://gdfe.co/srvyr/reference/as_survey_design.html" class="external-link">as_survey_design</a></span><span class="op">(</span>ids <span class="op">=</span> <span class="va">varunit</span>, strata <span class="op">=</span> <span class="va">varstrat</span>,</span></span>
 <span class="r-in"><span>                   weights <span class="op">=</span> <span class="va">expr</span>, nest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Prevalencia de indicadores de inseguridad alimentaria por área</span></span></span>
-<span class="r-in"><span><span class="fu">multi_bin</span><span class="op">(</span><span class="va">design_rm</span>, vars_binarias <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"r8"</span>, <span class="va">letters</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">]</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>          des <span class="op">=</span> <span class="st">"area"</span>, dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Aplicando filtro (si aplica)...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Calculando perfil nacional...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Calculando desagregación por: area ...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Generando reporte Excel...</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Reporte Excel creado en: /tmp/RtmpEvnOa5/r8a-r8h_area_MULT.xlsx</span>
-<span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="fu">multi_bin</span><span class="op">(</span><span class="va">design_ays</span>, vars_binarias <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"r8"</span>, <span class="va">letters</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">]</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>          des <span class="op">=</span> <span class="st">"area"</span>, dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

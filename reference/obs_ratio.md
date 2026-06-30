@@ -200,15 +200,17 @@ Un \`data.frame\` con los resultados consolidados (invisiblemente).
 ## Examples
 
 ``` r
-# \donttest{
 library(srvyr)
 library(dplyr)
-design_2022 <- as_survey_design(casen_2022, ids = varunit,
-                                strata = varstrat, weights = expr, nest = TRUE)
+# Se usa una región pequeña (Aysén) para un ejemplo rápido;
+# con la base completa el uso es idéntico.
+design_2022 <- casen_2022 %>%
+  filter(region == 11) %>%
+  as_survey_design(ids = varunit, strata = varstrat,
+                   weights = expr, nest = TRUE)
 design_2022$variables <- design_2022$variables %>%
   mutate(mujer  = as.integer(as.numeric(sexo) == 2),
          hombre = as.integer(as.numeric(sexo) == 1))
 obs_ratio(design_2022, sufijo = "2022", num = "mujer", den = "hombre",
           save_xlsx = FALSE, verbose = FALSE)
-# }
 ```
