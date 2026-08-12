@@ -34,13 +34,18 @@ obs_prop(
   cv_umbral_medio = 0.2,
   n_minimo = 30L,
   nivel_confianza = 0.95,
-  verbose = TRUE
+  verbose = TRUE,
+  filename = NULL,
+  notas = NULL,
+  mostrar_evaluacion_general = TRUE,
+  color_significancia = FALSE
 )
 }
 \arguments{
 \item{designs}{Un objeto `tbl_svy` o una lista de ellos.}
 
-\item{sufijo}{Vector de strings para sufijos (p.ej. c("2020","2022")).}
+\item{sufijo}{Vector de strings no vacíos y únicos para sufijos
+(p.ej. `c("2020", "2022")`).}
 
 \item{var}{Un string con el nombre de la variable de interés (numérica).}
 
@@ -94,7 +99,9 @@ Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no exist
 
 \item{universo_crit}{Booleano. Solo aplica a `obs_prop`. Si `TRUE`, fuerza el uso del N total del dominio (suma de categorías) para el criterio muestral de fiabilidad, independientemente del número de categorías. Por defecto `FALSE` (comportamiento automático).}
 
-\item{categoria}{Vector de valores (labels o códigos numéricos) para filtrar las categorías de `var` a mostrar en el output. Las demás categorías se excluyen del resultado y del reporte Excel.}
+\item{categoria}{Vector de etiquetas o códigos originales para filtrar las
+categorías de `var` que se muestran en el resultado y el reporte Excel.
+Los códigos pueden ser no consecutivos, como en variables `haven_labelled`.}
 
 \item{cv_umbral_alto}{Numérico. Umbral de CV para clasificar una estimación como "No Fiable (CV)". Por defecto `0.30`.}
 
@@ -105,6 +112,19 @@ Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no exist
 \item{nivel_confianza}{Numérico. Nivel de confianza para intervalos y pruebas de significancia. Por defecto `0.95`.}
 
 \item{verbose}{Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.}
+
+\item{filename}{Nombre personalizado del archivo Excel, con o sin extensión
+`.xlsx`. Si es `NULL`, se genera automáticamente; los nombres automáticos
+solo se truncan cuando exceden el límite portable y conservan años y tipo.}
+
+\item{notas}{Vector de textos para notas al pie personalizadas. Se rotulan
+automáticamente con letras y se escriben antes de la fuente.}
+
+\item{mostrar_evaluacion_general}{Booleano. Si `TRUE` (por defecto), incluye
+la evaluación general de fiabilidad dentro de las notas del tabulado.}
+
+\item{color_significancia}{Booleano. Si `TRUE`, destaca los p-valores menores
+que `1 - nivel_confianza` en las tablas de significancia. Por defecto `FALSE`.}
 }
 \value{
 Un data.frame con los resultados consolidados (invisiblemente).

@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------- #
-# Archivo: utils.R (VERSIÓN CON HELPERS ROBUSTECIDOS)
+# Archivo: utils.R (VERSION CON HELPERS ROBUSTECIDOS)
 # ---------------------------------------------------------------------------- #
 
 #' @importFrom openxlsx createStyle writeData addStyle mergeCells
@@ -27,6 +27,91 @@ truncate_sheet_name <- function(name, existing = character(0)) {
     }
     i <- i + 1L
   }
+}
+
+#' Build a portable Excel filename while preserving current short names.
+#' @noRd
+.short_name_hash <- function(x, width = 6L) {
+  modulo <- 16^width
+  value <- 216613L
+  for (code in utf8ToInt(enc2utf8(x))) {
+    value <- (as.double(value) * 131 + code) %% modulo
+  }
+  sprintf(paste0("%0", width, "x"), as.integer(value))
+}
+
+#' @noRd
+.truncate_utf8_bytes <- function(x, max_bytes) {
+  chars <- strsplit(enc2utf8(x), "", fixed = TRUE)[[1]]
+  if (length(chars) == 0L) return("")
+  sizes <- nchar(chars, type = "bytes")
+  keep <- which(cumsum(sizes) <= max_bytes)
+  if (length(keep) == 0L) return("")
+  paste0(chars[keep], collapse = "")
+}
+
+#' @noRd
+.validate_custom_filename <- function(filename, max_bytes = 255L) {
+  if (!is.character(filename) || length(filename) != 1L || is.na(filename) || !nzchar(filename)) {
+    stop("'filename' debe ser un string no vac\u00edo.", call. = FALSE)
+  }
+  if (basename(filename) != filename || grepl("[<>:\"/\\\\|?*]", filename)) {
+    stop("'filename' debe ser solo un nombre de archivo y no puede contener caracteres no permitidos por Excel.", call. = FALSE)
+  }
+  if (grepl("[. ]$", filename)) {
+    stop("'filename' no puede terminar en un punto o un espacio.", call. = FALSE)
+  }
+  if (!grepl("[.]xlsx$", filename, ignore.case = TRUE)) filename <- paste0(filename, ".xlsx")
+  if (nchar(filename, type = "bytes") > max_bytes) {
+    stop("'filename' supera el l\u00edmite portable de 255 bytes.", call. = FALSE)
+  }
+  filename
+}
+
+# Keeps the historical automatic name unchanged unless it exceeds max_bytes.
+# Only the descriptive part is shortened; the years/type suffix is preserved.
+#' @noRd
+.build_excel_path <- function(dir, descriptive, suffix, filename = NULL,
+                              max_bytes = 200L) {
+  if (!is.null(filename)) {
+    return(file.path(dir, .validate_custom_filename(filename)))
+  }
+
+  extension <- ".xlsx"
+  automatic <- paste0(descriptive, suffix, extension)
+  if (nchar(automatic, type = "bytes") <= max_bytes) {
+    return(file.path(dir, automatic))
+  }
+
+  hash <- .short_name_hash(descriptive)
+  fixed <- paste0("_", hash, suffix, extension)
+  available <- max_bytes - nchar(fixed, type = "bytes")
+  if (available < 1L) {
+    stop("Los a\u00f1os y el tipo de c\u00e1lculo producen un nombre de archivo excesivamente largo.", call. = FALSE)
+  }
+  shortened <- .truncate_utf8_bytes(descriptive, available)
+  file.path(dir, paste0(shortened, fixed))
+}
+
+#' @noRd
+.validate_notes <- function(notas) {
+  if (is.null(notas)) return(character(0))
+  if (!is.character(notas) || anyNA(notas) || any(!nzchar(trimws(notas)))) {
+    stop("'notas' debe ser un vector de textos no vac\u00edos y sin NA.", call. = FALSE)
+  }
+  trimws(notas)
+}
+
+# a, b, ..., z, aa, ab, ...
+#' @noRd
+.letter_label <- function(i) {
+  out <- character(0)
+  while (i > 0L) {
+    i <- i - 1L
+    out <- c(letters[(i %% 26L) + 1L], out)
+    i <- i %/% 26L
+  }
+  paste0(out, collapse = "")
 }
 unique_cols <- function(df) {
   names(df) <- make.unique(names(df))
@@ -58,9 +143,9 @@ write_clean_table <- function(
   startCol = 1,
   na_string = ""
 ) {
-  # ## CORRECCIÓN ##: Guardia defensiva para prevenir el error 'replacement has length zero'
+  # Guardia defensiva para prevenir el error 'replacement has length zero'
   if (is.null(x) || nrow(x) == 0) {
-    return() # No hacer nada si el data.frame está vacío o es NULL
+    return() # No hacer nada si el data.frame esta vacio o es NULL
   }
 
   # Convertir a data.frame para manejar cualquier estructura de entrada
@@ -188,7 +273,7 @@ validate_inputs <- function(design, var, des) {
 #' NULL Coalescing Operator
 #'
 #' Devuelve `b` si `a` es NULL, de lo contrario devuelve `a`.
-#' Es una versión simple del operador `%||%` de rlang para evitar dependencias.
+#' Es una version simple del operador `%||%` de rlang para evitar dependencias.
 #'
 #' @param a El valor a probar.
 #' @param b El valor por defecto.

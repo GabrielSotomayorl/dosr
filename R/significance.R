@@ -108,7 +108,9 @@ calculate_significance <- function(hojas_list, sufijo, type, main_var_prop, des_
   # Key columns to keep in test output tables for a given combo
   get_key_cols <- function(grp_des) {
     if (type == "prop") {
-      unique(c(main_var_prop, grp_des))
+      # Mantener la categoría del indicador inmediatamente antes de los datos,
+      # igual que en el tabulado de estimaciones.
+      unique(c(grp_des, main_var_prop))
     } else {
       unique(c("variable", "nivel", grp_des))
     }

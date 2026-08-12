@@ -1,14 +1,24 @@
 # dosr <img src="man/figures/logo.png" align="right" height="139"/>
 
+[![CRAN status](https://www.r-pkg.org/badges/version/dosr)](https://CRAN.R-project.org/package=dosr)
 [![R-CMD-check](https://github.com/GabrielSotomayorl/dosr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/GabrielSotomayorl/dosr/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle: stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Downloads](https://cranlogs.r-pkg.org/badges/dosr)](https://CRAN.R-project.org/package=dosr)
 
 Herramientas de análisis de encuestas para el Observatorio Social del Ministerio de Desarrollo Social de Chile.
 
 `dosr` provee funciones de alto nivel para calcular estimaciones (medias, proporciones, totales, razones y cuantiles) sobre diseños de encuestas complejas (como la CASEN) y generar reportes estandarizados en Excel con clasificación automática de fiabilidad estadística.
 
 ## Instalación
+
+Versión estable desde CRAN:
+
+```r
+install.packages("dosr")
+```
+
+Versión de desarrollo desde GitHub:
 
 ```r
 # install.packages("remotes")
@@ -111,5 +121,5 @@ multi_bin(design_2024,
 
 ## Requisitos
 
-- R ≥ 3.5.0
+- R ≥ 4.1.0
 - `srvyr`, `dplyr`, `purrr`, `rlang`, `openxlsx`, `haven`, `labelled`

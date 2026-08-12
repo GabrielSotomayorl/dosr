@@ -1,11 +1,11 @@
-#' Encuesta CASEN 2022 — subconjunto de variables clave
+#' Encuesta CASEN 2022 - subconjunto de variables clave
 #'
 #' Subconjunto de la Encuesta de Caracterización Socioeconómica Nacional (CASEN)
 #' 2022, publicada por el Ministerio de Desarrollo Social y Familia de Chile.
 #' Contiene todas las observaciones de la encuesta original y las variables
 #' necesarias para ilustrar el uso de las funciones del paquete `dosr`.
 #'
-#' @format Un `data.frame` con 202.231 filas y 18 variables:
+#' @format Un `data.frame` con 202.231 filas y 19 variables:
 #' \describe{
 #'   \item{expr}{Factor de expansión regional.}
 #'   \item{varstrat}{Estratos de varianza (variable de estratificación para el diseño muestral).}
@@ -14,6 +14,8 @@
 #'   \item{area}{Área: 1 = Urbano, 2 = Rural (haven_labelled).}
 #'   \item{sexo}{Sexo: 1 = Hombre, 2 = Mujer (haven_labelled).}
 #'   \item{edad}{Edad en años.}
+#'   \item{pco1}{Relación con la jefatura del hogar; el código 1 identifica a
+#'     la persona jefa de hogar (haven_labelled).}
 #'   \item{pobreza}{Situación de pobreza por ingresos: 1 = Pobreza extrema,
 #'     2 = Pobreza no extrema, 3 = Fuera de la pobreza (haven_labelled).}
 #'   \item{ytotcorh}{Ingreso total corregido del hogar (pesos chilenos).}
@@ -41,14 +43,14 @@
 "casen_2022"
 
 
-#' Encuesta CASEN 2024 — subconjunto de variables clave
+#' Encuesta CASEN 2024 - subconjunto de variables clave
 #'
 #' Subconjunto de la Encuesta de Caracterización Socioeconómica Nacional (CASEN)
 #' 2024, publicada por el Ministerio de Desarrollo Social y Familia de Chile.
 #' Contiene todas las observaciones de la encuesta original y las variables
 #' necesarias para ilustrar el uso de las funciones del paquete `dosr`.
 #'
-#' @format Un `data.frame` con 218.367 filas y 18 variables:
+#' @format Un `data.frame` con 218.367 filas y 19 variables:
 #' \describe{
 #'   \item{expr}{Factor de expansión regional.}
 #'   \item{varstrat}{Estratos de varianza (variable de estratificación para el diseño muestral).}
@@ -57,6 +59,8 @@
 #'   \item{area}{Área: 1 = Urbano, 2 = Rural (haven_labelled).}
 #'   \item{sexo}{Sexo: 1 = Hombre, 2 = Mujer (haven_labelled).}
 #'   \item{edad}{Edad en años.}
+#'   \item{pco1}{Relación con la jefatura del hogar; el código 1 identifica a
+#'     la persona jefa de hogar (haven_labelled).}
 #'   \item{pobreza}{Situación de pobreza por ingresos: 1 = Pobreza extrema,
 #'     2 = Pobreza no extrema, 3 = Fuera de la pobreza (haven_labelled).}
 #'   \item{ytotcorh}{Ingreso total corregido del hogar (pesos chilenos).}

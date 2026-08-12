@@ -15,7 +15,10 @@ multi_bin(
   decimales = 1,
   decimales_se = 3,
   n_minimo = 30,
-  verbose = TRUE
+  verbose = TRUE,
+  notas = NULL,
+  mostrar_evaluacion_general = TRUE,
+  mostrar_pct_fiable = FALSE
 )
 }
 \arguments{
@@ -38,7 +41,9 @@ son equivalentes y retrocompatibles.}
 tiene valor por defecto, para no escribir en el directorio de trabajo sin
 consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no existe.}
 
-\item{filename}{Un string con el nombre del archivo Excel.}
+\item{filename}{Nombre personalizado del archivo Excel, con o sin extensión
+`.xlsx`. Si es `NULL`, se genera automáticamente y se trunca de forma
+segura solo si supera el umbral portable.}
 
 \item{decimales}{Entero. Número de decimales para la estimación puntual. Por defecto es 1.}
 
@@ -47,6 +52,15 @@ consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no exi
 \item{n_minimo}{Entero. Tamaño muestral mínimo para clasificar una estimación como fiable. Por defecto es `30`.}
 
 \item{verbose}{Booleano. Si `TRUE`, muestra mensajes de progreso.}
+
+\item{notas}{Vector de textos para notas al pie personalizadas, rotuladas
+automáticamente con letras.}
+
+\item{mostrar_evaluacion_general}{Booleano. Si `TRUE` (por defecto), incluye
+la evaluación general de fiabilidad como primera nota.}
+
+\item{mostrar_pct_fiable}{Booleano. Si `TRUE`, la evaluación general incluye
+el porcentaje de estimaciones fiables.}
 }
 \value{
 Un data.frame con todos los resultados consolidados (invisiblemente).

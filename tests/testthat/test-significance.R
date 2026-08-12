@@ -33,3 +33,29 @@ test_that("calculate_significance con un solo sufijo retorna solo intra_year (si
   expect_null(result$against_last_year)
   expect_null(result$against_national)
 })
+
+test_that("significancias de proporciones conservan orden de desagregación y categoría", {
+  df <- tibble::tibble(
+    categoria = factor(c("Primera", "Segunda", "Tercera"),
+                       levels = c("Primera", "Segunda", "Tercera")),
+    grupo = factor(c("B", "B", "B"), levels = c("B", "A")),
+    nivel = "grupo",
+    prop_2022 = c(10, 20, 70), se_2022 = c(1, 1, 1), gl_2022 = 50,
+    prop_2024 = c(12, 18, 70), se_2024 = c(1, 1, 1), gl_2024 = 50
+  )
+  hojas <- list(
+    nac = dplyr::select(df, -grupo),
+    grupo = df
+  )
+
+  result <- dosr:::calculate_significance(
+    hojas, c("2022", "2024"), "prop", "categoria", "grupo"
+  )
+  last <- result$against_last_year$grupo
+  intra <- result$intra_year$grupo$`2022`
+
+  expect_equal(names(last)[1:2], c("grupo", "categoria"))
+  expect_equal(as.character(last$categoria), c("Primera", "Segunda", "Tercera"))
+  expect_equal(as.character(intra$categoria), c("Primera", "Segunda", "Tercera"))
+  expect_match(names(intra)[3], "B\\nPrimera", fixed = FALSE)
+})

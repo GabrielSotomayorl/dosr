@@ -25,6 +25,18 @@
     "La longitud de 'sufijo' debe coincidir con el n\u00famero de dise\u00f1os." =
       length(sufijo) == n_designs
   )
+  sufijo <- as.character(sufijo)
+  if (anyNA(sufijo) || any(!nzchar(trimws(sufijo)))) {
+    stop("'sufijo' no puede contener valores NA ni strings vac\u00edos.", call. = FALSE)
+  }
+  if (anyDuplicated(sufijo)) {
+    duplicados <- unique(sufijo[duplicated(sufijo)])
+    stop(
+      "Los valores de 'sufijo' deben ser \u00fanicos. Duplicados: ",
+      paste(duplicados, collapse = ", "),
+      call. = FALSE
+    )
+  }
   names(designs) <- sufijo
   bad <- which(!vapply(designs, inherits, logical(1), what = "tbl_svy"))
   if (length(bad) > 0) {
@@ -37,6 +49,46 @@
     )
   }
   list(designs = designs, sufijo = sufijo, n_designs = n_designs)
+}
+
+.resolve_category_labels <- function(designs, var, categoria) {
+  requested <- unique(as.character(categoria))
+  if (length(requested) == 0L || anyNA(requested) || any(!nzchar(requested))) {
+    stop("'categoria' debe contener al menos un valor no vac\u00edo y sin NA.", call. = FALSE)
+  }
+
+  matches_by_design <- purrr::map(designs, function(dsgn) {
+    raw_values <- dsgn$variables[[var]]
+    raw_chr    <- as.character(raw_values)
+    label_chr  <- as.character(haven::as_factor(raw_values))
+    matched    <- raw_chr %in% requested | label_chr %in% requested
+    unique(label_chr[matched & !is.na(label_chr)])
+  })
+  matched_labels <- unique(unlist(matches_by_design, use.names = FALSE))
+
+  matched_requests <- unique(unlist(purrr::map(designs, function(dsgn) {
+    raw_values <- dsgn$variables[[var]]
+    raw_chr    <- as.character(raw_values)
+    label_chr  <- as.character(haven::as_factor(raw_values))
+    requested[requested %in% raw_chr | requested %in% label_chr]
+  }), use.names = FALSE))
+  missing_requests <- setdiff(requested, matched_requests)
+
+  if (length(matched_labels) == 0L) {
+    stop(
+      "Ning\u00fan valor de 'categoria' coincide con los c\u00f3digos o etiquetas de '",
+      var, "'. Valores solicitados: ", paste(requested, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  if (length(missing_requests) > 0L) {
+    warning(
+      "Se omitieron valores de 'categoria' que no existen en los dise\u00f1os: ",
+      paste(missing_requests, collapse = ", "),
+      call. = FALSE
+    )
+  }
+  matched_labels
 }
 
 .extract_var_label <- function(designs, var, usar_etiqueta_var, nombre) {
@@ -114,7 +166,13 @@
     }
     if (verbose) message(paste("... usando modo paralelo con", cores, "workers."))
     old_plan <- future::plan(future::multisession, workers = cores)
-    on.exit(future::plan(old_plan), add = TRUE)
+    on.exit({
+      # Detener explícitamente el backend creado por esta llamada antes de
+      # restaurar el plan previo; evita conexiones PSOCK acumuladas en suites
+      # largas y en sesiones interactivas.
+      future::plan(future::sequential)
+      future::plan(old_plan)
+    }, add = TRUE)
     if (n_designs > 1L) {
       furrr::future_pmap(pmap_args, calc_fun, .progress = FALSE)
     } else {

@@ -60,6 +60,9 @@ output/
 # Scripts de desarrollo y benchmarking (artefactos locales, no forman parte del paquete)
 dev/
 
+# Datos y resultados oficiales usados para validaciones locales de producción
+pruebas/
+
 # Manual de referencia generado localmente (CRAN lo genera por su cuenta)
 dosr-manual.pdf
 dosr-manual.tex

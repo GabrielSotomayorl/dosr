@@ -87,6 +87,7 @@ Todos los umbrales son configurables en cada función `obs_*`:
 obs_media(
   design_2022,
   var             = "ytotcorh",
+  filt            = pco1 == 1, # una observación por hogar
   cv_umbral_alto  = 0.30,   # umbral para "No Fiable (CV)"
   cv_umbral_medio = 0.20,   # umbral para "Poco Fiable (CV)"
   n_minimo        = 30L,    # tamaño muestral mínimo
@@ -166,6 +167,7 @@ serie <- obs_media(
   sufijo  = c("2022", "2024"),
   var     = "ytotcorh",
   des     = "area",
+  filt    = pco1 == 1,
   sig     = TRUE,
   save_xlsx = FALSE,
   verbose   = FALSE
@@ -181,5 +183,6 @@ serie[serie$nivel != "Nacional", cols_serie]
 ## Referencias
 
 - Lumley, T. (2010). *Complex Surveys: A Guide to Analysis Using R*. Wiley.
-- División Observatorio Social, Subsecretaría de Evaluación Social, Ministerio de Desarrollo Social y Familia (2023, actualizado marzo 2024). *Manual para la Investigación. Guía práctica para el uso y análisis de información. Casen 2022*. Santiago: Ministerio de Desarrollo Social y Familia. <https://observatorio.ministeriodesarrollosocial.gob.cl/storage/docs/casen/2022/Manual_para_la_investigacion_Casen_2022(18marzo2024).pdf>
+- División Observatorio Social (2023). *Manual para la Investigación. Casen 2022*. Subsecretaría de Evaluación Social, Ministerio de Desarrollo Social y Familia. <https://bidat.gob.cl/details/ficha/dato/manual-para-la-investigacion-casen-2022>
+- Instituto Nacional de Estadísticas (2020). *Fundamentos del Estándar para la evaluación de la calidad de las estimaciones en encuestas de hogares*. INE. <https://www.ine.gob.cl/inicio/documentos-de-trabajo/documento/fundamentos-del-est%C3%A1ndar-para-la-evaluaci%C3%B3n-de-la-calidad-de-las-estimaciones-en-encuestas-de-hogares>
 - Valliant, R., Dever, J. A., & Kreuter, F. (2018). *Practical Tools for Designing and Weighting Survey Samples* (2nd ed.). Springer.

@@ -18,7 +18,16 @@ knitr::opts_chunk$set(
 
 ## Instalación
 
+Versión estable desde CRAN:
+
 ```{r install, eval = FALSE}
+install.packages("dosr")
+```
+
+Versión de desarrollo desde GitHub:
+
+```{r install-dev, eval = FALSE}
+# install.packages("remotes")
 remotes::install_github("GabrielSotomayorl/dosr")
 ```
 
@@ -62,7 +71,9 @@ head(resultado_prop[, c("region", "pobreza", "prop_2022", "fiabilidad_2022")])
 
 ## Medias: `obs_media()`
 
-Ingreso total del hogar corregido (`ytotcorh`) promedio por región en 2022:
+Ingreso total del hogar corregido (`ytotcorh`) promedio por región en 2022. Como
+es una variable del hogar repetida para sus integrantes, se filtra a la jefatura
+del hogar para contar cada hogar una sola vez:
 
 ```{r obs-media}
 resultado_media <- obs_media(
@@ -70,6 +81,7 @@ resultado_media <- obs_media(
   sufijo    = "2022",
   var       = "ytotcorh",
   des       = "region",
+  filt      = pco1 == 1,
   save_xlsx = FALSE,
   verbose   = FALSE
 )
@@ -87,6 +99,7 @@ resultado_cuantil <- obs_cuantil(
   var       = "ytotcorh",
   des       = "region",
   cuant     = 0.5,
+  filt      = pco1 == 1,
   save_xlsx = FALSE,
   verbose   = FALSE
 )

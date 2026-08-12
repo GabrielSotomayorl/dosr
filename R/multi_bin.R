@@ -27,11 +27,19 @@
 #' @param dir Un string con la ruta del directorio de salida. Obligatorio (no
 #'   tiene valor por defecto, para no escribir en el directorio de trabajo sin
 #'   consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no existe.
-#' @param filename Un string con el nombre del archivo Excel.
+#' @param filename Nombre personalizado del archivo Excel, con o sin extensión
+#'   `.xlsx`. Si es `NULL`, se genera automáticamente y se trunca de forma
+#'   segura solo si supera el umbral portable.
 #' @param decimales Entero. Número de decimales para la estimación puntual. Por defecto es 1.
 #' @param decimales_se Entero. Número de decimales para el error estándar. Por defecto es 3.
 #' @param n_minimo Entero. Tamaño muestral mínimo para clasificar una estimación como fiable. Por defecto es `30`.
 #' @param verbose Booleano. Si `TRUE`, muestra mensajes de progreso.
+#' @param notas Vector de textos para notas al pie personalizadas, rotuladas
+#'   automáticamente con letras.
+#' @param mostrar_evaluacion_general Booleano. Si `TRUE` (por defecto), incluye
+#'   la evaluación general de fiabilidad como primera nota.
+#' @param mostrar_pct_fiable Booleano. Si `TRUE`, la evaluación general incluye
+#'   el porcentaje de estimaciones fiables.
 #'
 #' @return Un data.frame con todos los resultados consolidados (invisiblemente).
 #' @examples
@@ -60,7 +68,10 @@ multi_bin <- function(
   decimales = 1,
   decimales_se = 3,
   n_minimo = 30,
-  verbose = TRUE
+  verbose = TRUE,
+  notas = NULL,
+  mostrar_evaluacion_general = TRUE,
+  mostrar_pct_fiable = FALSE
 ) {
   # --- Helpers Internos ---
   .calculate_estimates_multi <- function(d, vars, by = NULL) {
@@ -71,8 +82,13 @@ multi_bin <- function(
     }, vars)
     if (length(vars_valid) == 0L) return(tibble::tibble())
 
-    psu_var    <- colnames(d$cluster)[1]
-    strata_var <- colnames(d$strata)[1]
+    if (is.null(d$cluster) || is.null(d$strata)) {
+      stop(
+        "El dise\u00f1o no contiene la estructura de conglomerados y estratos requerida. ",
+        "Actualmente se admiten dise\u00f1os creados con srvyr::as_survey_design().",
+        call. = FALSE
+      )
+    }
 
     d_calc <- if (!is.null(by)) {
       srvyr::group_by(d, dplyr::across(dplyr::all_of(by)))
@@ -96,19 +112,31 @@ multi_bin <- function(
     )
     est_totals <- d_calc %>% srvyr::summarise(!!!total_exprs)
 
-    # Pasada 3: conteos no ponderados + gl (una sola llamada)
+    # Conteos no ponderados y grados de libertad. Los identificadores internos
+    # de PSU ya incorporan el estrato cuando el dise\u00f1o usa `nest = TRUE`.
     nmues_exprs <- setNames(
       lapply(vars_valid, function(v)
-        rlang::expr(srvyr::unweighted(sum(!!rlang::sym(v) == 1L, na.rm = TRUE)))),
+        rlang::expr(sum(!!rlang::sym(v) == 1L, na.rm = TRUE))),
       paste0(vars_valid, "_n")
     )
-    counts_df <- d_calc %>%
-      srvyr::summarise(
+    universo_exprs <- setNames(
+      lapply(vars_valid, function(v)
+        rlang::expr(sum(!is.na(!!rlang::sym(v))))),
+      paste0(vars_valid, "_universo")
+    )
+    counts_base <- d$variables %>%
+      dplyr::mutate(
+        .psu_nested = d$cluster[[1L]],
+        .stratum    = d$strata[[1L]]
+      )
+    counts_df <- counts_base %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(by))) %>%
+      dplyr::summarise(
         !!!nmues_exprs,
-        gl = srvyr::unweighted(
-          dplyr::n_distinct(!!rlang::sym(psu_var)) -
-            dplyr::n_distinct(!!rlang::sym(strata_var))
-        )
+        !!!universo_exprs,
+        gl = dplyr::n_distinct(.data[[".psu_nested"]]) -
+          dplyr::n_distinct(.data[[".stratum"]]),
+        .groups = "drop"
       )
 
     wide_df <- if (is.null(by)) {
@@ -128,6 +156,7 @@ multi_bin <- function(
         n_expandido    = dplyr::all_of(paste0(v, "_tot")),
         n_expandido_se = dplyr::all_of(paste0(v, "_tot_se")),
         n_mues         = dplyr::all_of(paste0(v, "_n")),
+        n_universo     = dplyr::all_of(paste0(v, "_universo")),
         gl
       ) %>%
         dplyr::mutate(
@@ -142,7 +171,7 @@ multi_bin <- function(
     })
   }
 
-  .calculate_reliability_multi <- function(df, by_vars = NULL, n_minimo = 30) {
+  .calculate_reliability_multi <- function(df, n_minimo = 30) {
     if (nrow(df) == 0) {
       return(dplyr::mutate(
         df,
@@ -155,13 +184,8 @@ multi_bin <- function(
       ))
     }
     df %>%
-      dplyr::group_by(dplyr::across(dplyr::all_of(by_vars))) %>%
       dplyr::mutate(
-        n_universo = sum(n_mues, na.rm = TRUE),
-        n_niveles = 2
-      ) %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(
+        n_niveles = 2,
         prop_val = estimacion / 100,
         se_umbral_prop = dplyr::if_else(
           prop_val < 0.5,
@@ -182,6 +206,7 @@ multi_bin <- function(
   # --- Lógica Principal ---
 
   validate_dir(dir)
+  notas <- .validate_notes(notas)
   validate_designs(design)
   if (is.list(design) && !inherits(design, "tbl_svy")) {
     stop("'multi_bin' acepta un \u00fanico dise\u00f1o 'tbl_svy', no una lista. Use las funciones 'obs_*' para comparar dise\u00f1os.", call. = FALSE)
@@ -210,7 +235,7 @@ multi_bin <- function(
       design_des <- design %>%
         dplyr::mutate(dplyr::across(dplyr::all_of(d_var), haven::as_factor))
       .calculate_estimates_multi(design_des, vars_binarias, by = d_var) %>%
-        .calculate_reliability_multi(by_vars = d_var, n_minimo = n_minimo)
+        .calculate_reliability_multi(n_minimo = n_minimo)
     }) %>%
       rlang::set_names(des)
   }
@@ -243,21 +268,15 @@ multi_bin <- function(
 
   dir.create(dir, showWarnings = FALSE, recursive = TRUE)
 
-  if (is.null(filename)) {
-    vars_tag <- if (length(vars_binarias) > 1) {
-      paste0(vars_binarias[1], "-", utils::tail(vars_binarias, 1))
-    } else {
-      vars_binarias[1]
-    }
-    des_tag <- if (!is.null(des)) {
-      paste0("_", paste(des, collapse = "-"))
-    } else {
-      ""
-    }
-    filename <- paste0(vars_tag, des_tag, "_MULT.xlsx")
+  vars_tag <- if (length(vars_binarias) > 1) {
+    paste0(vars_binarias[1], "-", utils::tail(vars_binarias, 1))
+  } else {
+    vars_binarias[1]
   }
-
-  filepath <- file.path(dir, filename)
+  des_tag <- if (!is.null(des)) paste0("_", paste(des, collapse = "-")) else ""
+  filepath <- .build_excel_path(
+    dir, paste0(vars_tag, des_tag), "_MULT", filename
+  )
 
   wb <- openxlsx::createWorkbook()
 
@@ -290,7 +309,6 @@ multi_bin <- function(
     cols = 1:ncol(all_results),
     widths = "auto"
   )
-
   openxlsx::addWorksheet(wb, "2_Nacional")
   openxlsx::writeData(
     wb,
@@ -345,6 +363,17 @@ multi_bin <- function(
     "2_Nacional",
     cols = 1:ncol(df_nac_final),
     widths = "auto"
+  )
+  quality_nac <- if (mostrar_evaluacion_general) {
+    quality_df <- dplyr::transmute(
+      res_nacional, etiqueta,
+      fiabilidad_perfil = .data[["fiabilidad"]]
+    )
+    .build_quality_note(quality_df, "perfil", "etiqueta", mostrar_pct_fiable)
+  } else character(0)
+  .write_report_notes(
+    wb, "2_Nacional", nrow(df_nac_final) + 7L,
+    quality_nac, notas, ncol(df_nac_final)
   )
 
   for (d_var in names(res_desagregados)) {
@@ -413,6 +442,21 @@ multi_bin <- function(
       sheet_name,
       cols = 1:ncol(df_des_final),
       widths = "auto"
+    )
+
+    quality_des <- if (mostrar_evaluacion_general) {
+      quality_df <- res_desagregados[[d_var]] %>%
+        dplyr::transmute(
+          !!d_var := .data[[d_var]], etiqueta,
+          fiabilidad_perfil = .data[["fiabilidad"]]
+        )
+      .build_quality_note(
+        quality_df, "perfil", c(d_var, "etiqueta"), mostrar_pct_fiable
+      )
+    } else character(0)
+    .write_report_notes(
+      wb, sheet_name, nrow(df_des_final) + 7L,
+      quality_des, notas, ncol(df_des_final)
     )
 
     if (nrow(df_des_final) > 0) {

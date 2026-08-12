@@ -57,8 +57,23 @@ calculate_estimates <- function(dsgn,
     }
   }
   dsgn$variables <- processed_vars
+  # Use the survey design internals instead of looking up the original design
+  # columns in `variables`.  With `nest = TRUE`, survey recodes first-stage PSU
+  # identifiers so they are unique across strata.  The internal vectors also
+  # exist for designs created without explicit `ids` or `strata` columns.
+  if (is.null(dsgn$cluster) || is.null(dsgn$strata)) {
+    stop(
+      "El dise\u00f1o no contiene la estructura de conglomerados y estratos requerida. ",
+      "Actualmente se admiten dise\u00f1os creados con srvyr::as_survey_design().",
+      call. = FALSE
+    )
+  }
   base_df <- dsgn$variables %>%
-    mutate(.w = .data[[weight_var]], .psu = .data[[psu_var]], .str = .data[[strata_var]])
+    mutate(
+      .w   = as.numeric(stats::weights(dsgn, type = "sampling")),
+      .psu = dsgn$cluster[[1L]],
+      .str = dsgn$strata[[1L]]
+    )
 
   # --- Función de cálculo interna ---
   calc_tabla <- function(grp_des) {

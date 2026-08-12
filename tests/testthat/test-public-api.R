@@ -244,6 +244,69 @@ test_that("categoria acepta codigo numerico", {
   expect_equal(nrow(result_lbl), nrow(result_code))
 })
 
+test_that("categoria acepta códigos labelled no consecutivos", {
+  design <- make_labelled_design()
+  result_label <- obs_prop(
+    design, var = "category", categoria = "Categoría diez",
+    save_xlsx = FALSE, verbose = FALSE
+  )
+  result_code <- obs_prop(
+    design, var = "category", categoria = 10,
+    save_xlsx = FALSE, verbose = FALSE
+  )
+
+  expect_equal(result_code, result_label)
+  expect_equal(unique(as.character(result_code$category)), "Categoría diez")
+})
+
+test_that("categoria inexistente falla con un mensaje informativo", {
+  design <- make_labelled_design()
+  expect_error(
+    obs_prop(design, var = "category", categoria = 777,
+             save_xlsx = FALSE, verbose = FALSE),
+    "Ningún valor.*coincide"
+  )
+})
+
+test_that("categoria filtra también las tablas de reporte con sig", {
+  tmp <- withr::local_tempdir()
+  obs_prop(
+    list(make_labelled_design(), make_labelled_design(offset = 1)),
+    sufijo = c("A", "B"),
+    var = "category",
+    categoria = 10,
+    sig = TRUE,
+    dir = tmp,
+    verbose = FALSE
+  )
+  file <- list.files(tmp, pattern = "_PROP[.]xlsx$", full.names = TRUE)[1]
+  sheet <- openxlsx::read.xlsx(file, sheet = "2_nac", colNames = FALSE)
+  cells <- as.character(unlist(sheet, use.names = FALSE))
+
+  expect_true("Categoría diez" %in% cells)
+  expect_false("Categoría veinte" %in% cells)
+  expect_false("Categoría noventa y nueve" %in% cells)
+})
+
+test_that("sufijo rechaza duplicados, vacíos y NA", {
+  design <- make_nested_psu_design()
+  expect_error(
+    obs_media(list(design, design), sufijo = c("A", "A"), var = "value",
+              save_xlsx = FALSE, verbose = FALSE),
+    "deben ser únicos"
+  )
+  expect_error(
+    obs_media(design, sufijo = "", var = "value",
+              save_xlsx = FALSE, verbose = FALSE),
+    "strings vacíos"
+  )
+  expect_error(
+    obs_media(design, sufijo = NA_character_, var = "value",
+              save_xlsx = FALSE, verbose = FALSE),
+    "valores NA"
+  )
+})
+
 test_that("universo_crit=TRUE no falla y produce resultado coherente", {
   result <- obs_prop(dsgn_2022, sufijo = "2022", var = "pobreza",
                      universo_crit = TRUE,
@@ -259,8 +322,75 @@ test_that("nota de fiabilidad se escribe en el Excel", {
   wb <- openxlsx::loadWorkbook(
     list.files(tmp, pattern = "pobreza.*PROP.*\\.xlsx", full.names = TRUE)[1])
   datos <- openxlsx::read.xlsx(wb, sheet = "2_region", colNames = FALSE)
-  expect_true(any(datos[, 1] == "Nota:", na.rm = TRUE))
+  expect_true(any(datos[, 1] == "Notas:", na.rm = TRUE))
   expect_true(any(grepl("estimaciones", datos[, 1], ignore.case = TRUE), na.rm = TRUE))
+})
+
+test_that("notas personalizadas usan letras y se ubican antes de la fuente", {
+  tmp <- withr::local_tempdir()
+  obs_media(
+    dsgn_2022, sufijo = "2022", var = "edad", des = "region",
+    notas = c("Primera nota personalizada.", "Segunda nota personalizada."),
+    fuente = "casen", filename = "notas_media", dir = tmp, verbose = FALSE
+  )
+  file <- file.path(tmp, "notas_media.xlsx")
+  datos <- openxlsx::read.xlsx(file, sheet = "2_region", colNames = FALSE)
+  txt <- as.character(datos[, 1])
+  pos <- function(pattern) which(grepl(pattern, txt, fixed = TRUE))[1]
+
+  expect_true(file.exists(file))
+  expect_lt(pos("a. "), pos("b. "))
+  expect_lt(pos("c. Segunda nota personalizada."), pos("Fuente:"))
+  expect_true(any(grepl("a. Todas las estimaciones|a. El ", txt)))
+  expect_true(any(grepl("b. Primera nota personalizada", txt, fixed = TRUE)))
+  expect_true(any(grepl("c. Segunda nota personalizada", txt, fixed = TRUE)))
+})
+
+test_that("mostrar_evaluacion_general=FALSE deja solo notas personalizadas", {
+  tmp <- withr::local_tempdir()
+  obs_media(
+    dsgn_2022, sufijo = "2022", var = "edad", des = "sexo",
+    mostrar_evaluacion_general = FALSE,
+    notas = "Única nota.", dir = tmp, verbose = FALSE
+  )
+  file <- list.files(tmp, full.names = TRUE, pattern = "[.]xlsx$")[1]
+  datos <- openxlsx::read.xlsx(file, sheet = "2_sexo", colNames = FALSE)
+  txt <- as.character(datos[, 1])
+  expect_true(any(txt == "Notas:", na.rm = TRUE))
+  expect_true(any(txt == "a. Única nota.", na.rm = TRUE))
+  expect_false(any(grepl("estimaciones son fiables", txt), na.rm = TRUE))
+})
+
+test_that("mostrar_pct_fiable no duplica la evaluación cuando todo es fiable", {
+  df <- data.frame(id = "Total", fiabilidad_2024 = "Fiable")
+  note <- dosr:::.build_quality_note(df, "2024", "id", mostrar_pct = TRUE)
+  expect_match(note, "100.0%")
+  expect_false(grepl("Todas las estimaciones son fiables", note, fixed = TRUE))
+})
+
+test_that("filename personalizado funciona en las cinco funciones principales", {
+  tmp <- withr::local_tempdir()
+  obs_prop(dsgn_2022, var = "pobreza", filename = "prop", dir = tmp, verbose = FALSE)
+  obs_media(dsgn_2022, var = "edad", filename = "media.xlsx", dir = tmp, verbose = FALSE)
+  obs_total(dsgn_2022, var = "edad", filename = "total", dir = tmp, verbose = FALSE)
+  obs_ratio(dsgn_2022, num = "mujer", den = "hombre", filename = "ratio", dir = tmp, verbose = FALSE)
+  obs_cuantil(dsgn_2022, var = "edad", filename = "cuantil", dir = tmp, verbose = FALSE)
+  expect_true(all(file.exists(file.path(tmp, paste0(c("prop", "media", "total", "ratio", "cuantil"), ".xlsx")))))
+})
+
+test_that("color_significancia aplica relleno solo a p-valores bajo el umbral", {
+  tmp <- withr::local_tempdir()
+  obs_prop(
+    list(dsgn_2022, dsgn_2024), sufijo = c("2022", "2024"),
+    var = "pobreza", des = "sexo", sig = TRUE,
+    color_significancia = TRUE, filename = "sig_color.xlsx",
+    dir = tmp, verbose = FALSE
+  )
+  wb <- openxlsx::loadWorkbook(file.path(tmp, "sig_color.xlsx"))
+  styles <- vapply(wb$styleObjects, function(x) {
+    paste(capture.output(str(x$style)), collapse = " ")
+  }, character(1))
+  expect_true(any(grepl("FFF2CC", styles, fixed = TRUE)))
 })
 
 test_that("fuente casen escribe texto de fuente en el Excel", {

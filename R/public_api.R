@@ -40,7 +40,9 @@ create_lightweight_designs <- function(design_list, main_var, des_vars, filter_v
 #' @description Procesa uno o más `tbl_svy` para calcular proporciones.
 #' @inheritParams obs_media
 #' @param porcentaje Booleano. Si `TRUE`, las estimaciones y errores estándar se multiplican por 100.
-#' @param categoria Vector de valores (labels o códigos numéricos) para filtrar las categorías de `var` a mostrar en el output. Las demás categorías se excluyen del resultado y del reporte Excel.
+#' @param categoria Vector de etiquetas o códigos originales para filtrar las
+#'   categorías de `var` que se muestran en el resultado y el reporte Excel.
+#'   Los códigos pueden ser no consecutivos, como en variables `haven_labelled`.
 #' @return Un data.frame con los resultados consolidados (invisiblemente).
 #' @examples
 #' library(srvyr)
@@ -83,10 +85,15 @@ obs_prop <- function(designs,
                      cv_umbral_medio    = 0.20,
                      n_minimo           = 30L,
                      nivel_confianza    = 0.95,
-                     verbose            = TRUE) {
+                     verbose            = TRUE,
+                     filename           = NULL,
+                     notas              = NULL,
+                     mostrar_evaluacion_general = TRUE,
+                     color_significancia = FALSE) {
 
   .guard_multi_des(des, multi_des)
   validate_dir(dir, save_xlsx)
+  notas <- .validate_notes(notas)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
@@ -114,6 +121,13 @@ obs_prop <- function(designs,
   hojas_list <- aggregate_results(lista_tablas, sufijo, keys = keys_prop,
                                   all_designs = designs, type = "prop")
 
+  if (!is.null(categoria)) {
+    category_labels <- .resolve_category_labels(designs, var, categoria)
+    hojas_list  <- lapply(hojas_list, function(df) {
+      df[as.character(df[[var]]) %in% category_labels, ]
+    })
+  }
+
   lista_tests <- NULL
   if (sig && formato) {
     if (verbose) message("... calculando pruebas de significancia...")
@@ -121,37 +135,28 @@ obs_prop <- function(designs,
                                           main_var_prop = var, des_vars = des)
   }
 
-  if (!is.null(categoria)) {
-    cat_chr    <- as.character(categoria)
-    cat_num    <- suppressWarnings(as.integer(categoria))
-    # Translate numeric codes to factor labels using the design's level ordering
-    var_levels <- get_all_levels(designs, var)[[var]]
-    num_labels <- if (!is.null(var_levels)) {
-      idx <- cat_num[!is.na(cat_num) & cat_num >= 1L & cat_num <= length(var_levels)]
-      var_levels[idx]
-    } else character(0)
-    all_cat_chr <- unique(c(cat_chr, num_labels))
-    hojas_list  <- lapply(hojas_list, function(df) {
-      df[as.character(df[[var]]) %in% all_cat_chr, ]
-    })
-  }
-
   resultado_final <- .finalize_results(hojas_list, keys_prop, designs, "prop", des,
                                        sort_extra = var)
 
   if (save_xlsx) {
     dir.create(dir, showWarnings = FALSE, recursive = TRUE)
-    des_tag  <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
-    filename <- file.path(dir, paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_PROP.xlsx"))
+    des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
+    filepath <- .build_excel_path(
+      dir, paste0(var, "_", des_tag),
+      paste0("_", paste(sufijo, collapse = "-"), "_PROP"), filename
+    )
     if (formato) {
-      generate_prop_report(hojas_list, filename, var, des, sufijo, porcentaje, decimales,
+      generate_prop_report(hojas_list, filepath, var, des, sufijo, porcentaje, decimales,
                            designs, consolidated_df = resultado_final,
                            nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                            snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                           color_fiabilidad = color_fiabilidad, fuente = fuente,
+                           mostrar_evaluacion_general = mostrar_evaluacion_general,
+                           color_fiabilidad = color_fiabilidad,
+                           color_significancia = color_significancia,
+                           nivel_confianza = nivel_confianza, notas = notas, fuente = fuente,
                            verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
+      .save_simple_xlsx(dir, filepath, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")
@@ -162,7 +167,8 @@ obs_prop <- function(designs,
 #' @title Calcula estimaciones de medias para diseños complejos
 #' @description Procesa uno o más `tbl_svy` para calcular medias.
 #' @param designs Un objeto `tbl_svy` o una lista de ellos.
-#' @param sufijo Vector de strings para sufijos (p.ej. c("2020","2022")).
+#' @param sufijo Vector de strings no vacíos y únicos para sufijos
+#'   (p.ej. `c("2020", "2022")`).
 #' @param var Un string con el nombre de la variable de interés (numérica).
 #' @param des Un vector de strings con los nombres de las variables de desagregación.
 #' @param multi_des Booleano. Si `TRUE` (por defecto), calcula todas las combinaciones de `des`. Si `FALSE`, solo calcula las desagregaciones simples.
@@ -187,10 +193,19 @@ obs_prop <- function(designs,
 #' @param formato Booleano. Si `TRUE`, genera un reporte de Excel con formato avanzado.
 #' @param decimales Entero. Número de decimales para las estimaciones en Excel.
 #' @param nombre String. Nombre del indicador que se muestra en el reporte Excel. Si se especifica, sobrescribe la etiqueta de variable aunque `usar_etiqueta_var = TRUE`.
+#' @param filename Nombre personalizado del archivo Excel, con o sin extensión
+#'   `.xlsx`. Si es `NULL`, se genera automáticamente; los nombres automáticos
+#'   solo se truncan cuando exceden el límite portable y conservan años y tipo.
+#' @param notas Vector de textos para notas al pie personalizadas. Se rotulan
+#'   automáticamente con letras y se escriben antes de la fuente.
 #' @param fuente String. Fuente de los datos para el pie del reporte Excel. Acepta claves estándar (`"casen"`, `"ebs"`, `"endide"`, `"eanna"`, `"elpi"`) o texto libre.
 #' @param snac Booleano. Si `TRUE`, omite la hoja de formato del nivel nacional. El consolidado siempre incluye el nivel nacional. Por defecto `FALSE`.
 #' @param mostrar_pct_fiable Booleano. Si `TRUE`, la nota de fiabilidad incluye el porcentaje de estimaciones fiables del cuadro. Por defecto `FALSE`.
+#' @param mostrar_evaluacion_general Booleano. Si `TRUE` (por defecto), incluye
+#'   la evaluación general de fiabilidad dentro de las notas del tabulado.
 #' @param color_fiabilidad Booleano. Si `TRUE`, colorea el texto de las celdas de estimación según su fiabilidad: ámbar para poco fiable, rojo para no fiable. Por defecto `FALSE`.
+#' @param color_significancia Booleano. Si `TRUE`, destaca los p-valores menores
+#'   que `1 - nivel_confianza` en las tablas de significancia. Por defecto `FALSE`.
 #' @param universo_crit Booleano. Solo aplica a `obs_prop`. Si `TRUE`, fuerza el uso del N total del dominio (suma de categorías) para el criterio muestral de fiabilidad, independientemente del número de categorías. Por defecto `FALSE` (comportamiento automático).
 #' @param cv_umbral_alto Numérico. Umbral de CV para clasificar una estimación como "No Fiable (CV)". Por defecto `0.30`.
 #' @param cv_umbral_medio Numérico. Umbral de CV para clasificar una estimación como "Poco Fiable (CV)". Por defecto `0.20`.
@@ -237,10 +252,15 @@ obs_media <- function(designs,
                       cv_umbral_medio    = 0.20,
                       n_minimo           = 30L,
                       nivel_confianza    = 0.95,
-                      verbose            = TRUE) {
+                      verbose            = TRUE,
+                      filename           = NULL,
+                      notas              = NULL,
+                      mostrar_evaluacion_general = TRUE,
+                      color_significancia = FALSE) {
 
   .guard_multi_des(des, multi_des)
   validate_dir(dir, save_xlsx)
+  notas <- .validate_notes(notas)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
@@ -278,17 +298,23 @@ obs_media <- function(designs,
 
   if (save_xlsx) {
     dir.create(dir, showWarnings = FALSE, recursive = TRUE)
-    des_tag  <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
-    filename <- file.path(dir, paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_MEDIA.xlsx"))
+    des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
+    filepath <- .build_excel_path(
+      dir, paste0(var, "_", des_tag),
+      paste0("_", paste(sufijo, collapse = "-"), "_MEDIA"), filename
+    )
     if (formato) {
-      generate_mean_report(hojas_list, filename, var, des, sufijo, decimales,
+      generate_mean_report(hojas_list, filepath, var, des, sufijo, decimales,
                            designs = designs, consolidated_df = resultado_final,
                            nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                            snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                           color_fiabilidad = color_fiabilidad, fuente = fuente,
+                           mostrar_evaluacion_general = mostrar_evaluacion_general,
+                           color_fiabilidad = color_fiabilidad,
+                           color_significancia = color_significancia,
+                           nivel_confianza = nivel_confianza, notas = notas, fuente = fuente,
                            verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
+      .save_simple_xlsx(dir, filepath, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")
@@ -339,10 +365,15 @@ obs_total <- function(designs,
                       cv_umbral_medio    = 0.20,
                       n_minimo           = 30L,
                       nivel_confianza    = 0.95,
-                      verbose            = TRUE) {
+                      verbose            = TRUE,
+                      filename           = NULL,
+                      notas              = NULL,
+                      mostrar_evaluacion_general = TRUE,
+                      color_significancia = FALSE) {
 
   .guard_multi_des(des, multi_des)
   validate_dir(dir, save_xlsx)
+  notas <- .validate_notes(notas)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
@@ -380,17 +411,23 @@ obs_total <- function(designs,
 
   if (save_xlsx) {
     dir.create(dir, showWarnings = FALSE, recursive = TRUE)
-    des_tag  <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
-    filename <- file.path(dir, paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_TOTAL.xlsx"))
+    des_tag <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
+    filepath <- .build_excel_path(
+      dir, paste0(var, "_", des_tag),
+      paste0("_", paste(sufijo, collapse = "-"), "_TOTAL"), filename
+    )
     if (formato) {
-      generate_total_report(hojas_list, filename, var, des, sufijo, decimales,
+      generate_total_report(hojas_list, filepath, var, des, sufijo, decimales,
                             designs = designs, consolidated_df = resultado_final,
                             nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                             snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                            color_fiabilidad = color_fiabilidad, fuente = fuente,
+                            mostrar_evaluacion_general = mostrar_evaluacion_general,
+                            color_fiabilidad = color_fiabilidad,
+                            color_significancia = color_significancia,
+                            nivel_confianza = nivel_confianza, notas = notas, fuente = fuente,
                            verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
+      .save_simple_xlsx(dir, filepath, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")
@@ -456,7 +493,11 @@ obs_ratio <- function(designs,
                       cv_umbral_medio    = 0.20,
                       n_minimo           = 30L,
                       nivel_confianza    = 0.95,
-                      verbose            = TRUE) {
+                      verbose            = TRUE,
+                      filename           = NULL,
+                      notas              = NULL,
+                      mostrar_evaluacion_general = TRUE,
+                      color_significancia = FALSE) {
 
   stopifnot(
     "'num' debe ser un string no vac\u00edo" = is.character(num) && length(num) == 1 && nzchar(num),
@@ -468,6 +509,7 @@ obs_ratio <- function(designs,
 
   .guard_multi_des(des, multi_des)
   validate_dir(dir, save_xlsx)
+  notas <- .validate_notes(notas)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
@@ -528,16 +570,22 @@ obs_ratio <- function(designs,
     dir.create(dir, showWarnings = FALSE, recursive = TRUE)
     des_tag   <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
     ratio_tag <- paste(num, den, sep = "-")
-    filename  <- file.path(dir, paste0(ratio_tag, "_", des_tag, "_", paste(sufijo, collapse = "-"), "_RATIO.xlsx"))
+    filepath <- .build_excel_path(
+      dir, paste0(ratio_tag, "_", des_tag),
+      paste0("_", paste(sufijo, collapse = "-"), "_RATIO"), filename
+    )
     if (formato) {
-      generate_ratio_report(hojas_list, filename, nombre_indicador, des, sufijo, decimales,
+      generate_ratio_report(hojas_list, filepath, nombre_indicador, des, sufijo, decimales,
                             designs = designs, consolidated_df = resultado_final,
                             nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                             snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                            color_fiabilidad = color_fiabilidad, fuente = fuente,
+                            mostrar_evaluacion_general = mostrar_evaluacion_general,
+                            color_fiabilidad = color_fiabilidad,
+                            color_significancia = color_significancia,
+                            nivel_confianza = nivel_confianza, notas = notas, fuente = fuente,
                            verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
+      .save_simple_xlsx(dir, filepath, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")
@@ -590,7 +638,11 @@ obs_cuantil <- function(designs,
                         cv_umbral_medio    = 0.20,
                         n_minimo           = 30L,
                         nivel_confianza    = 0.95,
-                        verbose            = TRUE) {
+                        verbose            = TRUE,
+                        filename           = NULL,
+                        notas              = NULL,
+                        mostrar_evaluacion_general = TRUE,
+                        color_significancia = FALSE) {
 
   stopifnot(
     "'cuant' debe ser un n\u00famero" = is.numeric(cuant),
@@ -600,6 +652,7 @@ obs_cuantil <- function(designs,
 
   .guard_multi_des(des, multi_des)
   validate_dir(dir, save_xlsx)
+  notas <- .validate_notes(notas)
   prep    <- .prepare_designs_list(designs, sufijo, verbose)
   designs <- prep$designs; sufijo <- prep$sufijo; n_designs <- prep$n_designs
 
@@ -640,17 +693,22 @@ obs_cuantil <- function(designs,
     dir.create(dir, showWarnings = FALSE, recursive = TRUE)
     des_tag   <- if (!is.null(des)) paste(des, collapse = "-") else "nac"
     cuant_tag <- gsub("[^0-9A-Za-z]", "_", formatC(cuant, format = "f", digits = 2))
-    filename  <- file.path(dir, paste0(var, "_", des_tag, "_", paste(sufijo, collapse = "-"),
-                                       "_CUANTIL_", cuant_tag, ".xlsx"))
+    filepath <- .build_excel_path(
+      dir, paste0(var, "_", des_tag),
+      paste0("_", paste(sufijo, collapse = "-"), "_CUANTIL_", cuant_tag), filename
+    )
     if (formato) {
-      generate_quantile_report(hojas_list, filename, var, des, sufijo, cuant, decimales,
+      generate_quantile_report(hojas_list, filepath, var, des, sufijo, cuant, decimales,
                                designs = designs, consolidated_df = resultado_final,
                                nombre_indicador = nombre_indicador, lista_tests = lista_tests,
                                snac = snac, mostrar_pct_fiable = mostrar_pct_fiable,
-                               color_fiabilidad = color_fiabilidad, fuente = fuente,
-                           verbose = verbose)
+                               mostrar_evaluacion_general = mostrar_evaluacion_general,
+                               color_fiabilidad = color_fiabilidad,
+                               color_significancia = color_significancia,
+                               nivel_confianza = nivel_confianza, notas = notas, fuente = fuente,
+                               verbose = verbose)
     } else {
-      .save_simple_xlsx(dir, filename, resultado_final, verbose = verbose)
+      .save_simple_xlsx(dir, filepath, resultado_final, verbose = verbose)
     }
   }
   if (verbose) message("Proceso completado.")

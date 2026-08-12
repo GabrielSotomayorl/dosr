@@ -49,6 +49,22 @@ test_that("r8a (más común) tiene prevalencia mayor que r8h (más severa)", {
   expect_gt(est_r8a, est_r8h)
 })
 
+test_that("multi_bin escribe evaluación y notas personalizadas con letras", {
+  tmp <- withr::local_tempdir()
+  multi_bin(
+    dsgn_2024, vars_binarias = R8_VARS[1:2],
+    notas = c("Nota uno.", "Nota dos."),
+    dir = tmp, filename = "notas_multi.xlsx", verbose = FALSE
+  )
+  datos <- openxlsx::read.xlsx(
+    file.path(tmp, "notas_multi.xlsx"), sheet = "2_Nacional", colNames = FALSE
+  )
+  txt <- as.character(datos[, 1])
+  expect_true(any(txt == "Notas:", na.rm = TRUE))
+  expect_true(any(grepl("b. Nota uno.", txt, fixed = TRUE), na.rm = TRUE))
+  expect_true(any(grepl("c. Nota dos.", txt, fixed = TRUE), na.rm = TRUE))
+})
+
 # ── Desagregación ─────────────────────────────────────────────────────────────
 
 test_that("multi_bin con des='sexo' produce filas por cada categoría de sexo", {
@@ -131,4 +147,49 @@ test_that("multi_bin rechaza listas de diseños", {
     multi_bin(list(dsgn_2024, dsgn_2022), vars_binarias = R8_VARS, dir = tempdir()),
     "nico dise"
   )
+})
+
+# ── Universo y PSU anidadas ──────────────────────────────────────────────────
+
+test_that("n_universo se calcula por variable y no cambia al agregar indicadores", {
+  design <- make_multi_binary_design()
+  raw <- make_multi_binary_data()
+  tmp1 <- withr::local_tempdir()
+  tmp2 <- withr::local_tempdir()
+
+  one <- multi_bin(design, vars_binarias = "x1", n_minimo = 0L,
+                   dir = tmp1, verbose = FALSE)
+  two <- multi_bin(design, vars_binarias = c("x1", "x2"), n_minimo = 0L,
+                   dir = tmp2, verbose = FALSE)
+  one_x1 <- one[one$desagregacion_tipo == "Nacional" & one$variable == "x1", ]
+  two_x1 <- two[two$desagregacion_tipo == "Nacional" & two$variable == "x1", ]
+
+  expect_equal(one_x1$n_universo, sum(!is.na(raw$x1)))
+  expect_equal(two_x1$n_universo, one_x1$n_universo)
+  expect_equal(two_x1$fiabilidad, one_x1$fiabilidad)
+
+  by_domain <- multi_bin(
+    design, vars_binarias = c("x1", "x2"), des = "domain",
+    n_minimo = 0L, dir = tmp2, filename = "por_dominio.xlsx", verbose = FALSE
+  )
+  domain_x1 <- by_domain[
+    by_domain$desagregacion_tipo == "domain" & by_domain$variable == "x1",
+  ]
+  expected_array <- tapply(!is.na(raw$x1), raw$domain, sum)
+  expected <- stats::setNames(as.integer(expected_array), names(expected_array))
+  observed <- stats::setNames(
+    domain_x1$n_universo,
+    domain_x1$desagregacion_categoria
+  )
+  expect_equal(observed[names(expected)], expected)
+})
+
+test_that("multi_bin respeta PSU repetidas entre estratos", {
+  design <- make_multi_binary_design()
+  tmp <- withr::local_tempdir()
+  result <- multi_bin(design, vars_binarias = "x1", n_minimo = 0L,
+                      dir = tmp, verbose = FALSE)
+  nac <- result[result$desagregacion_tipo == "Nacional", ]
+
+  expect_equal(nac$gl, survey::degf(design))
 })

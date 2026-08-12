@@ -188,3 +188,46 @@ test_that("desagregación region x area con multi_des produce 'No Fiable' en cel
   # Las celdas con 0 obs del fixture no deben aparecer como filas del resultado
   expect_lt(nrow(tbl), 32)
 })
+
+# ── Diseños sintéticos: PSU anidadas y SRS ───────────────────────────────────
+
+test_that("grados de libertad respetan PSU repetidas entre estratos", {
+  design <- make_nested_psu_design()
+  result <- obs_media(
+    design,
+    var = "value",
+    n_minimo = 0L,
+    save_xlsx = FALSE,
+    verbose = FALSE
+  )
+
+  expect_equal(result$gl_1, survey::degf(design))
+  expect_false(startsWith(result$fiabilidad_1, "No Fiable (gl)"))
+})
+
+test_that("obs_prop usa los grados de libertad anidados del diseño", {
+  design <- make_nested_psu_design()
+  result <- obs_prop(
+    design,
+    var = "binary",
+    n_minimo = 0L,
+    save_xlsx = FALSE,
+    verbose = FALSE
+  )
+
+  expect_true(all(result$gl_1 == survey::degf(design)))
+})
+
+test_that("un diseño ponderado sin ids ni strata explícitos es compatible", {
+  design <- make_srs_design()
+  result <- obs_media(
+    design,
+    var = "value",
+    n_minimo = 0L,
+    save_xlsx = FALSE,
+    verbose = FALSE
+  )
+
+  expect_equal(result$gl_1, survey::degf(design))
+  expect_true(is.finite(result$media_1))
+})

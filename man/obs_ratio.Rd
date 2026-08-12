@@ -33,13 +33,18 @@ obs_ratio(
   cv_umbral_medio = 0.2,
   n_minimo = 30L,
   nivel_confianza = 0.95,
-  verbose = TRUE
+  verbose = TRUE,
+  filename = NULL,
+  notas = NULL,
+  mostrar_evaluacion_general = TRUE,
+  color_significancia = FALSE
 )
 }
 \arguments{
 \item{designs}{Un objeto `tbl_svy` o una lista de ellos.}
 
-\item{sufijo}{Vector de strings para sufijos (p.ej. c("2020","2022")).}
+\item{sufijo}{Vector de strings no vacíos y únicos para sufijos
+(p.ej. `c("2020", "2022")`).}
 
 \item{num}{String con el nombre de la variable **numerador**.}
 
@@ -105,6 +110,19 @@ Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no exist
 \item{nivel_confianza}{Numérico. Nivel de confianza para intervalos y pruebas de significancia. Por defecto `0.95`.}
 
 \item{verbose}{Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.}
+
+\item{filename}{Nombre personalizado del archivo Excel, con o sin extensión
+`.xlsx`. Si es `NULL`, se genera automáticamente; los nombres automáticos
+solo se truncan cuando exceden el límite portable y conservan años y tipo.}
+
+\item{notas}{Vector de textos para notas al pie personalizadas. Se rotulan
+automáticamente con letras y se escriben antes de la fuente.}
+
+\item{mostrar_evaluacion_general}{Booleano. Si `TRUE` (por defecto), incluye
+la evaluación general de fiabilidad dentro de las notas del tabulado.}
+
+\item{color_significancia}{Booleano. Si `TRUE`, destaca los p-valores menores
+que `1 - nivel_confianza` en las tablas de significancia. Por defecto `FALSE`.}
 }
 \value{
 Un `data.frame` con los resultados consolidados (invisiblemente).

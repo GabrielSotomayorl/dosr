@@ -29,6 +29,9 @@ navbar:
 
 home:
   logo: man/figures/logo.png
+  links:
+  - text: Ver en CRAN
+    href: https://CRAN.R-project.org/package=dosr
   title: "dosr — Encuestas Complejas para el Observatorio Social"
   description: >
     Herramientas de alto nivel para calcular estimaciones (medias,

@@ -87,6 +87,52 @@ test_that("truncate_sheet_name evita colisiones tras truncar", {
   expect_lte(nchar(nm3), 31)
 })
 
+test_that("nombre automático corto conserva exactamente el comportamiento histórico", {
+  path <- dosr:::.build_excel_path(
+    "salida", "pobreza_sexo-area", "_2022-2024_PROP"
+  )
+  expect_equal(
+    path,
+    file.path("salida", "pobreza_sexo-area_2022-2024_PROP.xlsx")
+  )
+})
+
+test_that("nombre automático largo trunca descripción y conserva hash y sufijo", {
+  descriptive <- paste(rep("desagregación_extensa", 20), collapse = "-")
+  path1 <- dosr:::.build_excel_path("salida", descriptive, "_2022-2024_PROP")
+  path2 <- dosr:::.build_excel_path("salida", descriptive, "_2022-2024_PROP")
+  name <- basename(path1)
+
+  expect_equal(path1, path2)
+  expect_lte(nchar(name, type = "bytes"), 200L)
+  expect_match(name, "_[0-9a-f]{6}_2022-2024_PROP[.]xlsx$")
+})
+
+test_that("hash distingue descripciones largas con el mismo inicio", {
+  prefix <- paste(rep("variable", 30), collapse = "-")
+  a <- basename(dosr:::.build_excel_path("x", paste0(prefix, "-uno"), "_2024_MEDIA"))
+  b <- basename(dosr:::.build_excel_path("x", paste0(prefix, "-dos"), "_2024_MEDIA"))
+  expect_false(identical(a, b))
+})
+
+test_that("filename personalizado admite omitir extensión y rechaza rutas", {
+  expect_equal(
+    dosr:::.build_excel_path("salida", "ignorado", "_2024_MEDIA", "reporte"),
+    file.path("salida", "reporte.xlsx")
+  )
+  expect_error(
+    dosr:::.build_excel_path("salida", "ignorado", "_2024_MEDIA", "sub/reporte.xlsx"),
+    "solo un nombre"
+  )
+})
+
+test_that("rótulos de notas continúan después de z", {
+  expect_equal(
+    vapply(c(1L, 26L, 27L, 28L), dosr:::.letter_label, character(1)),
+    c("a", "z", "aa", "ab")
+  )
+})
+
 # ── validate_inputs ───────────────────────────────────────────────────────────
 
 test_that("validate_inputs revisa todos los diseños de la lista", {

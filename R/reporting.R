@@ -100,6 +100,18 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
     if (length(totals_combo) > 0) {
       attr(joined_df, "totals_filtered") <- totals_combo
     }
+    order_cols <- c(grp_des, var_interes)
+    if (length(order_cols) > 0) {
+      order_keys <- lapply(order_cols, function(col) {
+        preferred <- all_levels_to_use[[col]]
+        values <- as.character(joined_df[[col]])
+        if (is.null(preferred)) return(values)
+        rank <- match(values, preferred)
+        rank[is.na(rank)] <- length(preferred) + match(values[is.na(rank)], unique(values[is.na(rank)]))
+        rank
+      })
+      joined_df <- joined_df[do.call(order, c(order_keys, list(na.last = TRUE))), , drop = FALSE]
+    }
     return(joined_df)
   }
   hojas_list <- purrr::map(combos_nombres, combinar_por_combo)
@@ -170,45 +182,88 @@ aggregate_results <- function(lista_tablas, sufijo, keys, all_designs, type) {
   if (total_q == 0L) return(character(0))
 
   pct <- 100 * total_f / total_q
-  lines <- "Nota:"
+  parts <- character(0)
 
   if (mostrar_pct) {
-    lines <- c(lines, sprintf("El %.1f%% de las estimaciones del cuadro son fiables.", pct))
+    parts <- c(parts, sprintf("El %.1f%% de las estimaciones del cuadro son fiables.", pct))
   }
 
   if (pct < 50) {
-    lines <- c(lines, "Dado que menos del 50% de las estimaciones del cuadro son fiables, se recomienda no publicar.")
+    parts <- c(parts, "Dado que menos del 50% de las estimaciones del cuadro son fiables, se recomienda no publicar.")
   }
 
   has_excep <- length(excep_poco) > 0 || length(excep_no) > 0
   if (!has_excep) {
-    lines <- c(lines, "Todas las estimaciones son fiables.")
+    if (!mostrar_pct) parts <- c(parts, "Todas las estimaciones son fiables.")
   } else {
-    lines <- c(lines, "Todas las estimaciones son fiables, exceptuando las siguientes:")
+    parts <- c(parts, "Todas las estimaciones son fiables, exceptuando las siguientes:")
     for (sfx in sufijo) {
       if (!is.null(excep_poco[[sfx]]))
-        lines <- c(lines, paste0(sfx, " - Poco fiables: ", join_labels(excep_poco[[sfx]]), "."))
+        parts <- c(parts, paste0(sfx, " - Poco fiables: ", join_labels(excep_poco[[sfx]]), "."))
       if (!is.null(excep_no[[sfx]]))
-        lines <- c(lines, paste0(sfx, " - No fiables: ", join_labels(excep_no[[sfx]]), "."))
+        parts <- c(parts, paste0(sfx, " - No fiables: ", join_labels(excep_no[[sfx]]), "."))
     }
   }
-  lines
+  paste(parts, collapse = " ")
 }
 
-# Escribe nota de fiabilidad en la hoja. Devuelve la siguiente fila disponible.
-.write_quality_note <- function(wb, sheet_nm, start_row, note_lines, n_cols) {
-  if (length(note_lines) == 0) return(start_row)
+# Escribe evaluación y notas personalizadas como una secuencia común de letras.
+.write_report_notes <- function(wb, sheet_nm, start_row, quality_note,
+                                notas, n_cols) {
+  notes <- c(quality_note, .validate_notes(notas))
+  notes <- notes[!is.na(notes) & nzchar(notes)]
+  if (length(notes) == 0) return(start_row)
   bold_st  <- openxlsx::createStyle(textDecoration = "bold")
   plain_st <- openxlsx::createStyle()
   n_cols   <- max(2L, n_cols)
-  for (i in seq_along(note_lines)) {
-    r <- start_row + i - 1L
-    openxlsx::writeData(wb, sheet_nm, note_lines[i], startRow = r, startCol = 1)
+  openxlsx::writeData(wb, sheet_nm, "Notas:", startRow = start_row, startCol = 1)
+  openxlsx::mergeCells(wb, sheet_nm, cols = 1:n_cols, rows = start_row)
+  openxlsx::addStyle(wb, sheet_nm, style = bold_st, rows = start_row, cols = 1)
+  for (i in seq_along(notes)) {
+    r <- start_row + i
+    txt <- paste0(.letter_label(i), ". ", notes[i])
+    openxlsx::writeData(wb, sheet_nm, txt, startRow = r, startCol = 1)
     openxlsx::mergeCells(wb, sheet_nm, cols = 1:n_cols, rows = r)
-    sty <- if (note_lines[i] == "Nota:") bold_st else plain_st
-    openxlsx::addStyle(wb, sheet_nm, style = sty, rows = r, cols = 1)
+    openxlsx::addStyle(wb, sheet_nm, style = plain_st, rows = r, cols = 1)
   }
-  start_row + length(note_lines)
+  start_row + length(notes) + 1L
+}
+
+.apply_test_styles <- function(wb, sheet_nm, test_df, start_col, first_data_row,
+                               color_significancia = FALSE,
+                               nivel_confianza = 0.95) {
+  numeric_idx <- which(vapply(test_df, is.numeric, logical(1)))
+  if (length(numeric_idx) == 0L || nrow(test_df) == 0L) return(invisible(NULL))
+  rows <- first_data_row:(first_data_row + nrow(test_df) - 1L)
+  cols <- start_col + numeric_idx - 1L
+  openxlsx::addStyle(
+    wb, sheet_nm, style = openxlsx::createStyle(numFmt = "0.000"),
+    rows = rows, cols = cols, gridExpand = TRUE, stack = TRUE
+  )
+  if (color_significancia) {
+    sig_style <- openxlsx::createStyle(fgFill = "#FFF2CC", fontColour = "#9C5700")
+    threshold <- 1 - nivel_confianza
+    id_idx <- which(!vapply(test_df, is.numeric, logical(1)))
+    row_labels <- if (length(id_idx) > 0L) {
+      apply(test_df[id_idx], 1, function(x) {
+        x <- as.character(x)
+        x <- x[!is.na(x) & nzchar(x)]
+        paste(x, collapse = "\n")
+      })
+    } else rep("", nrow(test_df))
+    for (j in seq_along(numeric_idx)) {
+      vals <- test_df[[numeric_idx[j]]]
+      # La diagonal de las matrices intra-anuales representa una comparación
+      # consigo misma y no debe destacarse como significativa.
+      is_diagonal <- row_labels == names(test_df)[numeric_idx[j]]
+      hit <- which(!is.na(vals) & vals < threshold & !is_diagonal)
+      if (length(hit) > 0L) {
+        openxlsx::addStyle(wb, sheet_nm, style = sig_style,
+          rows = first_data_row + hit - 1L, cols = cols[j], stack = TRUE)
+      }
+    }
+  }
+  invisible(NULL)
 }
 
 # Escribe l\u00ednea de fuente. Acepta claves est\u00e1ndar o texto libre.
@@ -286,7 +341,11 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
                                   lista_tests = NULL,
                                   snac = FALSE,
                                   mostrar_pct_fiable = FALSE,
+                                  mostrar_evaluacion_general = TRUE,
                                   color_fiabilidad = FALSE,
+                                  color_significancia = FALSE,
+                                  nivel_confianza = 0.95,
+                                  notas = NULL,
                                   fuente = NULL,
                                   verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
@@ -394,9 +453,11 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
 
     # Nota de fiabilidad y fuente
     note_id_cols <- c(grp_des, var)
-    note_lines <- .build_quality_note(df_combo_wide, sufijo, note_id_cols, mostrar_pct = mostrar_pct_fiable)
+    quality_note <- if (mostrar_evaluacion_general) .build_quality_note(
+      df_combo_wide, sufijo, note_id_cols, mostrar_pct = mostrar_pct_fiable
+    ) else character(0)
     fila_nota <- fila + 1L
-    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    fila_nota <- .write_report_notes(wb, hoja_nm, fila_nota, quality_note, notas, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && (
@@ -417,11 +478,8 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df) + 3
         }
       }
@@ -435,11 +493,8 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_last, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df_last) + 3
         }
 
@@ -451,11 +506,8 @@ generate_prop_report <- function(hojas_list, filename, var, des, sufijo, porcent
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_nac, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
         }
       }
     }
@@ -526,7 +578,11 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
                                   lista_tests = NULL,
                                   snac = FALSE,
                                   mostrar_pct_fiable = FALSE,
+                                  mostrar_evaluacion_general = TRUE,
                                   color_fiabilidad = FALSE,
+                                  color_significancia = FALSE,
+                                  nivel_confianza = 0.95,
+                                  notas = NULL,
                                   fuente = NULL,
                                   verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
@@ -590,9 +646,11 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
     }
 
     # Nota de fiabilidad y fuente
-    note_lines <- .build_quality_note(df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable)
+    quality_note <- if (mostrar_evaluacion_general) .build_quality_note(
+      df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable
+    ) else character(0)
     fila_nota <- fila + 1L
-    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    fila_nota <- .write_report_notes(wb, hoja_nm, fila_nota, quality_note, notas, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && (
@@ -613,11 +671,8 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df) + 3
         }
       }
@@ -631,11 +686,8 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_last, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df_last) + 3
         }
 
@@ -647,11 +699,8 @@ generate_mean_report <- function(hojas_list, filename, var, des, sufijo, decimal
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_nac, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
         }
       }
     }
@@ -667,7 +716,11 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
                                    lista_tests = NULL,
                                    snac = FALSE,
                                    mostrar_pct_fiable = FALSE,
+                                   mostrar_evaluacion_general = TRUE,
                                    color_fiabilidad = FALSE,
+                                   color_significancia = FALSE,
+                                   nivel_confianza = 0.95,
+                                   notas = NULL,
                                    fuente = NULL,
                                   verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
@@ -732,9 +785,11 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
     }
 
     # Nota de fiabilidad y fuente
-    note_lines <- .build_quality_note(df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable)
+    quality_note <- if (mostrar_evaluacion_general) .build_quality_note(
+      df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable
+    ) else character(0)
     fila_nota <- fila + 1L
-    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    fila_nota <- .write_report_notes(wb, hoja_nm, fila_nota, quality_note, notas, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && (
@@ -755,11 +810,8 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df) + 3
         }
       }
@@ -773,11 +825,8 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_last, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df_last) + 3
         }
 
@@ -789,11 +838,8 @@ generate_total_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_nac, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
         }
       }
     }
@@ -809,7 +855,11 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
                                    lista_tests = NULL,
                                    snac = FALSE,
                                    mostrar_pct_fiable = FALSE,
+                                   mostrar_evaluacion_general = TRUE,
                                    color_fiabilidad = FALSE,
+                                   color_significancia = FALSE,
+                                   nivel_confianza = 0.95,
+                                   notas = NULL,
                                    fuente = NULL,
                                   verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
@@ -873,9 +923,11 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
     }
 
     # Nota de fiabilidad y fuente
-    note_lines <- .build_quality_note(df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable)
+    quality_note <- if (mostrar_evaluacion_general) .build_quality_note(
+      df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable
+    ) else character(0)
     fila_nota <- fila + 1L
-    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    fila_nota <- .write_report_notes(wb, hoja_nm, fila_nota, quality_note, notas, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && (
@@ -896,11 +948,8 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df) + 3
         }
       }
@@ -914,11 +963,8 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_last, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df_last) + 3
         }
 
@@ -930,11 +976,8 @@ generate_ratio_report <- function(hojas_list, filename, var, des, sufijo, decima
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_nac, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
         }
       }
     }
@@ -950,7 +993,11 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
                                       lista_tests = NULL,
                                       snac = FALSE,
                                       mostrar_pct_fiable = FALSE,
+                                      mostrar_evaluacion_general = TRUE,
                                       color_fiabilidad = FALSE,
+                                      color_significancia = FALSE,
+                                      nivel_confianza = 0.95,
+                                      notas = NULL,
                                       fuente = NULL,
                                   verbose = TRUE) {
   wb <- openxlsx::createWorkbook()
@@ -1015,9 +1062,11 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
     }
 
     # Nota de fiabilidad y fuente
-    note_lines <- .build_quality_note(df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable)
+    quality_note <- if (mostrar_evaluacion_general) .build_quality_note(
+      df_combo_wide, sufijo, grp_des, mostrar_pct = mostrar_pct_fiable
+    ) else character(0)
     fila_nota <- fila + 1L
-    fila_nota <- .write_quality_note(wb, hoja_nm, fila_nota, note_lines, max_col_metrics)
+    fila_nota <- .write_report_notes(wb, hoja_nm, fila_nota, quality_note, notas, max_col_metrics)
     .write_fuente(wb, hoja_nm, fila_nota + 1L, fuente, sufijo, max_col_metrics)
 
     if (!is.null(lista_tests) && (
@@ -1038,11 +1087,8 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
 
           write_clean_table(wb, hoja_nm, test_df, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df) + 3
         }
       }
@@ -1056,11 +1102,8 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_last, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_last) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_last))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_last, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
           fila <- fila + nrow(test_df_last) + 3
         }
 
@@ -1072,11 +1115,8 @@ generate_quantile_report <- function(hojas_list, filename, var, des, sufijo, cua
           openxlsx::mergeCells(wb, hoja_nm, cols = cols_to_merge, rows = fila)
           openxlsx::addStyle(wb, hoja_nm, style = hdrStyle, rows = fila, cols = cols_to_merge, gridExpand = TRUE)
           write_clean_table(wb, hoja_nm, test_df_nac, startRow = fila + 1, startCol = col_inicio_tests)
-          numeric_cols <- (col_inicio_tests + 1):(col_inicio_tests + ncol(test_df_nac) - 1)
-          data_rows <- (fila + 2):(fila + 1 + nrow(test_df_nac))
-          if(length(numeric_cols) > 0 && length(data_rows) > 0) {
-            openxlsx::addStyle(wb, hoja_nm, style = testStyle, rows = data_rows, cols = numeric_cols, gridExpand = TRUE, stack = TRUE)
-          }
+          .apply_test_styles(wb, hoja_nm, test_df_nac, col_inicio_tests, fila + 2L,
+                             color_significancia, nivel_confianza)
         }
       }
     }
