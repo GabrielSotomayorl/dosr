@@ -6,8 +6,18 @@ estandarizados en Excel con clasificación de fiabilidad estadística.
 
 ## Instalación
 
+Versión estable desde CRAN:
+
 ``` r
 
+install.packages("dosr")
+```
+
+Versión de desarrollo desde GitHub:
+
+``` r
+
+# install.packages("remotes")
 remotes::install_github("GabrielSotomayorl/dosr")
 ```
 
@@ -72,7 +82,8 @@ head(resultado_prop[, c("region", "pobreza", "prop_2022", "fiabilidad_2022")])
 ## Medias: `obs_media()`
 
 Ingreso total del hogar corregido (`ytotcorh`) promedio por región en
-2022:
+2022. Como es una variable del hogar repetida para sus integrantes, se
+filtra a la jefatura del hogar para contar cada hogar una sola vez:
 
 ``` r
 
@@ -81,6 +92,7 @@ resultado_media <- obs_media(
   sufijo    = "2022",
   var       = "ytotcorh",
   des       = "region",
+  filt      = pco1 == 1,
   save_xlsx = FALSE,
   verbose   = FALSE
 )
@@ -88,12 +100,12 @@ head(resultado_media[, c("region", "media_2022", "fiabilidad_2022")])
 #> # A tibble: 6 × 3
 #>   region                media_2022 fiabilidad_2022
 #>   <fct>                      <dbl> <chr>          
-#> 1 NA                      1713534. Fiable         
-#> 2 Región de Tarapacá      1515201. Fiable         
-#> 3 Región de Antofagasta   1819321. Fiable         
-#> 4 Región de Atacama       1487318. Fiable         
-#> 5 Región de Coquimbo      1438892. Fiable         
-#> 6 Región de Valparaíso    1499137. Fiable
+#> 1 NA                      1566277. Fiable         
+#> 2 Región de Tarapacá      1404222. Fiable         
+#> 3 Región de Antofagasta   1679243. Fiable         
+#> 4 Región de Atacama       1338269. Fiable         
+#> 5 Región de Coquimbo      1325239. Fiable         
+#> 6 Región de Valparaíso    1356670. Fiable
 ```
 
 ## Cuantiles: `obs_cuantil()`
@@ -108,6 +120,7 @@ resultado_cuantil <- obs_cuantil(
   var       = "ytotcorh",
   des       = "region",
   cuant     = 0.5,
+  filt      = pco1 == 1,
   save_xlsx = FALSE,
   verbose   = FALSE
 )
@@ -115,12 +128,12 @@ head(resultado_cuantil[, c("region", "cuantil_2022", "fiabilidad_2022")])
 #> # A tibble: 6 × 3
 #>   region                cuantil_2022 fiabilidad_2022
 #>   <fct>                        <dbl> <chr>          
-#> 1 NA                         1250000 Fiable         
-#> 2 Región de Tarapacá         1230736 Fiable         
-#> 3 Región de Antofagasta      1416697 Fiable         
-#> 4 Región de Atacama          1205000 Fiable         
-#> 5 Región de Coquimbo         1120083 Fiable         
-#> 6 Región de Valparaíso       1165472 Fiable
+#> 1 NA                         1111417 Fiable         
+#> 2 Región de Tarapacá         1110000 Fiable         
+#> 3 Región de Antofagasta      1250000 Fiable         
+#> 4 Región de Atacama          1042750 Fiable         
+#> 5 Región de Coquimbo          993713 Fiable         
+#> 6 Región de Valparaíso       1031421 Fiable
 ```
 
 ## Totales: `obs_total()`

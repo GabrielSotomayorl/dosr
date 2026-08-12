@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,8 +94,13 @@ estadística.</p>
 <div class="section level2">
 <h2 id="instalación">Instalación<a class="anchor" aria-label="anchor" href="#instalaci%C3%B3n"></a>
 </h2>
+<p>Versión estable desde CRAN:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"GabrielSotomayorl/dosr"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"dosr"</span><span class="op">)</span></span></code></pre></div>
+<p>Versión de desarrollo desde GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("remotes")</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"GabrielSotomayorl/dosr"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="datos-incluidos">Datos incluidos<a class="anchor" aria-label="anchor" href="#datos-incluidos"></a>
@@ -104,7 +109,7 @@ estadística.</p>
 usar: <code>casen_2022</code> (202 231 hogares) y
 <code>casen_2024</code> (218 367 hogares). Ambas contienen las variables
 necesarias para reproducir todos los ejemplos de esta viñeta.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://gabrielsotomayorl.github.io/dosr/">dosr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://gdfe.co/srvyr/" class="external-link">srvyr</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -130,7 +135,7 @@ necesarias para reproducir todos los ejemplos de esta viñeta.</p>
 </h2>
 <p>Distribución de la población según situación de pobreza, desagregada
 por región:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">resultado_prop</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/obs_prop.html">obs_prop</a></span><span class="op">(</span></span>
 <span>  <span class="va">design_2022</span>,</span>
 <span>  sufijo     <span class="op">=</span> <span class="st">"2022"</span>,</span>
@@ -155,13 +160,16 @@ por región:</p>
 <h2 id="medias-obs_media">Medias: <code>obs_media()</code><a class="anchor" aria-label="anchor" href="#medias-obs_media"></a>
 </h2>
 <p>Ingreso total del hogar corregido (<code>ytotcorh</code>) promedio
-por región en 2022:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+por región en 2022. Como es una variable del hogar repetida para sus
+integrantes, se filtra a la jefatura del hogar para contar cada hogar
+una sola vez:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">resultado_media</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/obs_media.html">obs_media</a></span><span class="op">(</span></span>
 <span>  <span class="va">design_2022</span>,</span>
 <span>  sufijo    <span class="op">=</span> <span class="st">"2022"</span>,</span>
 <span>  var       <span class="op">=</span> <span class="st">"ytotcorh"</span>,</span>
 <span>  des       <span class="op">=</span> <span class="st">"region"</span>,</span>
+<span>  filt      <span class="op">=</span> <span class="va">pco1</span> <span class="op">==</span> <span class="fl">1</span>,</span>
 <span>  save_xlsx <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose   <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
@@ -169,24 +177,25 @@ por región en 2022:</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 3</span></span></span>
 <span><span class="co">#&gt;   region                media_2022 fiabilidad_2022</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>                      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> <span style="color: #BB0000;">NA</span>                      1<span style="text-decoration: underline;">713</span>534. Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> Región de Tarapacá      1<span style="text-decoration: underline;">515</span>201. Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> Región de Antofagasta   1<span style="text-decoration: underline;">819</span>321. Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> Región de Atacama       1<span style="text-decoration: underline;">487</span>318. Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> Región de Coquimbo      1<span style="text-decoration: underline;">438</span>892. Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> Región de Valparaíso    1<span style="text-decoration: underline;">499</span>137. Fiable</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> <span style="color: #BB0000;">NA</span>                      1<span style="text-decoration: underline;">566</span>277. Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> Región de Tarapacá      1<span style="text-decoration: underline;">404</span>222. Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> Región de Antofagasta   1<span style="text-decoration: underline;">679</span>243. Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> Región de Atacama       1<span style="text-decoration: underline;">338</span>269. Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> Región de Coquimbo      1<span style="text-decoration: underline;">325</span>239. Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> Región de Valparaíso    1<span style="text-decoration: underline;">356</span>670. Fiable</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="cuantiles-obs_cuantil">Cuantiles: <code>obs_cuantil()</code><a class="anchor" aria-label="anchor" href="#cuantiles-obs_cuantil"></a>
 </h2>
 <p>Mediana del ingreso del hogar por región:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">resultado_cuantil</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/obs_cuantil.html">obs_cuantil</a></span><span class="op">(</span></span>
 <span>  <span class="va">design_2022</span>,</span>
 <span>  sufijo    <span class="op">=</span> <span class="st">"2022"</span>,</span>
 <span>  var       <span class="op">=</span> <span class="st">"ytotcorh"</span>,</span>
 <span>  des       <span class="op">=</span> <span class="st">"region"</span>,</span>
 <span>  cuant     <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  filt      <span class="op">=</span> <span class="va">pco1</span> <span class="op">==</span> <span class="fl">1</span>,</span>
 <span>  save_xlsx <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose   <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
@@ -194,19 +203,19 @@ por región en 2022:</p>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 3</span></span></span>
 <span><span class="co">#&gt;   region                cuantil_2022 fiabilidad_2022</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>                        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> <span style="color: #BB0000;">NA</span>                         1<span style="text-decoration: underline;">250</span>000 Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> Región de Tarapacá         1<span style="text-decoration: underline;">230</span>736 Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> Región de Antofagasta      1<span style="text-decoration: underline;">416</span>697 Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> Región de Atacama          1<span style="text-decoration: underline;">205</span>000 Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> Región de Coquimbo         1<span style="text-decoration: underline;">120</span>083 Fiable         </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> Región de Valparaíso       1<span style="text-decoration: underline;">165</span>472 Fiable</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> <span style="color: #BB0000;">NA</span>                         1<span style="text-decoration: underline;">111</span>417 Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> Región de Tarapacá         1<span style="text-decoration: underline;">110</span>000 Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> Región de Antofagasta      1<span style="text-decoration: underline;">250</span>000 Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> Región de Atacama          1<span style="text-decoration: underline;">042</span>750 Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> Región de Coquimbo          <span style="text-decoration: underline;">993</span>713 Fiable         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> Región de Valparaíso       1<span style="text-decoration: underline;">031</span>421 Fiable</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="totales-obs_total">Totales: <code>obs_total()</code><a class="anchor" aria-label="anchor" href="#totales-obs_total"></a>
 </h2>
 <p>Población en situación de pobreza por ingresos (variable binaria
 construida desde <code>pobreza</code>):</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Attaching package: 'dplyr'</span></span>
@@ -244,7 +253,7 @@ construida desde <code>pobreza</code>):</p>
 <h2 id="razones-obs_ratio">Razones: <code>obs_ratio()</code><a class="anchor" aria-label="anchor" href="#razones-obs_ratio"></a>
 </h2>
 <p>Razón de feminidad (mujeres / hombres) por región:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">design_2022_sex</span> <span class="op">&lt;-</span> <span class="va">design_2022</span></span>
 <span><span class="va">design_2022_sex</span><span class="op">$</span><span class="va">variables</span> <span class="op">&lt;-</span> <span class="va">design_2022_sex</span><span class="op">$</span><span class="va">variables</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
@@ -278,7 +287,7 @@ construida desde <code>pobreza</code>):</p>
 <p>Pasando una lista de diseños con el argumento <code>sufijo</code>, se
 comparan múltiples rondas en una sola llamada. El ejemplo compara la
 tasa de pobreza por región entre 2022 y 2024:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">resultado_serie</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/obs_prop.html">obs_prop</a></span><span class="op">(</span></span>
 <span>  designs    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">design_2022</span>, <span class="va">design_2024</span><span class="op">)</span>,</span>
 <span>  sufijo     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2022"</span>, <span class="st">"2024"</span><span class="op">)</span>,</span>
@@ -306,7 +315,7 @@ tasa de pobreza por región entre 2022 y 2024:</p>
 </h2>
 <p>Prevalencia de los ocho indicadores de inseguridad alimentaria (FIES)
 de la CASEN 2024, desagregada por área urbana/rural:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">resultado_bin</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/multi_bin.html">multi_bin</a></span><span class="op">(</span></span>
 <span>  <span class="va">design_2024</span>,</span>
 <span>  vars_binarias <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"r8"</span>, <span class="va">letters</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">8</span><span class="op">]</span><span class="op">)</span>,</span>
@@ -392,7 +401,7 @@ intra-año, contra el año anterior y contra el total nacional.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

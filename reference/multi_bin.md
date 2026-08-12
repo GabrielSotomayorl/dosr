@@ -23,7 +23,10 @@ multi_bin(
   decimales = 1,
   decimales_se = 3,
   n_minimo = 30,
-  verbose = TRUE
+  verbose = TRUE,
+  notas = NULL,
+  mostrar_evaluacion_general = TRUE,
+  mostrar_pct_fiable = FALSE
 )
 ```
 
@@ -63,7 +66,9 @@ multi_bin(
 
 - filename:
 
-  Un string con el nombre del archivo Excel.
+  Nombre personalizado del archivo Excel, con o sin extensión \`.xlsx\`.
+  Si es \`NULL\`, se genera automáticamente y se trunca de forma segura
+  solo si supera el umbral portable.
 
 - decimales:
 
@@ -82,6 +87,21 @@ multi_bin(
 - verbose:
 
   Booleano. Si \`TRUE\`, muestra mensajes de progreso.
+
+- notas:
+
+  Vector de textos para notas al pie personalizadas, rotuladas
+  automáticamente con letras.
+
+- mostrar_evaluacion_general:
+
+  Booleano. Si \`TRUE\` (por defecto), incluye la evaluación general de
+  fiabilidad como primera nota.
+
+- mostrar_pct_fiable:
+
+  Booleano. Si \`TRUE\`, la evaluación general incluye el porcentaje de
+  estimaciones fiables.
 
 ## Value
 

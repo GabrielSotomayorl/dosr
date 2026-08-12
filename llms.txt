@@ -1,10 +1,13 @@
 # dosr
 
+[![CRAN
+status](https://www.r-pkg.org/badges/version/dosr)](https://CRAN.R-project.org/package=dosr)
 [![R-CMD-check](https://github.com/GabrielSotomayorl/dosr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/GabrielSotomayorl/dosr/actions/workflows/R-CMD-check.yaml)
 [![Lifecycle:
 stable](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://lifecycle.r-lib.org/articles/stages.html#stable)
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Downloads](https://cranlogs.r-pkg.org/badges/dosr)](https://CRAN.R-project.org/package=dosr)
 
 Herramientas de análisis de encuestas para el Observatorio Social del
 Ministerio de Desarrollo Social de Chile.
@@ -15,6 +18,15 @@ encuestas complejas (como la CASEN) y generar reportes estandarizados en
 Excel con clasificación automática de fiabilidad estadística.
 
 ## Instalación
+
+Versión estable desde CRAN:
+
+``` r
+
+install.packages("dosr")
+```
+
+Versión de desarrollo desde GitHub:
 
 ``` r
 
@@ -137,7 +149,7 @@ multi_bin(design_2024,
 
 ## Requisitos
 
-- R ≥ 3.5.0
+- R ≥ 4.1.0
 - `srvyr`, `dplyr`, `purrr`, `rlang`, `openxlsx`, `haven`, `labelled`
 
 # Package index
@@ -172,9 +184,9 @@ Subconjuntos de la CASEN 2022 y 2024 con todas las observaciones y las
 variables necesarias para reproducir los ejemplos del paquete.
 
 - [`casen_2022`](https://gabrielsotomayorl.github.io/dosr/reference/casen_2022.md)
-  : Encuesta CASEN 2022 — subconjunto de variables clave
+  : Encuesta CASEN 2022 - subconjunto de variables clave
 - [`casen_2024`](https://gabrielsotomayorl.github.io/dosr/reference/casen_2024.md)
-  : Encuesta CASEN 2024 — subconjunto de variables clave
+  : Encuesta CASEN 2024 - subconjunto de variables clave
 
 # Articles
 

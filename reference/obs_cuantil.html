@@ -11,7 +11,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,7 +84,11 @@
 <span>  cv_umbral_medio <span class="op">=</span> <span class="fl">0.2</span>,</span>
 <span>  n_minimo <span class="op">=</span> <span class="fl">30L</span>,</span>
 <span>  nivel_confianza <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  filename <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  notas <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  mostrar_evaluacion_general <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  color_significancia <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -97,7 +101,8 @@
 
 
 <dt id="arg-sufijo">sufijo<a class="anchor" aria-label="anchor" href="#arg-sufijo"></a></dt>
-<dd><p>Vector de strings para sufijos (p.ej. c("2020","2022")).</p></dd>
+<dd><p>Vector de strings no vacíos y únicos para sufijos
+(p.ej. `c("2020", "2022")`).</p></dd>
 
 
 <dt id="arg-var">var<a class="anchor" aria-label="anchor" href="#arg-var"></a></dt>
@@ -215,6 +220,27 @@ Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no exist
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p>Booleano. Si `TRUE` (por defecto), muestra mensajes de progreso.</p></dd>
 
+
+<dt id="arg-filename">filename<a class="anchor" aria-label="anchor" href="#arg-filename"></a></dt>
+<dd><p>Nombre personalizado del archivo Excel, con o sin extensión
+`.xlsx`. Si es `NULL`, se genera automáticamente; los nombres automáticos
+solo se truncan cuando exceden el límite portable y conservan años y tipo.</p></dd>
+
+
+<dt id="arg-notas">notas<a class="anchor" aria-label="anchor" href="#arg-notas"></a></dt>
+<dd><p>Vector de textos para notas al pie personalizadas. Se rotulan
+automáticamente con letras y se escriben antes de la fuente.</p></dd>
+
+
+<dt id="arg-mostrar-evaluacion-general">mostrar_evaluacion_general<a class="anchor" aria-label="anchor" href="#arg-mostrar-evaluacion-general"></a></dt>
+<dd><p>Booleano. Si `TRUE` (por defecto), incluye
+la evaluación general de fiabilidad dentro de las notas del tabulado.</p></dd>
+
+
+<dt id="arg-color-significancia">color_significancia<a class="anchor" aria-label="anchor" href="#arg-color-significancia"></a></dt>
+<dd><p>Booleano. Si `TRUE`, destaca los p-valores menores
+que `1 - nivel_confianza` en las tablas de significancia. Por defecto `FALSE`.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -244,7 +270,7 @@ Use por ejemplo `dir = tempdir()` o una ruta de su proyecto. Se crea si no exist
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

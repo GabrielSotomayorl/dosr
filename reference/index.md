@@ -30,6 +30,6 @@ Subconjuntos de la CASEN 2022 y 2024 con todas las observaciones y las
 variables necesarias para reproducir los ejemplos del paquete.
 
 - [`casen_2022`](https://gabrielsotomayorl.github.io/dosr/reference/casen_2022.md)
-  : Encuesta CASEN 2022 — subconjunto de variables clave
+  : Encuesta CASEN 2022 - subconjunto de variables clave
 - [`casen_2024`](https://gabrielsotomayorl.github.io/dosr/reference/casen_2024.md)
-  : Encuesta CASEN 2024 — subconjunto de variables clave
+  : Encuesta CASEN 2024 - subconjunto de variables clave

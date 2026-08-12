@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -87,7 +87,10 @@
 <span>  decimales <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  decimales_se <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  n_minimo <span class="op">=</span> <span class="fl">30</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  notas <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  mostrar_evaluacion_general <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  mostrar_pct_fiable <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -127,7 +130,9 @@ consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no exi
 
 
 <dt id="arg-filename">filename<a class="anchor" aria-label="anchor" href="#arg-filename"></a></dt>
-<dd><p>Un string con el nombre del archivo Excel.</p></dd>
+<dd><p>Nombre personalizado del archivo Excel, con o sin extensión
+`.xlsx`. Si es `NULL`, se genera automáticamente y se trunca de forma
+segura solo si supera el umbral portable.</p></dd>
 
 
 <dt id="arg-decimales">decimales<a class="anchor" aria-label="anchor" href="#arg-decimales"></a></dt>
@@ -144,6 +149,21 @@ consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no exi
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p>Booleano. Si `TRUE`, muestra mensajes de progreso.</p></dd>
+
+
+<dt id="arg-notas">notas<a class="anchor" aria-label="anchor" href="#arg-notas"></a></dt>
+<dd><p>Vector de textos para notas al pie personalizadas, rotuladas
+automáticamente con letras.</p></dd>
+
+
+<dt id="arg-mostrar-evaluacion-general">mostrar_evaluacion_general<a class="anchor" aria-label="anchor" href="#arg-mostrar-evaluacion-general"></a></dt>
+<dd><p>Booleano. Si `TRUE` (por defecto), incluye
+la evaluación general de fiabilidad como primera nota.</p></dd>
+
+
+<dt id="arg-mostrar-pct-fiable">mostrar_pct_fiable<a class="anchor" aria-label="anchor" href="#arg-mostrar-pct-fiable"></a></dt>
+<dd><p>Booleano. Si `TRUE`, la evaluación general incluye
+el porcentaje de estimaciones fiables.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -190,7 +210,7 @@ consentimiento explícito). Use por ejemplo `dir = tempdir()`. Se crea si no exi
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -253,6 +253,7 @@ variación</strong> (CV = EE / |estimación|):</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/obs_media.html">obs_media</a></span><span class="op">(</span></span>
 <span>  <span class="va">design_2022</span>,</span>
 <span>  var             <span class="op">=</span> <span class="st">"ytotcorh"</span>,</span>
+<span>  filt            <span class="op">=</span> <span class="va">pco1</span> <span class="op">==</span> <span class="fl">1</span>, <span class="co"># una observación por hogar</span></span>
 <span>  cv_umbral_alto  <span class="op">=</span> <span class="fl">0.30</span>,   <span class="co"># umbral para "No Fiable (CV)"</span></span>
 <span>  cv_umbral_medio <span class="op">=</span> <span class="fl">0.20</span>,   <span class="co"># umbral para "Poco Fiable (CV)"</span></span>
 <span>  n_minimo        <span class="op">=</span> <span class="fl">30L</span>,    <span class="co"># tamaño muestral mínimo</span></span>
@@ -382,6 +383,7 @@ sitio</a>.</p>
 <span>  sufijo  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2022"</span>, <span class="st">"2024"</span><span class="op">)</span>,</span>
 <span>  var     <span class="op">=</span> <span class="st">"ytotcorh"</span>,</span>
 <span>  des     <span class="op">=</span> <span class="st">"area"</span>,</span>
+<span>  filt    <span class="op">=</span> <span class="va">pco1</span> <span class="op">==</span> <span class="fl">1</span>,</span>
 <span>  sig     <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  save_xlsx <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose   <span class="op">=</span> <span class="cn">FALSE</span></span>
@@ -399,11 +401,13 @@ sitio</a>.</p>
 <ul>
 <li>Lumley, T. (2010). <em>Complex Surveys: A Guide to Analysis Using
 R</em>. Wiley.</li>
-<li>División Observatorio Social, Subsecretaría de Evaluación Social,
-Ministerio de Desarrollo Social y Familia (2023, actualizado marzo
-2024). <em>Manual para la Investigación. Guía práctica para el uso y
-análisis de información. Casen 2022</em>. Santiago: Ministerio de
-Desarrollo Social y Familia. <a href="https://observatorio.ministeriodesarrollosocial.gob.cl/storage/docs/casen/2022/Manual_para_la_investigacion_Casen_2022(18marzo2024).pdf" class="external-link uri">https://observatorio.ministeriodesarrollosocial.gob.cl/storage/docs/casen/2022/Manual_para_la_investigacion_Casen_2022(18marzo2024).pdf</a>
+<li>División Observatorio Social (2023). <em>Manual para la
+Investigación. Casen 2022</em>. Subsecretaría de Evaluación Social,
+Ministerio de Desarrollo Social y Familia. <a href="https://bidat.gob.cl/details/ficha/dato/manual-para-la-investigacion-casen-2022" class="external-link uri">https://bidat.gob.cl/details/ficha/dato/manual-para-la-investigacion-casen-2022</a>
+</li>
+<li>Instituto Nacional de Estadísticas (2020). <em>Fundamentos del
+Estándar para la evaluación de la calidad de las estimaciones en
+encuestas de hogares</em>. INE. <a href="https://www.ine.gob.cl/inicio/documentos-de-trabajo/documento/fundamentos-del-est%C3%A1ndar-para-la-evaluaci%C3%B3n-de-la-calidad-de-las-estimaciones-en-encuestas-de-hogares" class="external-link uri">https://www.ine.gob.cl/inicio/documentos-de-trabajo/documento/fundamentos-del-est%C3%A1ndar-para-la-evaluaci%C3%B3n-de-la-calidad-de-las-estimaciones-en-encuestas-de-hogares</a>
 </li>
 <li>Valliant, R., Dever, J. A., &amp; Kreuter, F. (2018). <em>Practical
 Tools for Designing and Weighting Survey Samples</em> (2nd ed.).
@@ -421,7 +425,7 @@ Springer.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

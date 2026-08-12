@@ -1,4 +1,4 @@
-# Encuesta CASEN 2024 — subconjunto de variables clave
+# Encuesta CASEN 2024 - subconjunto de variables clave
 
 Subconjunto de la Encuesta de Caracterización Socioeconómica Nacional
 (CASEN) 2024, publicada por el Ministerio de Desarrollo Social y Familia
@@ -14,7 +14,7 @@ casen_2024
 
 ## Format
 
-Un \`data.frame\` con 218.367 filas y 18 variables:
+Un \`data.frame\` con 218.367 filas y 19 variables:
 
 - expr:
 
@@ -44,6 +44,11 @@ Un \`data.frame\` con 218.367 filas y 18 variables:
 - edad:
 
   Edad en años.
+
+- pco1:
+
+  Relación con la jefatura del hogar; el código 1 identifica a la
+  persona jefa de hogar (haven_labelled).
 
 - pobreza:
 

@@ -1,8 +1,61 @@
 # Changelog
 
+## dosr 0.3.5
+
+**Nuevas funcionalidades y mejoras**
+
+- Las cinco funciones `obs_*` incorporan `filename`, notas al pie
+  mediante `notas`, control de la evaluación general con
+  `mostrar_evaluacion_general` y resaltado opcional de p-valores
+  mediante `color_significancia`.
+- Los datos de ejemplo `casen_2022` y `casen_2024` incorporan `pco1`
+  (relación con la jefatura del hogar). Los ejemplos de ingreso del
+  hogar en las viñetas filtran `pco1 == 1` para contar cada hogar una
+  sola vez.
+- Los nombres automáticos de archivo conservan exactamente su formato
+  histórico mientras sean cortos. Si superan el umbral portable, solo se
+  trunca la parte descriptiva y se añade un identificador estable de
+  seis caracteres, manteniendo completos los años y el tipo de cálculo.
+- Las tablas de significancia de proporciones respetan el orden del
+  tabulado principal: primero las desagregaciones y luego la categoría
+  del indicador, preservando el orden de códigos o etiquetas en vez del
+  alfabético.
+- La evaluación general y las notas personalizadas forman una secuencia
+  común de notas rotuladas con letras antes de la fuente. La frase
+  porcentual ya no duplica “Todas las estimaciones son fiables” cuando
+  el porcentaje es 100%.
+- Los grados de libertad usan ahora los identificadores internos del
+  diseño de `survey`, respetando PSU repetidas entre estratos cuando
+  `nest = TRUE` y admitiendo diseños sin columnas explícitas de
+  conglomerado o estrato.
+- [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md)
+  calcula `n_universo` por variable y dominio como el número de
+  observaciones no perdidas; agregar otros indicadores ya no altera este
+  criterio de fiabilidad.
+- [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
+  reconoce los códigos originales no consecutivos de variables
+  `haven_labelled` en `categoria` y aplica el filtro antes de construir
+  las tablas del reporte.
+- `sufijo` rechaza valores duplicados, vacíos o `NA` para evitar
+  columnas ambiguas con terminaciones `.x` y `.y`.
+- dosr 0.3.4 fue publicado en CRAN el 6 de julio de 2026:
+  <https://CRAN.R-project.org/package=dosr>.
+- Instrucciones de instalación actualizadas (README y viñeta de
+  introducción): la versión estable se instala con
+  `install.packages("dosr")`.
+- Nueva cita formal vía `citation("dosr")`, con el DOI de CRAN
+  (10.32614/CRAN.package.dosr).
+- Referencias de la viñeta de metodología homologadas con la
+  `Description` del paquete: Manual para la Investigación Casen 2022
+  (División Observatorio Social, 2023; enlace BIDAT) e INE (2020),
+  *Fundamentos del Estándar para la evaluación de la calidad de las
+  estimaciones en encuestas de hogares*.
+
 ## dosr 0.3.4
 
-### Cambios para la publicación en CRAN
+CRAN release: 2026-07-06
+
+**Cambios para la publicación en CRAN**
 
 - El `Title` y la `Description` del paquete se redactaron en inglés,
   reflejando el propósito general del paquete: herramientas
@@ -21,7 +74,7 @@
 
 ## dosr 0.3.3
 
-### Cambios de comportamiento (breaking)
+**Cambios de comportamiento (breaking)**
 
 - `dir` ya no tiene valor por defecto (`"output"`). Cuando
   `save_xlsx = TRUE` (o siempre, en el caso de
@@ -35,7 +88,7 @@
 - El requisito mínimo de R sube de 3.5.0 a 4.1.0, reflejando las
   versiones con las que el paquete se desarrolla y testea.
 
-### Correcciones de robustez
+**Correcciones de robustez**
 
 - [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md):
   una estimación con error estándar `NA` ya no se clasifica erróneamente
@@ -61,7 +114,7 @@
 - `verbose = FALSE` ahora silencia también los mensajes de creación de
   los reportes Excel.
 
-### Documentación
+**Documentación**
 
 - Los ejemplos de
   [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
@@ -72,7 +125,7 @@
 
 ## dosr 0.3.2
 
-### Mejoras
+**Mejoras**
 
 - Las pruebas de significancia estadística (`sig = TRUE`) ahora se
   muestran en más escenarios de los reportes con formato. Hasta v0.3.1
@@ -83,7 +136,7 @@
   - **Cruces de dos o más variables de desagregación** (`multi_des`):
     prueba contra el último año y contra la estimación nacional.
 
-### Correcciones
+**Correcciones**
 
 - Corrección de formato en las tablas de significancia: los títulos
   ahora aplican el borde y el formato de encabezado a todo el rango
@@ -91,13 +144,13 @@
 
 ## dosr 0.3.1
 
-### Nuevas funcionalidades
+**Nuevas funcionalidades**
 
 - El argumento `filt` ahora acepta expresiones R sin comillas además de
   strings: `filt = edad > 18` es equivalente a `filt = "edad > 18"`. El
   comportamiento anterior (string) se mantiene sin cambios.
 
-### Mejoras de rendimiento
+**Mejoras de rendimiento**
 
 - `parallel = TRUE` ahora también acelera ejecuciones con un **único
   diseño** que usen múltiples variables de desagregación (`des` de
@@ -113,7 +166,7 @@
 
 ## dosr 0.3.0
 
-### Datos incluidos
+**Datos incluidos**
 
 - Se incorporan los conjuntos de datos `casen_2022` y `casen_2024` con
   la totalidad de las observaciones de la Encuesta CASEN y las variables
@@ -122,7 +175,7 @@
   Los datos están disponibles directamente al cargar el paquete sin
   necesidad de descargas adicionales.
 
-### Criterios de fiabilidad
+**Criterios de fiabilidad**
 
 - Todos los parámetros de fiabilidad son ahora configurables en cada
   llamada a `obs_*`: `cv_umbral_alto` (por defecto 0.30),
@@ -145,7 +198,7 @@
   `obs_*`: relaja el criterio de tamaño muestral para variables
   centrales del instrumento.
 
-### Nuevos argumentos de reporte (todas las funciones `obs_*`)
+**Nuevos argumentos de reporte (todas las funciones `obs_*`)**
 
 - `nombre`: sobreescribe el título del indicador en el reporte Excel.
 - `fuente`: escribe un pie de fuente con el nombre del instrumento y el
@@ -162,7 +215,7 @@
   filtra el output a una o más categorías específicas del outcome,
   aceptando etiquetas de texto o códigos numéricos.
 
-### Reportes Excel
+**Reportes Excel**
 
 - Todas las hojas de formato incluyen una nota de calidad automática que
   lista las estimaciones poco o no fiables por año, especificando la
@@ -170,7 +223,7 @@
   publicable.
 - La línea de fuente (`fuente =`) se escribe en negrita en el Excel.
 
-### Pruebas de significancia (`sig = TRUE`)
+**Pruebas de significancia (`sig = TRUE`)**
 
 - El nivel nacional genera la tabla “Test contra último año” al comparar
   múltiples diseños.
@@ -181,7 +234,7 @@
   igual al mínimo de los dos dominios comparados. El resultado reportado
   es el p-valor bilateral.
 
-### Documentación y sitio
+**Documentación y sitio**
 
 - Ejemplos ejecutables (`\donttest{}`) en todas las funciones
   exportadas, usando los datos `casen_2022` y `casen_2024` incluidos en
@@ -199,7 +252,7 @@
 
 ## dosr 0.2.4
 
-### MEJORAS
+**MEJORAS**
 
 - Se añadió el argumento `rm_na_des` (por defecto `FALSE`) a todas las
   funciones `obs_*` para permitir excluir las categorías “NA” de cada
@@ -211,7 +264,7 @@
 
 ## dosr 0.2.3
 
-### NUEVAS FUNCIONALIDADES PRINCIPALES
+**NUEVAS FUNCIONALIDADES PRINCIPALES**
 
 - Se incorporó la nueva función
   [`obs_cuantil()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_cuantil.md)
@@ -230,7 +283,7 @@
   lógica de filtrado, desagregaciones, significancia y reportes de las
   demás herramientas `obs_*`.
 
-### MEJORAS Y CORRECCIONES
+**MEJORAS Y CORRECCIONES**
 
 - Todas las funciones `obs_*` ejecutadas en paralelo heredan
   automáticamente la opción global `survey.lonely.psu`, evitando errores
@@ -243,7 +296,7 @@
 
 ## dosr 0.2.2
 
-### NUEVA FUNCIONALIDAD: PERFILADO RÁPIDO DE VARIABLES BINARIAS
+**NUEVA FUNCIONALIDAD: PERFILADO RÁPIDO DE VARIABLES BINARIAS**
 
 - Se ha añadido una nueva función
   [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md)
@@ -262,7 +315,7 @@
 - Genera un reporte en Excel con una hoja consolidada y hojas de formato
   profesional, siguiendo el estilo de `obs_prop` y `obs_media`.
 
-### MEJORAS INTERNAS
+**MEJORAS INTERNAS**
 
 - Se ha movido el operador helper `%||%` a un archivo de utilidades
   (`R/utils.R`) para mejorar la estructura del paquete y seguir las
@@ -271,7 +324,7 @@
 
 ## dosr 0.2.1
 
-### MEJORAS DE USABILIDAD
+**MEJORAS DE USABILIDAD**
 
 - Se ha añadido un nuevo argumento `dir` a
   [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
@@ -285,7 +338,7 @@
 
 ## dosr 0.2.0
 
-### FUNCIONALIDAD MAYOR: PRUEBAS DE SIGNIFICANCIA ESTADÍSTICA
+**FUNCIONALIDAD MAYOR: PRUEBAS DE SIGNIFICANCIA ESTADÍSTICA**
 
 - Se ha introducido una nueva funcionalidad para calcular y reportar
   pruebas de significancia estadística, controlada por el nuevo
@@ -313,7 +366,7 @@
 
 ## dosr 0.1.5
 
-### MEJORAS DE FORMATO Y USABILIDAD
+**MEJORAS DE FORMATO Y USABILIDAD**
 
 - Se ha añadido el argumento `usar_etiqueta_var` (Booleano, por defecto
   `TRUE`) a
@@ -330,7 +383,7 @@
   depender del formato de celda de Excel. Esto mejora la portabilidad y
   consistencia de los resultados.
 
-### CORRECCIONES
+**CORRECCIONES**
 
 - Se ha solucionado un bug que causaba que la columna `fiabilidad`
   apareciera en blanco para las categorías sin casos generadas por
@@ -345,7 +398,7 @@
 
 ## dosr 0.1.4
 
-### CAMBIO FUNDAMENTAL EN CRITERIOS DE FIABILIDAD
+**CAMBIO FUNDAMENTAL EN CRITERIOS DE FIABILIDAD**
 
 - Se ha reescrito por completo la lógica para clasificar la fiabilidad
   de las estimaciones (`Fiable`, `Poco Fiable`, `No Fiable`) para
@@ -365,7 +418,7 @@
     muestral, el argumento `es_var_estudio` y el coeficiente de
     variación (CV).
 
-### MEJORAS INTERNAS Y CORRECCIONES
+**MEJORAS INTERNAS Y CORRECCIONES**
 
 - Se ha añadido el argumento `es_var_estudio` a las funciones
   [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
@@ -374,7 +427,7 @@
 
 ## dosr 0.1.3
 
-### NUEVAS FUNCIONALIDADES
+**NUEVAS FUNCIONALIDADES**
 
 - Se ha añadido un nuevo argumento `multi_des` a
   [`obs_prop()`](https://gabrielsotomayorl.github.io/dosr/reference/obs_prop.md)
@@ -394,14 +447,14 @@
   previniendo ejecuciones excesivamente largas y posibles cuelgues de la
   sesión.
 
-### MEJORAS INTERNAS
+**MEJORAS INTERNAS**
 
 - Se ha refactorizado la lógica interna para pasar el parámetro
   `multi_des` al motor de cálculo, permitiendo la nueva funcionalidad.
 
 ## dosr 0.1.2
 
-### MEJORAS DE FORMATO Y USABILIDAD
+**MEJORAS DE FORMATO Y USABILIDAD**
 
 - Se ha rediseñado por completo el formato de las hojas de reporte en
   Excel para seguir un estándar de publicación:
@@ -424,7 +477,7 @@
 - Los nombres de las hojas de reporte en Excel han sido simplificados
   (ej. de `Formato_nac` a `2_nac`) para ser más concisos.
 
-### CORRECCIONES
+**CORRECCIONES**
 
 - Se ha corregido el orden de las columnas en el `data.frame` que
   devuelven las funciones a R. Ahora la columna `nivel` aparece
@@ -433,7 +486,7 @@
 
 ## dosr 0.1.1
 
-### CORRECCIONES Y MEJORAS
+**CORRECCIONES Y MEJORAS**
 
 - Se ha solucionado un error fatal en `obs_prop` que impedía su
   ejecución.

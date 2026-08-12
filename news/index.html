@@ -11,7 +11,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,23 +49,38 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.3.4" id="dosr-034">dosr 0.3.4<a class="anchor" aria-label="anchor" href="#dosr-034"></a></h2>
-<div class="section level3">
-<h3 id="cambios-para-la-publicación-en-cran-0-3-4">Cambios para la publicación en CRAN<a class="anchor" aria-label="anchor" href="#cambios-para-la-publicaci%C3%B3n-en-cran-0-3-4"></a></h3>
+<h2 class="pkg-version" data-toc-text="0.3.5" id="dosr-035">dosr 0.3.5<a class="anchor" aria-label="anchor" href="#dosr-035"></a></h2>
+<p><strong>Nuevas funcionalidades y mejoras</strong></p>
+<ul><li>Las cinco funciones <code>obs_*</code> incorporan <code>filename</code>, notas al pie mediante <code>notas</code>, control de la evaluación general con <code>mostrar_evaluacion_general</code> y resaltado opcional de p-valores mediante <code>color_significancia</code>.</li>
+<li>Los datos de ejemplo <code>casen_2022</code> y <code>casen_2024</code> incorporan <code>pco1</code> (relación con la jefatura del hogar). Los ejemplos de ingreso del hogar en las viñetas filtran <code>pco1 == 1</code> para contar cada hogar una sola vez.</li>
+<li>Los nombres automáticos de archivo conservan exactamente su formato histórico mientras sean cortos. Si superan el umbral portable, solo se trunca la parte descriptiva y se añade un identificador estable de seis caracteres, manteniendo completos los años y el tipo de cálculo.</li>
+<li>Las tablas de significancia de proporciones respetan el orden del tabulado principal: primero las desagregaciones y luego la categoría del indicador, preservando el orden de códigos o etiquetas en vez del alfabético.</li>
+<li>La evaluación general y las notas personalizadas forman una secuencia común de notas rotuladas con letras antes de la fuente. La frase porcentual ya no duplica “Todas las estimaciones son fiables” cuando el porcentaje es 100%.</li>
+<li>Los grados de libertad usan ahora los identificadores internos del diseño de <code>survey</code>, respetando PSU repetidas entre estratos cuando <code>nest = TRUE</code> y admitiendo diseños sin columnas explícitas de conglomerado o estrato.</li>
+<li>
+<code><a href="../reference/multi_bin.html">multi_bin()</a></code> calcula <code>n_universo</code> por variable y dominio como el número de observaciones no perdidas; agregar otros indicadores ya no altera este criterio de fiabilidad.</li>
+<li>
+<code><a href="../reference/obs_prop.html">obs_prop()</a></code> reconoce los códigos originales no consecutivos de variables <code>haven_labelled</code> en <code>categoria</code> y aplica el filtro antes de construir las tablas del reporte.</li>
+<li>
+<code>sufijo</code> rechaza valores duplicados, vacíos o <code>NA</code> para evitar columnas ambiguas con terminaciones <code>.x</code> y <code>.y</code>.</li>
+<li>dosr 0.3.4 fue publicado en CRAN el 6 de julio de 2026: <a href="https://CRAN.R-project.org/package=dosr" class="external-link uri">https://CRAN.R-project.org/package=dosr</a>.</li>
+<li>Instrucciones de instalación actualizadas (README y viñeta de introducción): la versión estable se instala con <code>install.packages("dosr")</code>.</li>
+<li>Nueva cita formal vía <code>citation("dosr")</code>, con el DOI de CRAN (10.32614/CRAN.package.dosr).</li>
+<li>Referencias de la viñeta de metodología homologadas con la <code>Description</code> del paquete: Manual para la Investigación Casen 2022 (División Observatorio Social, 2023; enlace BIDAT) e INE (2020), <em>Fundamentos del Estándar para la evaluación de la calidad de las estimaciones en encuestas de hogares</em>.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.4" id="dosr-034">dosr 0.3.4<a class="anchor" aria-label="anchor" href="#dosr-034"></a></h2><p class="text-muted">CRAN release: 2026-07-06</p>
+<p><strong>Cambios para la publicación en CRAN</strong></p>
 <ul><li>El <code>Title</code> y la <code>Description</code> del paquete se redactaron en inglés, reflejando el propósito general del paquete: herramientas desarrolladas para la División Observatorio Social aplicables a cualquier encuesta de diseño complejo (la ‘CASEN’ se incluye solo como datos de ejemplo). Se añadieron las referencias de los métodos siguiendo las convenciones de CRAN: la metodología de fiabilidad del Observatorio Social (División Observatorio Social, 2023) y del INE (2020), y los métodos de estimación en encuestas complejas (Lumley, 2010). La documentación de las funciones y las viñetas permanecen en español.</li>
 <li>Los ejemplos de todas las funciones exportadas dejan de estar envueltos en <code>\donttest{}</code> y ahora se ejecutan (y se testean) automáticamente, usando una región pequeña de la CASEN para correr en pocos segundos.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.3" id="dosr-033">dosr 0.3.3<a class="anchor" aria-label="anchor" href="#dosr-033"></a></h2>
-<div class="section level3">
-<h3 id="cambios-de-comportamiento-breaking-0-3-3">Cambios de comportamiento (breaking)<a class="anchor" aria-label="anchor" href="#cambios-de-comportamiento-breaking-0-3-3"></a></h3>
+<p><strong>Cambios de comportamiento (breaking)</strong></p>
 <ul><li>
 <code>dir</code> ya no tiene valor por defecto (<code>"output"</code>). Cuando <code>save_xlsx = TRUE</code> (o siempre, en el caso de <code><a href="../reference/multi_bin.html">multi_bin()</a></code>), debe especificarse explícitamente el directorio de salida; de lo contrario la función se detiene de inmediato con un mensaje claro. Esto evita escribir en el directorio de trabajo del usuario sin su consentimiento, en línea con la política de CRAN. Los scripts existentes que dependían del default deben agregar <code>dir = "output"</code> (o la ruta que corresponda) a sus llamadas.</li>
 <li>El requisito mínimo de R sube de 3.5.0 a 4.1.0, reflejando las versiones con las que el paquete se desarrolla y testea.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="correcciones-de-robustez-0-3-3">Correcciones de robustez<a class="anchor" aria-label="anchor" href="#correcciones-de-robustez-0-3-3"></a></h3>
+</ul><p><strong>Correcciones de robustez</strong></p>
 <ul><li>
 <code><a href="../reference/obs_prop.html">obs_prop()</a></code>: una estimación con error estándar <code>NA</code> ya no se clasifica erróneamente como <code>"Fiable"</code>; ahora la columna <code>fiabilidad</code> queda <code>NA</code>, en consistencia con el resto de las funciones <code>obs_*</code>.</li>
 <li>Todas las funciones <code>obs_*</code>: un valor <code>NA</code> en los grados de libertad ahora se clasifica como <code>"No Fiable (gl)"</code> también en medias, totales, razones y cuantiles (antes solo en proporciones).</li>
@@ -77,55 +92,39 @@
 <code><a href="../reference/multi_bin.html">multi_bin()</a></code> valida que <code>design</code> sea un objeto <code>tbl_svy</code> y rechaza listas de diseños con un mensaje informativo.</li>
 <li>
 <code>verbose = FALSE</code> ahora silencia también los mensajes de creación de los reportes Excel.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="documentación-0-3-3">Documentación<a class="anchor" aria-label="anchor" href="#documentaci%C3%B3n-0-3-3"></a></h3>
+</ul><p><strong>Documentación</strong></p>
 <ul><li>Los ejemplos de <code><a href="../reference/obs_prop.html">obs_prop()</a></code> y <code><a href="../reference/multi_bin.html">multi_bin()</a></code> usan un subconjunto regional de la CASEN para ejecutarse en pocos segundos.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.2" id="dosr-032">dosr 0.3.2<a class="anchor" aria-label="anchor" href="#dosr-032"></a></h2>
-<div class="section level3">
-<h3 id="mejoras-0-3-2">Mejoras<a class="anchor" aria-label="anchor" href="#mejoras-0-3-2"></a></h3>
+<p><strong>Mejoras</strong></p>
 <ul><li>Las pruebas de significancia estadística (<code>sig = TRUE</code>) ahora se muestran en más escenarios de los reportes con formato. Hasta v0.3.1 solo aparecían en los cruces por una variable de desagregación:
 <ul><li>
 <strong>Total nacional</strong>: prueba contra el último año (estadísticos continuos y proporciones) y, en proporciones, prueba entre categorías.</li>
 <li>
 <strong>Cruces de dos o más variables de desagregación</strong> (<code>multi_des</code>): prueba contra el último año y contra la estimación nacional.</li>
 </ul></li>
-</ul></div>
-<div class="section level3">
-<h3 id="correcciones-0-3-2">Correcciones<a class="anchor" aria-label="anchor" href="#correcciones-0-3-2"></a></h3>
+</ul><p><strong>Correcciones</strong></p>
 <ul><li>Corrección de formato en las tablas de significancia: los títulos ahora aplican el borde y el formato de encabezado a todo el rango combinado.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.1" id="dosr-031">dosr 0.3.1<a class="anchor" aria-label="anchor" href="#dosr-031"></a></h2>
-<div class="section level3">
-<h3 id="nuevas-funcionalidades-0-3-1">Nuevas funcionalidades<a class="anchor" aria-label="anchor" href="#nuevas-funcionalidades-0-3-1"></a></h3>
+<p><strong>Nuevas funcionalidades</strong></p>
 <ul><li>El argumento <code>filt</code> ahora acepta expresiones R sin comillas además de strings: <code>filt = edad &gt; 18</code> es equivalente a <code>filt = "edad &gt; 18"</code>. El comportamiento anterior (string) se mantiene sin cambios.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="mejoras-de-rendimiento-0-3-1">Mejoras de rendimiento<a class="anchor" aria-label="anchor" href="#mejoras-de-rendimiento-0-3-1"></a></h3>
+</ul><p><strong>Mejoras de rendimiento</strong></p>
 <ul><li><p><code>parallel = TRUE</code> ahora también acelera ejecuciones con un <strong>único diseño</strong> que usen múltiples variables de desagregación (<code>des</code> de longitud &gt; 1 o <code>multi_des = TRUE</code>): las combinaciones de desagregación se distribuyen entre workers. Hasta v0.3.0, esta opción solo tenía efecto en series multi-año.</p></li>
 <li><p><code><a href="../reference/multi_bin.html">multi_bin()</a></code> reduce el número de llamadas internas a <code><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">srvyr::summarise</a></code> de N × 3 (una por variable) a 3 independientemente del número de variables, reutilizando la configuración del diseño muestral.</p></li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="dosr-030">dosr 0.3.0<a class="anchor" aria-label="anchor" href="#dosr-030"></a></h2>
-<div class="section level3">
-<h3 id="datos-incluidos-0-3-0">Datos incluidos<a class="anchor" aria-label="anchor" href="#datos-incluidos-0-3-0"></a></h3>
+<p><strong>Datos incluidos</strong></p>
 <ul><li>Se incorporan los conjuntos de datos <code>casen_2022</code> y <code>casen_2024</code> con la totalidad de las observaciones de la Encuesta CASEN y las variables necesarias para reproducir todos los ejemplos del paquete (<code>region</code>, <code>area</code>, <code>sexo</code>, <code>edad</code>, <code>pobreza</code>, <code>ytotcorh</code>, <code>activ</code>, <code>r8a</code>–<code>r8h</code>). Los datos están disponibles directamente al cargar el paquete sin necesidad de descargas adicionales.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="criterios-de-fiabilidad-0-3-0">Criterios de fiabilidad<a class="anchor" aria-label="anchor" href="#criterios-de-fiabilidad-0-3-0"></a></h3>
+</ul><p><strong>Criterios de fiabilidad</strong></p>
 <ul><li>Todos los parámetros de fiabilidad son ahora configurables en cada llamada a <code>obs_*</code>: <code>cv_umbral_alto</code> (por defecto 0.30), <code>cv_umbral_medio</code> (0.20), <code>n_minimo</code> (30) y <code>nivel_confianza</code> (0.95).</li>
 <li>Las etiquetas de la columna <code>fiabilidad</code> especifican la causa del rechazo: <code>"No Fiable (gl)"</code> (grados de libertad insuficientes), <code>"No Fiable (muestra)"</code> (tamaño muestral insuficiente), <code>"No Fiable (CV)"</code> (coeficiente de variación muy alto), <code>"Poco Fiable (CV)"</code> (CV moderado), <code>"Poco Fiable (EE)"</code> (error estándar supera el umbral beta), <code>"Sin casos"</code> (subgrupo sin observaciones en la muestra). Esta nomenclatura es consistente en todas las funciones <code>obs_*</code> y <code><a href="../reference/multi_bin.html">multi_bin()</a></code>.</li>
 <li>Nuevo argumento <code>universo_crit</code> en <code><a href="../reference/obs_prop.html">obs_prop()</a></code>: fuerza el uso del N total del dominio (suma de categorías) como criterio muestral, independientemente del número de categorías de la variable.</li>
 <li>Nuevo argumento <code>es_var_estudio</code> disponible en todas las funciones <code>obs_*</code>: relaja el criterio de tamaño muestral para variables centrales del instrumento.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="nuevos-argumentos-de-reporte-todas-las-funciones-obs_-0-3-0">Nuevos argumentos de reporte (todas las funciones <code>obs_*</code>)<a class="anchor" aria-label="anchor" href="#nuevos-argumentos-de-reporte-todas-las-funciones-obs_-0-3-0"></a></h3>
+</ul><p><strong>Nuevos argumentos de reporte (todas las funciones <code>obs_*</code>)</strong></p>
 <ul><li>
 <code>nombre</code>: sobreescribe el título del indicador en el reporte Excel.</li>
 <li>
@@ -138,78 +137,58 @@
 <code>color_fiabilidad</code>: colorea el texto de las celdas de estimación en ámbar (poco fiable) o rojo (no fiable).</li>
 <li>
 <code>categoria</code> (solo <code><a href="../reference/obs_prop.html">obs_prop()</a></code>): filtra el output a una o más categorías específicas del outcome, aceptando etiquetas de texto o códigos numéricos.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="reportes-excel-0-3-0">Reportes Excel<a class="anchor" aria-label="anchor" href="#reportes-excel-0-3-0"></a></h3>
+</ul><p><strong>Reportes Excel</strong></p>
 <ul><li>Todas las hojas de formato incluyen una nota de calidad automática que lista las estimaciones poco o no fiables por año, especificando la causa. Incluye advertencia cuando menos del 50% del cuadro es publicable.</li>
 <li>La línea de fuente (<code>fuente =</code>) se escribe en negrita en el Excel.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="pruebas-de-significancia-sig--true-0-3-0">Pruebas de significancia (<code>sig = TRUE</code>)<a class="anchor" aria-label="anchor" href="#pruebas-de-significancia-sig--true-0-3-0"></a></h3>
+</ul><p><strong>Pruebas de significancia (<code>sig = TRUE</code>)</strong></p>
 <ul><li>El nivel nacional genera la tabla “Test contra último año” al comparar múltiples diseños.</li>
 <li>Las desagregaciones múltiples (<code>multi_des = TRUE</code>) incluyen las tablas “Test contra último año” y “Test contra estimación nacional”.</li>
 <li>Las pruebas se calculan mediante un test t de Welch adaptado a diseños complejos: <code>t = (θ₁ − θ₂) / √(EE₁² + EE₂²)</code>, con grados de libertad igual al mínimo de los dos dominios comparados. El resultado reportado es el p-valor bilateral.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="documentación-y-sitio-0-3-0">Documentación y sitio<a class="anchor" aria-label="anchor" href="#documentaci%C3%B3n-y-sitio-0-3-0"></a></h3>
+</ul><p><strong>Documentación y sitio</strong></p>
 <ul><li>Ejemplos ejecutables (<code>\donttest{}</code>) en todas las funciones exportadas, usando los datos <code>casen_2022</code> y <code>casen_2024</code> incluidos en el paquete.</li>
 <li>Viñeta introductoria (<code><a href="../articles/introduccion.html">vignette("introduccion")</a></code>) con ejemplos reales de la CASEN para todos los tipos de estimación.</li>
 <li>Nueva viñeta de metodología (<code><a href="../articles/metodologia.html">vignette("metodologia")</a></code>) que documenta los criterios de fiabilidad con fórmulas, diagrama de flujo y referencias citables, y describe las tres pruebas de significancia disponibles.</li>
 <li>Sitio web del paquete disponible en <a href="https://gabrielsotomayorl.github.io/dosr/" class="uri">https://gabrielsotomayorl.github.io/dosr/</a>.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.4" id="dosr-024">dosr 0.2.4<a class="anchor" aria-label="anchor" href="#dosr-024"></a></h2>
-<div class="section level3">
-<h3 id="mejoras-0-2-4">MEJORAS<a class="anchor" aria-label="anchor" href="#mejoras-0-2-4"></a></h3>
+<p><strong>MEJORAS</strong></p>
 <ul><li>Se añadió el argumento <code>rm_na_des</code> (por defecto <code>FALSE</code>) a todas las funciones <code>obs_*</code> para permitir excluir las categorías “NA” de cada desagregación de forma automática cuando se requiera.</li>
 <li>Se corrigieron los totales reportados en Excel para medias, cuantiles, totales y razones cuando <code>rm_na_des = TRUE</code>, de modo que las filas “Total país” reflejen los casos y expansiones filtrados en cada desagregación.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.3" id="dosr-023">dosr 0.2.3<a class="anchor" aria-label="anchor" href="#dosr-023"></a></h2>
-<div class="section level3">
-<h3 id="nuevas-funcionalidades-principales-0-2-3">NUEVAS FUNCIONALIDADES PRINCIPALES<a class="anchor" aria-label="anchor" href="#nuevas-funcionalidades-principales-0-2-3"></a></h3>
+<p><strong>NUEVAS FUNCIONALIDADES PRINCIPALES</strong></p>
 <ul><li>Se incorporó la nueva función <code><a href="../reference/obs_cuantil.html">obs_cuantil()</a></code> para calcular cuantiles (mediana por defecto) con las mismas capacidades de desagregación, criterios de fiabilidad, pruebas de significancia y reportes en Excel que <code><a href="../reference/obs_media.html">obs_media()</a></code>.</li>
 <li>Se añadió la función <code><a href="../reference/obs_total.html">obs_total()</a></code> para estimar totales ponderados con idéntico flujo de trabajo (significancia, fiabilidad y reportes en Excel) que las utilidades existentes.</li>
 <li>Se incorporó la función <code><a href="../reference/obs_ratio.html">obs_ratio()</a></code> para estimar razones ponderadas (numerador/denominador) replicando la lógica de filtrado, desagregaciones, significancia y reportes de las demás herramientas <code>obs_*</code>.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="mejoras-y-correcciones-0-2-3">MEJORAS Y CORRECCIONES<a class="anchor" aria-label="anchor" href="#mejoras-y-correcciones-0-2-3"></a></h3>
+</ul><p><strong>MEJORAS Y CORRECCIONES</strong></p>
 <ul><li>Todas las funciones <code>obs_*</code> ejecutadas en paralelo heredan automáticamente la opción global <code>survey.lonely.psu</code>, evitando errores en estratos con una sola PSU al usar <code>parallel = TRUE</code>.</li>
 <li>
 <code><a href="../reference/obs_prop.html">obs_prop()</a></code> y <code><a href="../reference/multi_bin.html">multi_bin()</a></code> corrigen el cálculo de los grados de libertad para obtenerlos a nivel de dominio.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.2" id="dosr-022">dosr 0.2.2<a class="anchor" aria-label="anchor" href="#dosr-022"></a></h2>
-<div class="section level3">
-<h3 id="nueva-funcionalidad-perfilado-rápido-de-variables-binarias-0-2-2">NUEVA FUNCIONALIDAD: PERFILADO RÁPIDO DE VARIABLES BINARIAS<a class="anchor" aria-label="anchor" href="#nueva-funcionalidad-perfilado-r%C3%A1pido-de-variables-binarias-0-2-2"></a></h3>
+<p><strong>NUEVA FUNCIONALIDAD: PERFILADO RÁPIDO DE VARIABLES BINARIAS</strong></p>
 <ul><li>Se ha añadido una nueva función <code><a href="../reference/multi_bin.html">multi_bin()</a></code> al paquete.</li>
 <li>Esta función está diseñada para el análisis exploratorio rápido de <strong>múltiples variables dicotómicas (0/1)</strong> dentro de un <strong>único diseño de encuesta</strong>.</li>
 <li>Calcula estimaciones de proporción (presentadas como porcentajes por defecto), errores estándar, N expandido (de los “1s”), N muestral (de los “1s”) y criterios de fiabilidad.</li>
 <li>Permite desagregaciones simples (no cruzadas) a través del argumento <code>des</code>, generando hojas de reporte separadas.</li>
 <li>Incluye argumentos para personalizar el número de decimales de la estimación y del error estándar por separado (<code>decimales</code> y <code>decimales_se</code>).</li>
 <li>Genera un reporte en Excel con una hoja consolidada y hojas de formato profesional, siguiendo el estilo de <code>obs_prop</code> y <code>obs_media</code>.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="mejoras-internas-0-2-2">MEJORAS INTERNAS<a class="anchor" aria-label="anchor" href="#mejoras-internas-0-2-2"></a></h3>
+</ul><p><strong>MEJORAS INTERNAS</strong></p>
 <ul><li>Se ha movido el operador helper <code>%||%</code> a un archivo de utilidades (<code>R/utils.R</code>) para mejorar la estructura del paquete y seguir las mejores prácticas, eliminando código ejecutable del nivel superior de los scripts de funciones.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.1" id="dosr-021">dosr 0.2.1<a class="anchor" aria-label="anchor" href="#dosr-021"></a></h2>
-<div class="section level3">
-<h3 id="mejoras-de-usabilidad-0-2-1">MEJORAS DE USABILIDAD<a class="anchor" aria-label="anchor" href="#mejoras-de-usabilidad-0-2-1"></a></h3>
+<p><strong>MEJORAS DE USABILIDAD</strong></p>
 <ul><li>Se ha añadido un nuevo argumento <code>dir</code> a <code><a href="../reference/obs_prop.html">obs_prop()</a></code> y <code><a href="../reference/obs_media.html">obs_media()</a></code>.</li>
 <li>Este argumento permite al usuario especificar el directorio de destino donde se guardará el archivo Excel.</li>
 <li>El valor por defecto es <code>dir = "output"</code>, manteniendo la compatibilidad con el comportamiento de versiones anteriores. La función crea el directorio si este no existe.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="dosr-020">dosr 0.2.0<a class="anchor" aria-label="anchor" href="#dosr-020"></a></h2>
-<div class="section level3">
-<h3 id="funcionalidad-mayor-pruebas-de-significancia-estadística-0-2-0">FUNCIONALIDAD MAYOR: PRUEBAS DE SIGNIFICANCIA ESTADÍSTICA<a class="anchor" aria-label="anchor" href="#funcionalidad-mayor-pruebas-de-significancia-estad%C3%ADstica-0-2-0"></a></h3>
+<p><strong>FUNCIONALIDAD MAYOR: PRUEBAS DE SIGNIFICANCIA ESTADÍSTICA</strong></p>
 <ul><li>Se ha introducido una nueva funcionalidad para calcular y reportar pruebas de significancia estadística, controlada por el nuevo argumento <code>sig</code> (Booleano, por defecto <code>FALSE</code>) en <code><a href="../reference/obs_prop.html">obs_prop()</a></code> y <code><a href="../reference/obs_media.html">obs_media()</a></code>.</li>
 <li>Cuando <code>sig = TRUE</code>, las hojas de formato en los reportes de Excel ahora incluyen tablas adicionales con los p-values de las siguientes comparaciones:
 <ol style="list-style-type: decimal"><li>
@@ -222,25 +201,19 @@
 <li>Los cálculos se realizan mediante un test t de Student que considera las estimaciones, los errores estándar y los grados de libertad de cada grupo, asegurando la validez estadística para diseños muestrales complejos.</li>
 <li>Se ha creado un nuevo módulo interno (<code>R/significance.R</code>) con una lógica robusta y defensiva para manejar todos los casos de cálculo y prevenir errores con datos vacíos o casos límite.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.5" id="dosr-015">dosr 0.1.5<a class="anchor" aria-label="anchor" href="#dosr-015"></a></h2>
-<div class="section level3">
-<h3 id="mejoras-de-formato-y-usabilidad-0-1-5">MEJORAS DE FORMATO Y USABILIDAD<a class="anchor" aria-label="anchor" href="#mejoras-de-formato-y-usabilidad-0-1-5"></a></h3>
+<p><strong>MEJORAS DE FORMATO Y USABILIDAD</strong></p>
 <ul><li>Se ha añadido el argumento <code>usar_etiqueta_var</code> (Booleano, por defecto <code>TRUE</code>) a <code><a href="../reference/obs_prop.html">obs_prop()</a></code> y <code><a href="../reference/obs_media.html">obs_media()</a></code>. Si está activo, se utiliza la etiqueta de la variable de interés (extraída con el paquete <code>labelled</code>) como título del indicador en los reportes de Excel.</li>
 <li>En <code><a href="../reference/obs_prop.html">obs_prop()</a></code>, el argumento <code>porcentaje = TRUE</code> ahora multiplica las estimaciones y errores estándar por 100 directamente en los datos, en lugar de depender del formato de celda de Excel. Esto mejora la portabilidad y consistencia de los resultados.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="correcciones-0-1-5">CORRECCIONES<a class="anchor" aria-label="anchor" href="#correcciones-0-1-5"></a></h3>
+</ul><p><strong>CORRECCIONES</strong></p>
 <ul><li>Se ha solucionado un bug que causaba que la columna <code>fiabilidad</code> apareciera en blanco para las categorías sin casos generadas por <code><a href="https://tidyr.tidyverse.org/reference/complete.html" class="external-link">tidyr::complete()</a></code>. Ahora se muestra correctamente como “Sin casos”.</li>
 <li>Se ha corregido una inconsistencia en la columna <code>nivel</code> para las categorías sin casos, asegurando que siempre muestre los nombres de las variables de desagregación.</li>
 <li>El paquete ahora pasa <code>R CMD check</code> sin <code>NOTE</code>s, gracias a la correcta declaración de variables globales y la importación explícita de todas las funciones necesarias.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.4" id="dosr-014">dosr 0.1.4<a class="anchor" aria-label="anchor" href="#dosr-014"></a></h2>
-<div class="section level3">
-<h3 id="cambio-fundamental-en-criterios-de-fiabilidad-0-1-4">CAMBIO FUNDAMENTAL EN CRITERIOS DE FIABILIDAD<a class="anchor" aria-label="anchor" href="#cambio-fundamental-en-criterios-de-fiabilidad-0-1-4"></a></h3>
+<p><strong>CAMBIO FUNDAMENTAL EN CRITERIOS DE FIABILIDAD</strong></p>
 <ul><li>Se ha reescrito por completo la lógica para clasificar la fiabilidad de las estimaciones (<code>Fiable</code>, <code>Poco Fiable</code>, <code>No Fiable</code>) para alinearse con los nuevos estándares de calidad.</li>
 <li>
 <strong>Para proporciones:</strong>
@@ -252,31 +225,23 @@
 <strong>Para medias:</strong>
 <ul><li>La lógica de clasificación también ha sido actualizada para seguir el nuevo flujo de decisión basado en grados de libertad, tamaño muestral, el argumento <code>es_var_estudio</code> y el coeficiente de variación (CV).</li>
 </ul></li>
-</ul></div>
-<div class="section level3">
-<h3 id="mejoras-internas-y-correcciones-0-1-4">MEJORAS INTERNAS Y CORRECCIONES<a class="anchor" aria-label="anchor" href="#mejoras-internas-y-correcciones-0-1-4"></a></h3>
+</ul><p><strong>MEJORAS INTERNAS Y CORRECCIONES</strong></p>
 <ul><li>Se ha añadido el argumento <code>es_var_estudio</code> a las funciones <code><a href="../reference/obs_prop.html">obs_prop()</a></code> y <code><a href="../reference/obs_media.html">obs_media()</a></code>.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.3" id="dosr-013">dosr 0.1.3<a class="anchor" aria-label="anchor" href="#dosr-013"></a></h2>
-<div class="section level3">
-<h3 id="nuevas-funcionalidades-0-1-3">NUEVAS FUNCIONALIDADES<a class="anchor" aria-label="anchor" href="#nuevas-funcionalidades-0-1-3"></a></h3>
+<p><strong>NUEVAS FUNCIONALIDADES</strong></p>
 <ul><li>Se ha añadido un nuevo argumento <code>multi_des</code> a <code><a href="../reference/obs_prop.html">obs_prop()</a></code> y <code><a href="../reference/obs_media.html">obs_media()</a></code> para controlar el comportamiento de las desagregaciones:
 <ul><li>Si <code>multi_des = TRUE</code> (valor por defecto), el paquete calcula todas las combinaciones posibles de las variables de desagregación, como en versiones anteriores.</li>
 <li>Si <code>multi_des = FALSE</code>, el paquete solo calcula las desagregaciones simples (por cada variable en <code>des</code> de forma individual), lo que acelera significativamente los cálculos y es ideal para análisis exploratorios o cuando se usan muchas variables.</li>
 </ul></li>
 <li>Se ha implementado un “fusible de seguridad” para proteger al usuario. Si se solicitan más de 3 variables de desagregación con <code>multi_des = TRUE</code>, la función se detendrá con un error informativo, previniendo ejecuciones excesivamente largas y posibles cuelgues de la sesión.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="mejoras-internas-0-1-3">MEJORAS INTERNAS<a class="anchor" aria-label="anchor" href="#mejoras-internas-0-1-3"></a></h3>
+</ul><p><strong>MEJORAS INTERNAS</strong></p>
 <ul><li>Se ha refactorizado la lógica interna para pasar el parámetro <code>multi_des</code> al motor de cálculo, permitiendo la nueva funcionalidad.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.2" id="dosr-012">dosr 0.1.2<a class="anchor" aria-label="anchor" href="#dosr-012"></a></h2>
-<div class="section level3">
-<h3 id="mejoras-de-formato-y-usabilidad-0-1-2">MEJORAS DE FORMATO Y USABILIDAD<a class="anchor" aria-label="anchor" href="#mejoras-de-formato-y-usabilidad-0-1-2"></a></h3>
+<p><strong>MEJORAS DE FORMATO Y USABILIDAD</strong></p>
 <ul><li>Se ha rediseñado por completo el formato de las hojas de reporte en Excel para seguir un estándar de publicación:
 <ul><li>Los títulos de cada bloque de métricas (ej. “Estimación”, “Error estándar”) ahora se muestran en una única celda combinada horizontalmente sobre su respectiva tabla.</li>
 <li>La estructura superior de cada hoja de formato ha sido estandarizada a: Fila vacía, “Nombre indicador” (en negrita), “Tipo de cálculo”, Fila vacía.</li>
@@ -285,23 +250,18 @@
 </ul></li>
 <li>Se ha añadido un nuevo argumento <code>verbose</code> a <code><a href="../reference/obs_prop.html">obs_prop()</a></code> y <code><a href="../reference/obs_media.html">obs_media()</a></code>. Por defecto es <code>TRUE</code> y muestra mensajes de progreso por etapas en la consola, informando al usuario sobre el estado de los cálculos.</li>
 <li>Los nombres de las hojas de reporte en Excel han sido simplificados (ej. de <code>Formato_nac</code> a <code>2_nac</code>) para ser más concisos.</li>
-</ul></div>
-<div class="section level3">
-<h3 id="correcciones-0-1-2">CORRECCIONES<a class="anchor" aria-label="anchor" href="#correcciones-0-1-2"></a></h3>
+</ul><p><strong>CORRECCIONES</strong></p>
 <ul><li>Se ha corregido el orden de las columnas en el <code>data.frame</code> que devuelven las funciones a R. Ahora la columna <code>nivel</code> aparece consistentemente antes que las variables de desagregación, coincidiendo con el formato de la hoja “Consolidado” en Excel.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.1" id="dosr-011">dosr 0.1.1<a class="anchor" aria-label="anchor" href="#dosr-011"></a></h2>
-<div class="section level3">
-<h3 id="correcciones-y-mejoras-0-1-1">CORRECCIONES Y MEJORAS<a class="anchor" aria-label="anchor" href="#correcciones-y-mejoras-0-1-1"></a></h3>
+<p><strong>CORRECCIONES Y MEJORAS</strong></p>
 <ul><li>Se ha solucionado un error fatal en <code>obs_prop</code> que impedía su ejecución.</li>
 <li>Se ha corregido el problema que causaba filas vacías en los reportes de <code>obs_media</code> para combinaciones sin casos.</li>
 <li>Se ha implementado la generación de la pestaña de reporte formateado para los resultados a nivel nacional en <code>obs_media</code>.</li>
 <li>Se ha corregido el ordenamiento en la hoja de consolidado para respetar la jerarquía de las desagregaciones (nacional -&gt; 1 variable -&gt; 2 variables, etc.).</li>
 <li>Se ha eliminado un <code>warning</code> innecesario que aparecía al solicitar un reporte nacional formateado.</li>
 </ul></div>
-</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="dosr-010">dosr 0.1.0<a class="anchor" aria-label="anchor" href="#dosr-010"></a></h2>
 <ul><li>Initial submission.</li>
@@ -315,7 +275,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

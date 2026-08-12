@@ -33,7 +33,11 @@ obs_total(
   cv_umbral_medio = 0.2,
   n_minimo = 30L,
   nivel_confianza = 0.95,
-  verbose = TRUE
+  verbose = TRUE,
+  filename = NULL,
+  notas = NULL,
+  mostrar_evaluacion_general = TRUE,
+  color_significancia = FALSE
 )
 ```
 
@@ -45,7 +49,8 @@ obs_total(
 
 - sufijo:
 
-  Vector de strings para sufijos (p.ej. c("2020","2022")).
+  Vector de strings no vacíos y únicos para sufijos (p.ej. \`c("2020",
+  "2022")\`).
 
 - var:
 
@@ -183,6 +188,29 @@ obs_total(
 - verbose:
 
   Booleano. Si \`TRUE\` (por defecto), muestra mensajes de progreso.
+
+- filename:
+
+  Nombre personalizado del archivo Excel, con o sin extensión \`.xlsx\`.
+  Si es \`NULL\`, se genera automáticamente; los nombres automáticos
+  solo se truncan cuando exceden el límite portable y conservan años y
+  tipo.
+
+- notas:
+
+  Vector de textos para notas al pie personalizadas. Se rotulan
+  automáticamente con letras y se escriben antes de la fuente.
+
+- mostrar_evaluacion_general:
+
+  Booleano. Si \`TRUE\` (por defecto), incluye la evaluación general de
+  fiabilidad dentro de las notas del tabulado.
+
+- color_significancia:
+
+  Booleano. Si \`TRUE\`, destaca los p-valores menores que \`1 -
+  nivel_confianza\` en las tablas de significancia. Por defecto
+  \`FALSE\`.
 
 ## Value
 
