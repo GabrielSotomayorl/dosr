@@ -5,6 +5,7 @@
 utils::globalVariables(c(
   ".",
   ".data",
+  ".dosr_domain",
   ".psu",
   ".str",
   ".w",

@@ -2,7 +2,7 @@ Package: dosr
 Type: Package
 Depends: R (>= 4.1.0)
 Title: Survey Analysis Tools for the Chilean Social Observatory
-Version: 0.3.5
+Version: 0.3.6
 Authors@R:
     person("Gabriel", "Sotomayor", , "gabrielsotomayorl@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9889-9637"))
@@ -28,6 +28,7 @@ LazyData: true
 RoxygenNote: 7.3.2
 Imports:
     dplyr,
+    survey,
     srvyr,
     tidyr,
     purrr,
@@ -41,7 +42,6 @@ Imports:
     tibble
 Suggests:
     testthat (>= 3.0.0),
-    survey,
     knitr,
     rmarkdown,
     withr

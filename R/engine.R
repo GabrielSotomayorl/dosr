@@ -75,6 +75,20 @@ calculate_estimates <- function(dsgn,
       .str = dsgn$strata[[1L]]
     )
 
+  # Capture the direct back-end helpers in this closure so future/furrr exports
+  # them together with calc_tabla when combinations run in separate workers.
+  # Rebind the helpers in this call environment and clone the two entry points
+  # into it. This makes the complete backend self-contained when furrr sends
+  # calc_tabla to separate R sessions.
+  .survey_domain_groups <- .survey_domain_groups
+  .survey_restore_groups <- .survey_restore_groups
+  survey_direct_prop <- rlang::new_function(
+    formals(.survey_direct_prop), body(.survey_direct_prop), env = environment()
+  )
+  survey_direct_scalar <- rlang::new_function(
+    formals(.survey_direct_scalar), body(.survey_direct_scalar), env = environment()
+  )
+
   # --- Función de cálculo interna ---
   calc_tabla <- function(grp_des) {
     dsgn_loc <- dsgn
@@ -86,10 +100,7 @@ calculate_estimates <- function(dsgn,
     totals_info <- NULL
     if (type == "prop") {
       grp_vars <- c(grp_des, var)
-      est <- dsgn_loc %>%
-        group_by(across(all_of(grp_vars))) %>%
-        summarise(prop = survey_prop(vartype = "se", level = nivel_confianza), .groups = "drop") %>%
-        rename(se = prop_se)
+      est <- survey_direct_prop(dsgn_loc, grp_des, var)
 
       if (porcentaje) {
         est <- est %>% mutate(
@@ -139,30 +150,18 @@ calculate_estimates <- function(dsgn,
 
     } else if (type == "mean") {
       grp_vars <- grp_des
-      est <- dsgn_loc %>% group_by(across(all_of(grp_vars))) %>% summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), level = nivel_confianza, na.rm = TRUE), .groups = "drop") %>% rename(se = media_se, cv = media_cv)
+      est <- survey_direct_scalar(dsgn_loc, grp_vars, "mean", variable = var) %>%
+        dplyr::rename(media = dplyr::all_of("estimate"))
     } else if (type == "total") {
       grp_vars <- grp_des
-      est <- dsgn_loc %>%
-        group_by(across(all_of(grp_vars))) %>%
-        summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), level = nivel_confianza, na.rm = TRUE), .groups = "drop") %>%
-        rename(se = total_se, cv = total_cv)
+      est <- survey_direct_scalar(dsgn_loc, grp_vars, "total", variable = var) %>%
+        dplyr::rename(total = dplyr::all_of("estimate"))
     } else if (type == "ratio") {
       grp_vars <- grp_des
-      num_sym <- rlang::sym(numerator_var)
-      den_sym <- rlang::sym(denominator_var)
-      est <- dsgn_loc %>%
-        group_by(across(all_of(grp_vars))) %>%
-        summarise(
-          ratio = survey_ratio(
-            !!num_sym,
-            !!den_sym,
-            vartype = c("se", "cv"),
-            level = nivel_confianza,
-            na.rm = TRUE
-          ),
-          .groups = "drop"
-        ) %>%
-        rename(se = ratio_se, cv = ratio_cv)
+      est <- survey_direct_scalar(
+        dsgn_loc, grp_vars, "ratio",
+        numerator = numerator_var, denominator = denominator_var
+      ) %>% dplyr::rename(ratio = dplyr::all_of("estimate"))
     } else {
       grp_vars <- grp_des
       est <- tryCatch(
@@ -353,9 +352,10 @@ calculate_estimates <- function(dsgn,
     if (rm_na_des && length(grp_des) > 0) {
       totals_info <- tryCatch({
         if (type == "mean") {
-          total_est <- dsgn_loc %>%
-            summarise(media = survey_mean(.data[[var]], vartype = c("se", "cv"), level = nivel_confianza, na.rm = TRUE), .groups = "drop") %>%
-            rename(se = media_se, cv = media_cv)
+          total_est <- survey_direct_scalar(
+            dsgn_loc, character(), "mean", variable = var
+          ) %>%
+            dplyr::rename(media = dplyr::all_of("estimate"))
           total_tam <- base_df_loc %>%
             summarise(
               n_mues = n(),
@@ -377,9 +377,10 @@ calculate_estimates <- function(dsgn,
             ) %>%
             relocate(variable)
         } else if (type == "total") {
-          total_est <- dsgn_loc %>%
-            summarise(total = survey_total(.data[[var]], vartype = c("se", "cv"), level = nivel_confianza, na.rm = TRUE), .groups = "drop") %>%
-            rename(se = total_se, cv = total_cv)
+          total_est <- survey_direct_scalar(
+            dsgn_loc, character(), "total", variable = var
+          ) %>%
+            dplyr::rename(total = dplyr::all_of("estimate"))
           total_tam <- base_df_loc %>%
             summarise(
               n_mues = n(),
@@ -405,20 +406,11 @@ calculate_estimates <- function(dsgn,
             ) %>%
             relocate(variable)
         } else if (type == "ratio") {
-          num_sym <- rlang::sym(numerator_var)
-          den_sym <- rlang::sym(denominator_var)
-          total_est <- dsgn_loc %>%
-            summarise(
-              ratio = survey_ratio(
-                !!num_sym,
-                !!den_sym,
-                vartype = c("se", "cv"),
-                level = nivel_confianza,
-            na.rm = TRUE
-              ),
-              .groups = "drop"
-            ) %>%
-            rename(se = ratio_se, cv = ratio_cv)
+          total_est <- survey_direct_scalar(
+            dsgn_loc, character(), "ratio",
+            numerator = numerator_var, denominator = denominator_var
+          ) %>%
+            dplyr::rename(ratio = dplyr::all_of("estimate"))
           total_tam <- base_df_loc %>%
             summarise(
               n_mues = n(),

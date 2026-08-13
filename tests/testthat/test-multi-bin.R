@@ -184,6 +184,27 @@ test_that("n_universo se calcula por variable y no cambia al agregar indicadores
   expect_equal(observed[names(expected)], expected)
 })
 
+test_that("multi_bin tolera una variable enteramente NA en un dominio", {
+  raw <- make_multi_binary_data()
+  raw$x1[raw$domain == "B"] <- NA_integer_
+  design <- srvyr::as_survey_design(
+    raw, ids = psu, strata = strata, weights = weight, nest = TRUE
+  )
+  tmp <- withr::local_tempdir()
+
+  result <- multi_bin(
+    design, vars_binarias = c("x1", "x2"), des = "domain",
+    n_minimo = 0L, dir = tmp, verbose = FALSE
+  )
+  domain_x1 <- result[
+    result$desagregacion_tipo == "domain" & result$variable == "x1" &
+      result$desagregacion_categoria == "B",
+  ]
+
+  expect_equal(domain_x1$n_universo, 0)
+  expect_true(is.na(domain_x1$estimacion) || domain_x1$fiabilidad == "Sin casos")
+})
+
 test_that("multi_bin respeta PSU repetidas entre estratos", {
   design <- make_multi_binary_design()
   tmp <- withr::local_tempdir()

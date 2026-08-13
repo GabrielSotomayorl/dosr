@@ -90,27 +90,34 @@ multi_bin <- function(
       )
     }
 
-    d_calc <- if (!is.null(by)) {
-      srvyr::group_by(d, dplyr::across(dplyr::all_of(by)))
-    } else {
-      d
+    # Calculate each variable independently so missing values in one binary
+    # indicator never remove observations from the others. survey::svyby avoids
+    # srvyr's group-by splitting while preserving survey's variance machinery.
+    direct_one <- function(v, statistic) {
+      fit <- .survey_direct_scalar(
+        d, by %||% character(), statistic, variable = v
+      )
+      estimate_name <- if (identical(statistic, "mean")) v else paste0(v, "_tot")
+      se_name <- paste0(estimate_name, "_se")
+      fit %>%
+        dplyr::select(-cv) %>%
+        dplyr::rename(
+          !!estimate_name := dplyr::all_of("estimate"),
+          !!se_name := dplyr::all_of("se")
+        )
     }
 
-    # Pasada 1: medias para todas las variables (una sola llamada survey)
-    mean_exprs <- setNames(
-      lapply(vars_valid, function(v)
-        rlang::expr(srvyr::survey_mean(!!rlang::sym(v), na.rm = TRUE, vartype = "se"))),
-      vars_valid
-    )
-    est_means <- d_calc %>% srvyr::summarise(!!!mean_exprs)
+    combine_direct <- function(statistic) {
+      fits <- lapply(vars_valid, direct_one, statistic = statistic)
+      if (is.null(by)) {
+        purrr::reduce(fits, dplyr::bind_cols)
+      } else {
+        purrr::reduce(fits, dplyr::left_join, by = by)
+      }
+    }
 
-    # Pasada 2: totales para todas las variables
-    total_exprs <- setNames(
-      lapply(vars_valid, function(v)
-        rlang::expr(srvyr::survey_total(!!rlang::sym(v), na.rm = TRUE))),
-      paste0(vars_valid, "_tot")
-    )
-    est_totals <- d_calc %>% srvyr::summarise(!!!total_exprs)
+    est_means <- combine_direct("mean")
+    est_totals <- combine_direct("total")
 
     # Conteos no ponderados y grados de libertad. Los identificadores internos
     # de PSU ya incorporan el estrato cuando el dise\u00f1o usa `nest = TRUE`.
