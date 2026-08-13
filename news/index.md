@@ -1,5 +1,33 @@
 # Changelog
 
+## dosr 0.3.6
+
+**Rendimiento**
+
+- Las estimaciones agrupadas de proporciones, medias, totales y razones
+  usan ahora directamente el motor de `survey`, evitando que `srvyr`
+  divida y reconstruya el diseño una vez por celda. La interfaz pública
+  continúa recibiendo objetos `tbl_svy`; `survey` es el único backend
+  estadístico para estas estimaciones.
+- En CASEN 2024, un tabulado de proporciones con las siete combinaciones
+  de sexo, área y región redujo su tiempo total de aproximadamente 48 a
+  6 segundos. La ganancia depende del tamaño de la base y del número de
+  celdas.
+- [`multi_bin()`](https://gabrielsotomayorl.github.io/dosr/reference/multi_bin.md)
+  utiliza el mismo backend directo, manteniendo universos y valores
+  perdidos independientes para cada variable binaria.
+
+**Validación**
+
+- Se añadieron pruebas de equivalencia para proporciones, medias,
+  totales y razones, incluyendo PSU repetidas entre estratos, categorías
+  ausentes, valores perdidos, ejecución paralela y diseños con pesos
+  replicados.
+- Las comparaciones sobre las CASEN 2022 y 2024 completas reprodujeron
+  exactamente los errores estándar anteriores. Medias, totales y razones
+  coincidieron exactamente; en proporciones, la diferencia numérica
+  máxima respecto del ajuste iterativo anterior fue inferior a `3e-9`.
+
 ## dosr 0.3.5
 
 **Nuevas funcionalidades y mejoras**

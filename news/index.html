@@ -11,7 +11,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">dosr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -48,6 +48,17 @@
       <small>Source: <a href="https://github.com/GabrielSotomayorl/dosr/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.6" id="dosr-036">dosr 0.3.6<a class="anchor" aria-label="anchor" href="#dosr-036"></a></h2>
+<p><strong>Rendimiento</strong></p>
+<ul><li>Las estimaciones agrupadas de proporciones, medias, totales y razones usan ahora directamente el motor de <code>survey</code>, evitando que <code>srvyr</code> divida y reconstruya el diseño una vez por celda. La interfaz pública continúa recibiendo objetos <code>tbl_svy</code>; <code>survey</code> es el único backend estadístico para estas estimaciones.</li>
+<li>En CASEN 2024, un tabulado de proporciones con las siete combinaciones de sexo, área y región redujo su tiempo total de aproximadamente 48 a 6 segundos. La ganancia depende del tamaño de la base y del número de celdas.</li>
+<li>
+<code><a href="../reference/multi_bin.html">multi_bin()</a></code> utiliza el mismo backend directo, manteniendo universos y valores perdidos independientes para cada variable binaria.</li>
+</ul><p><strong>Validación</strong></p>
+<ul><li>Se añadieron pruebas de equivalencia para proporciones, medias, totales y razones, incluyendo PSU repetidas entre estratos, categorías ausentes, valores perdidos, ejecución paralela y diseños con pesos replicados.</li>
+<li>Las comparaciones sobre las CASEN 2022 y 2024 completas reprodujeron exactamente los errores estándar anteriores. Medias, totales y razones coincidieron exactamente; en proporciones, la diferencia numérica máxima respecto del ajuste iterativo anterior fue inferior a <code>3e-9</code>.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.5" id="dosr-035">dosr 0.3.5<a class="anchor" aria-label="anchor" href="#dosr-035"></a></h2>
 <p><strong>Nuevas funcionalidades y mejoras</strong></p>
